@@ -1,0 +1,39 @@
+Sexo,,,Pele,,,PCD,,,Periodo Turma,,Tipo Turma,,,Especificações para preenchimento,
+,codigo,,,Codigo,,,codigo,,,,,,,,
+Masculino,1,,Branca ,1,,NÃO POSSUI DEFICIENCIA ,1,,Manhã,,Regular,,,,
+Feminino,2,,Parda ,2,,PARAPLEGIA ,2,,Tarde,,Multisseriada,,,CPF,000.000.000-00
+Não desejo informar ,3,,Preta ,3,,DEFICIENTE VISUAL ,3,,Integral,,,,,Telefone,(00) 00000-0000
+,,,Amarela (Oriental),5,,SÍNDROME DE DOWN ,4,,Noite,,,,,Email,nomedoemail@dominio.com / nomedoemail@dominio.com.br
+,,,,,,,,,,,,,,Data,00/00/0000
+,,,,,,,,,,,,,,CEP,12233-760
+,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,IMPORTAÇÃO USUÁRIO,
+,,,Indígena ,9,,TRANSTORNO MISTO DE CONDUTA E RETARDO MENTAL GRAVE ,5,,,,,,,USU_MUN_IBGE,É necessário verificar na coluna de Código IBGE dentro da listagem de munícipios
+,,,Não coletado,17,,PARALISIA CEREBRAL ,6,,,,,,,USU_ESC_INEP,É necessário verificar na coluna de Código INEP dentro da listagem de escola dentro de munícipios
+,,,Não desejo informar ,18,,DEFICIÊNCIA AUDITIVA ,7,,,,,,,USU_SPE,Deve ser digitado o código do Sub-Perfil presente no sistema (coluna de código – Perfis de Acesso)
+,,,,,,AUTISMO ,8,,,,,,,,
+,,,,,,DISTÚRBIO DE ATENÇÃO E HIPERATIVIDADE ,9,,,,,,,,
+,,,,,,DISTÚRBIO DESAFIADOR OPOSITOR ,10,,,,,,,IMPORTAÇÃO ALUNO,
+,,,,,,DISTÚRBIO DA ATIVIDADE A DA ATENÇÃO/AUTISMO INFANTIL ,11,,,,,,,ALU_ESC_INEP,É necessário verificar na coluna de Código INEP dentro da listagem de escola dentro de munícipios
+,,,,,,SÍNDROME DE HELLER ,12,,,,,,,ALU_SER_NUMBER,"Numero referente a serie, (exemplo: 1° Ano = 1)"
+,,,,,,DEFICIÊNCIA FÍSICA ,13,,,,,,,ALU_TUR,É necessário verificar na coluna de Código na listagem de turmas
+,,,,,,DEFICIÊNCIA INTELECTUAL ,14,,,,,,,ALU_INEP,É possível a consulta por meio da pagina do Ideb
+,,,,,,HIDROCEFALIA ,15,,,,,,,ALU_GEN,Passar o código referente da listagem de sexo
+,,,,,,TRANSTORNO HIPERCINÉTICO DE CONDUTA ,16,,,,,,,ALU_PEL,Passar o código referente da listagem de peles
+,,,,,,TRANSTORNO DA LINGUAGEM ,17,,,,,,,ALU_PCD,Passar o código referente da listagem de PCD
+,,,,,,RETARDO MENTAL GRAVE ,18,,,,,,,ALU_UF,É necessário verificar o código UF no IBGE
+,,,,,,"AUTISMO, PORTADOR DE ENTIDADE NOSOLÓGICA. ",19,,,,,,,,
+,,,,,,TRANSTORNOS MENTAIS EPILEPSIA ,20,,,,,,,,
+,,,,,,TRANSTORNO DO HUMOR ,21,,,,,,,ALU_NOME_PAI,Não obrigatório
+,,,,,,RETARDO MENTAL ,22,,,,,,,ALU_TEL2,Não obrigatório
+,,,,,,TRANSTORNOS ESPECÍFICOS DO DESENVOLVIMENTO DA FALA E DA LINGUAGEM ,23,,,,,,,ALU_COMPLEMENTO,Não obrigatório
+,,,,,,TRANSTORNO HIPERCINÉTICO ,24,,,,,,,,
+,,,,,,DISTÚRBIO DA ATIVIDADE E DA ATENÇÃO ,25,,,,,,,,
+,,,,,,AUTISMO ATÍPICO/RETARDE MENTAL GRAVELANDAU -KLEFFNER ,26,,,,,,,,
+,,,,,,ATENDIMENTO EDUCACIONAL ESPECIALIZADO ,27,,,,,,,,
+,,,,,,ESQUIZOFRENIAS ,28,,,,,,,,
+,,,,,,DEFICIÊNCIA INTELECTUAL MODERADA ,29,,,,,,,,
+,,,,,,TRANSTORNO DE COMPORTAMENTO E DE LINGUAGEM ,30,,,,,,,,
+,,,,,,MIALGIA ,31,,,,,,,,
+,,,,,,TGD (TRANSTORNO GLOBAL DO DESENVOLVIMENTO) ,32,,,,,,,,
+,,,,,,N/A ,33,,,,,,,,

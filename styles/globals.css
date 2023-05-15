@@ -1,0 +1,130 @@
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body, main {
+  padding: 0;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  color: #20423D;
+  font-weight: 400;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;        /* color of the tracking area */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #7C7C7C;    /* color of the scroll thumb */
+  border-radius: 20px;
+}
+
+#multiple-checkbox-label {
+  top: -8px;
+}
+/* 
+.MuiPaper-root {
+  top: 207px!important;
+} */
+
+button {
+  border: 0;
+  background: none;
+}
+
+.pdf {
+  display: none;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #ffffff;
+  
+}
+
+.pdf .isPdf {
+    width: 1280px !important;
+}
+
+.pdf--title {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: bold;
+  background: #ffffff !important;
+}
+
+@media all {
+  .page-break {
+    display: none;
+  }
+}
+.print-container > main > div {
+  padding: 0;
+  display: block;
+  background: #ffffff !important;
+}
+
+@media print {
+  @page { size: landscape;} 
+  .isPdf {
+    width: 1280px !important;
+}
+}
+
+@media print {
+  html, body {
+    height: initial !important;
+    overflow: initial !important;
+    -webkit-print-color-adjust: exact;
+    background: #ffffff !important;
+  }
+}
+
+@media print {
+  .page-break {
+    margin-top: 2rem;
+    display: block;
+    page-break-before: always;
+  }
+}
+
+@page {
+  margin: 1mm;
+  background: #ffffff;
+}
+
+.ql-content, .ql-editor {
+  min-height: 400px;
+  max-width: 100%;
+}
+
+.ql-content, .ql-editor {
+  background-color: #ffffff;
+  border: none !important;
+}
+.ql-container.ql-snow {
+  border: none !important;
+}
+.ql-snow.ql-toolbar {
+  background: #F5F5F5;
+  border: none !important;
+}
