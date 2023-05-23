@@ -30,7 +30,7 @@ Necessário ter instalado no computador:
 - [Yarn](https://yarnpkg.com/)
 
 
-Clonar o projeto entrando no código fonte do repositório e clicando no botão clone e utilizando a url disponível no terminal aberto na pasta onde se deseja salvar o projeto
+Clonar o projeto entrando no código fonte do repositório e clicando no botão code, utilizando a url disponível no terminal aberto na pasta onde se deseja salvar o projeto
 
 ![IMGCLONE](https://github.com/desenvolvedorabc/SAEV-APLICATIVO/blob/main/imgClone.png)
 
