@@ -57,7 +57,9 @@ Os arquivos são organizados em pastas:
   - Services: arquivos com funções para conexão e comunicação com a API.
   - Shared: estilizações de componentes utilizando styled components que são utilizados em diversos componentes.
   - Utils: Funções e informações de utilidade para uso geral.
+
 ![IMGSRC](https://github.com/desenvolvedorabc/SAEV-APLICATIVO/blob/main/imgSrc.png)
+
 - Styles: arquivos de estilo global.
 - Temp: pasta de arquivos temporários utilizados no upload.
 - .env: arquivo onde fica a rota de conexão com a API.
