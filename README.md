@@ -39,7 +39,7 @@ Após clonar, abrir o terminal e acessar a pasta onde está localizado o projeto
 
 Finalizada a instalação utilizar o comando ``` yarn dev ``` para rodar o projeto em ambiente de desenvolvimento ou ``` yarn build ``` depois ``` yarn start ``` para rodar como seria em ambiente de produção.
 
-Também é necessário ter o backend rodando e conectado para conseguir utilizar esse programa, para isso clone o repositório disponível no link https://bitbucket.org/going2-mobile/parc-bolsas-backend/src/master/ e siga os passos do readme para inicializar, insira também o endereço em que rodará o backend no .env.development seguindo o padrão de variáveis disponível no .env.exemple
+Também é necessário ter o backend rodando e conectado para conseguir utilizar esse programa, para isso clone o repositório disponível no link [https://bitbucket.org/going2-mobile/parc-bolsas-backend/src/master/](https://github.com/desenvolvedorabc/SAEV-SERVIDOR) e siga os passos do readme para inicializar, insira também o endereço em que rodará o backend no .env.development seguindo o padrão de variáveis disponível no .env.exemple
 
 
 Configuração dos arquivos
