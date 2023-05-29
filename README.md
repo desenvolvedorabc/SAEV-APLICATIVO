@@ -10,20 +10,23 @@ yarn dev
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
- -->
+ ## Conteúdo
+-->
 
-## Descrição do Projeto
+
+
+## 📖 Descrição do Projeto
 
 O produto SAEV tem por principal fundamento de funcionamento um sistema de avaliação, como importância no auxílio da gestão educacional na rede de ensino municipal. O software gera uma informação sistematizada sobre o estágio de aprendizagem dos alunos, possibilitando a análise e compreensão pela equipe do município, subsidiando a formulação de uma política que adote o foco na aprendizagem e permita tomada de decisões estratégicas de acordo com a realidade de cada município. A avaliação como um dos principais fatores desenvolvidos no produto, permite identificar as iniquidades educacionais existentes nas redes, apontados os estágios para cada escola, turma e aluno. 
 
 
-## Funcionalidades
+## 📱 Funcionalidades
 
 Cadastro de municípios, escolas e alunos associados ao projeto SAEV.
 Cadastro de Avaliações administradas pela associação, podendo ser definidos disciplinas, séries e turmas para cada avaliação tanto como os gabaritos e matrizes de referência do que está sendo avaliado.
 Geração de relatórios com resultados e parâmetros que demonstram o desempenho, nível e participação dos alunos, podendo ver verificado por diferentes leveis, como por aluno, série, escola, etc.
 
-## Como utilizar
+## 🛠️ Como utilizar
 
 Necessário ter instalado no computador:
 - [NodeJs](https://nodejs.org/en/)
@@ -42,7 +45,7 @@ Finalizada a instalação utilizar o comando ``` yarn dev ``` para rodar o proje
 Também é necessário ter o backend rodando e conectado para conseguir utilizar esse programa, para isso clone o repositório disponível no link [https://github.com/desenvolvedorabc/SAEV-SERVIDOR](https://github.com/desenvolvedorabc/SAEV-SERVIDOR) e siga os passos do readme para inicializar, insira também o endereço em que rodará o backend no .env.development seguindo o padrão de variáveis disponível no .env.exemple
 
 
-Configuração dos arquivos
+## 📁 Configuração dos arquivos
 
 ![IMGFILES](https://github.com/desenvolvedorabc/SAEV-APLICATIVO/blob/main/imgFiles.png)
 
@@ -67,7 +70,7 @@ Os arquivos são organizados em pastas:
 - O restante dos arquivos são de configurações do projeto.
 
 
-Bibliotecas, Frameworks e Dependências
+## ⚙️ Bibliotecas, Frameworks e Dependências
 
 - React.JS
 - Next.JS
