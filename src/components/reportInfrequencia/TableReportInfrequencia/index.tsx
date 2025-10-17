@@ -34,7 +34,9 @@ interface EnhancedTableProps {
 }
 
 const levels = {
+  regional: "REGIONAL ESTADUAL",
   county: "MUNICIPIO",
+  regionalSchool: "REGIONAL MUNICIPAL/ÚNICA",
   school: "ESCOLA",
   serie: 'SÉRIE',
   schoolClass: "TURMA",
@@ -238,7 +240,9 @@ export function TableReportInfrequencia({
   const [selectedColumn, setSelectedColumn] = useState("name");
   const [click, setClick] = useState(false);
   const {
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSerie,
     changeSchoolClass,
@@ -284,22 +288,62 @@ export function TableReportInfrequencia({
   };
 
   const handleClickTable = (data) => {
-    if (level === "county") {
-      changeCounty({
-        AVM_MUN: {
-          MUN_ID: data.id,
-          MUN_NOME: data.name,
-        },
+    if (level === "regional") {
+      changeStateRegional({
+        id: data.id,
+        name: data.name,
       });
-    }
-    if (level === "school") {
-      changeSchool({ ESC_ID: data.id, ESC_NOME: data.name });
-    }
-    if (level === "serie") {
-      changeSerie({ SER_ID: data.id, SER_NOME: data.name });
-    }
-    if (level === 'schoolClass') {
-      changeSchoolClass({ TUR_ID: data.id, TUR_NOME: data.name });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "county") {
+      changeCounty({
+        MUN_ID: data.id,
+        MUN_NOME: data.name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + data.id + '&countyName=' + data.name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "regionalSchool") {
+      changeCountyRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "school") {
+      changeSchool({
+        ESC_ID: data.id,
+        ESC_NOME: data.name,
+      });
+      changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      level === "serie"
+    ) {
+      changeSerie({
+        SER_ID: data.id,
+        SER_NOME: data.name,
+      });
+      const url = window.location.href.split('&serie=')
+      const newUrl = url[0].concat('&serie=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      level === "schoolClass"
+    ) {
+      changeSchoolClass({
+        TUR_ID: data.id,
+        TUR_NOME: data.name,
+      });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
     addBreadcrumbs(data.id, data.name, level);
     setClick(true);
@@ -348,7 +392,16 @@ export function TableReportInfrequencia({
                         onClick={() => handleClickTable(data)}
                       >
                         <TableCell component="th" scope="row" padding="normal">
-                          {data?.name}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: '200px'}}>
+                            {data.name} 
+                            {level === "school" ?
+                              <div style={{ backgroundColor: '#989898', minWidth: '26px', height: '21px', borderRadius: '16px', textAlign: 'center', marginRight: '8px', color: '#fff', fontSize: '14px' }}>
+                                {data.type === 'MUNICIPAL' ? 'M' : 'E'}
+                              </div>
+                              :
+                              <div></div>
+                            }
+                          </div>
                         </TableCell>
                         {level !== 'student' &&
                           <TableCellBorder>
@@ -488,10 +541,10 @@ export function TableReportInfrequencia({
 
             {!isPdf &&
               <Pagination>
-                <ButtonPage disabled={disablePrev} onClick={handlePrevPage}>
+                <ButtonPage data-test="previous" disabled={disablePrev} onClick={handlePrevPage}>
                   <MdNavigateBefore size={24} />
                 </ButtonPage>
-                <ButtonPage disabled={disableNext} onClick={handleNextPage}>
+                <ButtonPage data-test="next" disabled={disableNext} onClick={handleNextPage}>
                   <MdNavigateNext size={24} />
                 </ButtonPage>
               </Pagination>

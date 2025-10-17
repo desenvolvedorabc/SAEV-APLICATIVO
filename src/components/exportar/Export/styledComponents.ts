@@ -2,7 +2,8 @@ import styled from "styled-components";
 
 export const BoxFilter = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  ${(props) => (props.template ? "grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;" : 'grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;')};
+
   grid-gap: 21px;
   background-color: #f2f0f9;
   border: 1px solid #fff;

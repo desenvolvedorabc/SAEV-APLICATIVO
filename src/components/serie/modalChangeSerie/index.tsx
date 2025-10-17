@@ -34,7 +34,7 @@ export function ModalChangeSerie(props) {
 
 
   const { data: dataSerie } = useGetSeries(
-    null, 1, 9999999, null, 'ASC', null
+    null, 1, 9999999, null, 'ASC', null, "1"
   );
 
   useEffect(() => {
@@ -85,10 +85,7 @@ export function ModalChangeSerie(props) {
       } finally {
         setIsDisabled(false)
       }
-      if (
-        response.status === 200 &&
-        response.data.SER_NOME === values.SER_NOME
-      ) {
+      if (!response.data.message) {
         setModalStatus(true);
         setModalShowConfirm(true);
         queryClient.invalidateQueries(["series"])

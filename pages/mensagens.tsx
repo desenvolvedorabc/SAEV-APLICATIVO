@@ -11,7 +11,7 @@ export default function Mensagens() {
 
   return (
     <PageContainer>
-      <Top title={"Mensagens"}/>
+      <Top title={"Mensagens Institucionais"}/>
       <TableMensagens/>
     </PageContainer>
   );
@@ -19,7 +19,7 @@ export default function Mensagens() {
 
 Mensagens.getLayout = function getLayout(page: ReactElement) {
   return (
-    <Layout  header={"Mensagens"}>{page}</Layout>
+    <Layout  header={"Mensagens Institucionais"}>{page}</Layout>
   )
 }
 

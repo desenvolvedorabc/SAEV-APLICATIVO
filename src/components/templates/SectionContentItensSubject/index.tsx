@@ -11,23 +11,19 @@ type Props = {
   setOrderListScore: (item: ItemSubject) => void;
 };
 
-const levels = {
-  school: "Escolas",
-  schoolClass: "Turma",
-};
-
-const getTitle = (level) => {
-  if (level === "school") return "Escola";
-  if (level === 'schoolClass') return "Turma";
-  if (level === "mun") return "Município";
-  return "";
+enum Niveis {
+  regional = 'Regionais Estaduais',
+  county = "Municípios",
+  regionalSchool = 'Regionais Municipais/Únicas',
+  school = "Escolas",
+  schoolClass = "Turmas",
 };
 
 export function SectionContentItensSubject({
   orderBy,
   listScore,
   componentRef,
-}: Props) {
+  }: Props) {
   const dataMapping = useMemo(() => {
     let items = listScore?.items;
 
@@ -57,7 +53,7 @@ export function SectionContentItensSubject({
     <div ref={componentRef}>
       <ContainerScore>
         <GeneralAverage
-          title={getTitle(dataMapping?.level)}
+          title={Niveis[dataMapping?.level]}
           min={dataMapping?.min}
           media={dataMapping?.avg}
           max={dataMapping?.max}

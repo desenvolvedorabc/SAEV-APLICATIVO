@@ -20,7 +20,7 @@ export function setupAPIClient(): {
     },
     (error: AxiosError) => {
       if (
-        error?.response?.status === 401 &&
+        error?.response?.status === 401 ||
         error?.response?.statusText === 'Unauthorized'
       ) {
         signOut();

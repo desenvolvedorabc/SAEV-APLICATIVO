@@ -11,7 +11,7 @@ export function GeneralAverage({title, min, media, max }: GeneralAverageProps) {
   return (
     <S.Container>
       <p>
-        {title} <br /> (Mín-Med-Max){" "}
+        {title} <br /> (<span style={{color: '#ff6868'}}>Mín</span>-<span style={{color: '#3b51c7'}}>Med</span>-<span style={{color: '#3e8277'}}>Max</span>){" "}
       </p>
       <div style={{ width: "100%" }}>
         <div style={{ left: `${min}%` }} className="min">

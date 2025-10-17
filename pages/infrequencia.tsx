@@ -9,7 +9,9 @@ import { ContentInfrequenciaFilter } from "src/components/infrequencia/contentRe
 import { withSSRAuth } from "src/utils/withSSRAuth";
 
 export default function Infrequencia() {
+  const [state, setState] = useState(null);
   const [county, setCounty] = useState(null);
+  const [type, setType] = useState(null);
   const [school, setSchool] = useState(null);
   const [serie, setSerie] = useState(null);
   const [schoolClass, setSchoolClass] = useState(null);
@@ -29,7 +31,9 @@ export default function Infrequencia() {
       <PageContainer>
         <Top title="Infrequência" />
         <ContentInfrequenciaFilter
+          changeState={setState}
           changeCounty={setCounty}
+          changeType={setType}
           changeSchool={setSchool}
           changeSerie={setSerie}
           changeSchoolClass={setSchoolClass}
@@ -39,7 +43,9 @@ export default function Infrequencia() {
 
         {!!mes && (
           <TableInfrequencia
+            state={state}
             county={county}
+            type={type}
             school={school}
             serie={serie}
             schoolClass={schoolClass}

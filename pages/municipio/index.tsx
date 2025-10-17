@@ -1,18 +1,18 @@
-import { parseCookies } from "nookies";
 import PageContainer from "src/components/pageContainer";
 import Top from "src/components/top";
-import {useState, useEffect} from 'react';
-import FormAddMunicipio from "src/components/municipio/formAddMunicipio";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import FormEditMunicipio from "src/components/municipio/formEditMunicipio";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function AdicionarMunicipio() {
 
   return (
     <PageContainer>
-      <Top link={'/municipios'} title={"Municípios > Adicionar"}/>
-      <FormAddMunicipio/>
+      <Top title={"Municípios > Adicionar"}/>
+      <FormEditMunicipio municipio={null}/>
+
     </PageContainer>
   );
 }
@@ -22,3 +22,14 @@ AdicionarMunicipio.getLayout = function getLayout(page: ReactElement) {
     <Layout header={"Adicionar Municípios"}>{page}</Layout>
   )
 }
+
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: { },
+    };
+  },
+  {
+    roles: [],
+  }
+);

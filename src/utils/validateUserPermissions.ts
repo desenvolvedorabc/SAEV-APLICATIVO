@@ -30,7 +30,7 @@ export function validateUserPermissions({
   }
 
   if (profiles?.length > 0) {
-    if (!profiles.includes(user.USU_SPE.SPE_PER.PER_NOME)) {
+    if (!profiles.includes(user.USU_SPE.role)) {
       return false;
     }
   }

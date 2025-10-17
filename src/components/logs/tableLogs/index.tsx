@@ -718,7 +718,7 @@ export default function TableLogs() {
             <AutoCompletePagMun county={munSelected} changeCounty={handleChangeCounty} width={"150px"} />
           </div>
           <div className="pe-2 me-2 border-end border-white">
-            <AutoCompletePagEscMun school={escSelected} changeSchool={setEscSelected} mun={munSelected} resetSchools={resetSchool} width={"150px"} />
+            <AutoCompletePagEscMun school={escSelected} changeSchool={setEscSelected} mun={munSelected} resetSchools={resetSchool} width={"150px"} disabled={!munSelected} />
           </div> 
           <div style={{ width: 83 }}>
             <ButtonWhite

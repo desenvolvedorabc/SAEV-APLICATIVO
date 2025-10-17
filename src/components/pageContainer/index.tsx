@@ -8,10 +8,10 @@ export default function PageContainer({ isPdf = false, children }) {
         <main className="d-flex col-12" style={{ height: "100%" }}>
           <PageContainerStyled>
             <div>{children}</div>
-            <Saev>
+            {/* <Saev>
               <Text>SAEV - Feito com dedicação por ONG Bem Comum</Text>
               <MdOutlineEmojiEmotions color="#3E8277" size={12} />
-            </Saev>
+            </Saev> */}
           </PageContainerStyled>
         </main>
       ) : (

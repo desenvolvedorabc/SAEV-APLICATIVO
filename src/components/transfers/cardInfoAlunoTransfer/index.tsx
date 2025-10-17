@@ -21,10 +21,11 @@ import ModalConfirmacao from "src/components/modalConfirmacao";
 import { useEffect, useState } from "react";
 import { format } from 'date-fns'
 import { Autocomplete, TextField } from "@mui/material";
-import { getAllSchools } from "src/services/escolas.service";
-import { useGetSchoolClasses } from "src/services/turmas.service";
+import { getAllSchoolsTransfer } from "src/services/escolas.service";
+import { useGetSchoolClassesTransfer } from "src/services/turmas.service";
 import { createTransfer } from "src/services/transferencias.service";
 import { useAuth } from "src/context/AuthContext";
+import { isValidDate } from "src/utils/validate";
 
 export function CardInfoAlunoTransfer({ aluno, url }) {
   const { user } = useAuth();
@@ -46,16 +47,18 @@ export function CardInfoAlunoTransfer({ aluno, url }) {
   const [errorMessage, setErrorMessage] = useState(true)
 
   useEffect(() => {
-    if(user?.USU_SPE?.SPE_PER?.PER_NOME === 'Escola')
+    if(user?.USU_SPE?.role === 'ESCOLA') {
       setSchool(user?.USU_ESC)
+      setIsDisable(true)
+    }
   },[user])
   
   async function loadSchool(){
-    const resp = await getAllSchools()
+    const resp = await getAllSchoolsTransfer()
     setSchoolList(resp.data)
   }
 
-  const { data: classList, isLoading: isLoadingSchoolClass } = useGetSchoolClasses(
+  const { data: classList, isLoading: isLoadingSchoolClass } = useGetSchoolClassesTransfer(
     null, 
     1, 
     9999, 
@@ -111,24 +114,16 @@ export function CardInfoAlunoTransfer({ aluno, url }) {
   const handleChangeSchool = (newValue) => {
     setSchool(newValue)
     setSchoolClass(null)
-    if(newValue !== null && newValue?.ESC_ID !== aluno?.ALU_ESC?.ESC_ID && aluno?.ALU_ESC){
-      setIsDisable(false)
-    }
-    else{
-      setIsDisable(true)
-    }
+    setIsDisable(true)
   }
 
   const handleChangeSchoolClass = (newValue) => {
     setSchoolClass(newValue)
-    if(!newValue && school?.ESC_ID !== aluno?.ALU_ESC?.ESC_ID){
+    if (school && newValue && 
+        school?.ESC_ID !== aluno?.ALU_ESC?.ESC_ID && 
+        newValue?.TURMA_TUR_ID !== aluno?.ALU_TUR?.TUR_ID) {
       setIsDisable(false)
-      return
-    }
-    if(newValue?.TURMA_TUR_ID !== aluno?.ALU_TUR?.TUR_ID && aluno?.ALU_ESC){
-      setIsDisable(false)
-    }
-    else{
+    } else {
       setIsDisable(true)
     }
   }
@@ -192,7 +187,8 @@ export function CardInfoAlunoTransfer({ aluno, url }) {
             <div style={{ marginBottom: 16 }}>
               <TitlePersonalInfos>DATA DE NASCIMENTO</TitlePersonalInfos>
               <InfosPersonalInfos>
-                {aluno?.ALU_DT_NASC && format(new Date(aluno?.ALU_DT_NASC), 'dd/MM/yyyy')}
+                 {isValidDate(aluno?.ALU_DT_NASC)  &&
+                                  format(new Date(aluno?.ALU_DT_NASC), "dd/MM/yyyy")}
                 </InfosPersonalInfos>
             </div>
             <div style={{ marginBottom: 16 }}>
@@ -253,7 +249,7 @@ export function CardInfoAlunoTransfer({ aluno, url }) {
           </ButtonVermelho>
         </div>
         <div className="d-flex">
-          <div style={{width: 320, marginRight:20}}>
+          <div style={{width: 380, marginRight:20}}>
             <Autocomplete
               style={{ background: "#FFF"}}
               className=""
@@ -262,7 +258,7 @@ export function CardInfoAlunoTransfer({ aluno, url }) {
               value={school}
               noOptionsText="Selecione a Escola de Destino"
               options={schoolList}
-              getOptionLabel={(option) =>  `${option?.ESC_NOME} - ${option?.ESC_MUN?.MUN_NOME ? option?.ESC_MUN?.MUN_NOME : ''}`}
+              getOptionLabel={(option) =>  `${option?.ESC_TIPO === 'MUNICIPAL' ? 'Escola Municipal' : 'Escola Estadual'} ${option?.ESC_NOME} - ${option?.ESC_MUN?.MUN_NOME ? option?.ESC_MUN?.MUN_NOME : ''} - ${option?.ESC_UF}`}
               onChange={(_event, newValue) => {
                 handleChangeSchool(newValue)}}
               sx={{

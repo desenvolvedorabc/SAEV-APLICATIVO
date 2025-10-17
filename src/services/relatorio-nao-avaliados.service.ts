@@ -153,26 +153,30 @@ export interface QuestionTemplate {
 }
 
 export async function getNotEvaluated(
-  page: number,
-  limit: number,
+  serie: string,
+  year: string,
   edition: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
+  county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   schoolClass: string,
-  year: string,
-  county: string,
-  serie: string,
-  subject: string
 ) {
   const params = {
-    page,
-    limit,
+    serie,
+    year,
     edition,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
+    county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
-    year,
-    county,
-    serie,
-    subject
   }
 
 
@@ -183,20 +187,30 @@ export async function getNotEvaluated(
 }
 
 export async function getExportReportNotEvaluated(
-  edition: number,
-  school: number,
-  schoolClass: number,
+  serie: string,
   year: string,
-  county: number,
-  serie: number
+  edition: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
+  county: string,
+  municipalityOrUniqueRegionalId: string,
+  school: string,
+  schoolClass: string,
 ) {
   const params = {
+    serie,
+    year,
     edition,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
+    county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
-    year,
-    county,
-    serie,
   }
 
   const resp = await api

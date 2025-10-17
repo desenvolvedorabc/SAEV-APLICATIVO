@@ -48,7 +48,7 @@ export default function Notification() {
   };
 
   return (
-    <div style={{}}>
+    <>
       <Button
         onClick={() => {
           setIsOpen(!isOpen);
@@ -57,7 +57,7 @@ export default function Notification() {
         <MdOutlineNotifications
           color={"#3E8277"}
           size={32}
-          style={{ margin: "auto", padding: 3 }}
+          style={{ margin: "auto", padding: 3, alignSelf: "center" }}
         />
         {qntNotification > 0 &&
           <NotificationNumber>{qntNotification}</NotificationNumber>
@@ -107,6 +107,6 @@ export default function Notification() {
         }}
         notification={selectedNotification}
       />
-    </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { getStudent } from "src/services/alunos.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
 import { FormEditStudent } from "src/components/aluno/formEditAluno";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarAluno({aluId, url}) {
@@ -16,11 +17,10 @@ export default function EditarAluno({aluId, url}) {
   const loadInfos = async () => {
 
     const resp = await getStudent(aluId)
-    resp.data = {
-      ...resp,
-      ALU_AVATAR_URL: `${url}/student/avatar/${resp.ALU_AVATAR}`
+    if(resp){
+      resp.ALU_AVATAR_URL = `${url}/student/avatar/${resp.ALU_AVATAR}`
+      setAluno(resp)
     }
-    setAluno(resp.data)
   }
 
   return (
@@ -39,12 +39,17 @@ EditarAluno.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {aluId} = context.params
-  return {
-    props: {
-      aluId,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const { aluId } = ctx.params;
+    return {
+      props: {
+        aluId,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

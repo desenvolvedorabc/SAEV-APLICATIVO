@@ -13,17 +13,38 @@ import ModalAvisoTexto from "src/components/modalAvisoTexto";
 import ModalConfirmacao from "src/components/modalConfirmacao";
 import { cancelTransfer, editTransfer, getTransfers } from "src/services/transferencias.service";
 import ModalInformacao from "src/components/modalInformacao";
+import { withSSRAuth } from "src/utils/withSSRAuth";
+import {
+  Pagination,
+  FormSelectStyled,
+  ButtonPage,
+} from "src/shared/styledTables";
+import {
+  MdNavigateNext,
+  MdNavigateBefore,
+} from "react-icons/md";
+import { Box, Paper } from "@mui/material";
+import { Loading } from "src/components/Loading";
 
-export default function Transferencias({ url, userInfo }) {
+export default function Transferencias({ url }) {
   const [transfers, setTransfer] = useState<any[]>([]);
   const [subject, setSubject] = useState("em-aberto");
   const [orderBy, setOrderBy] = useState("maisAntigos");
   const [studentSelect, setStudentSelect] = useState("");
+  const [state, setState] = useState(null);
   const [county, setCounty] = useState(null);
+  const [type, setType] = useState(null);
   const [school, setSchool] = useState(null);
   const [handleSubmit, setHandleSubmit] = useState(false);
   const [handleReload, setHandleReload] = useState(false);
   const [isLoading, setIsLoading]= useState(false);
+
+  // Estados para paginação
+  const [page, setPage] = useState(1);
+  const [qntPage, setQntPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [disablePrev, setDisablePrev] = useState(true);
+  const [disableNext, setDisableNext] = useState(false);
 
   const [modalCancelTransfer, setModalCancelTransfer] = useState(null);
   const [modalCancelSuccess, setModalCancelSuccess] = useState(false);
@@ -112,40 +133,72 @@ export default function Transferencias({ url, userInfo }) {
     setHandleSubmit(true);
   }
 
-  async function loadTransfers() {
+  const handleChangePage2 = (direction) => {
+    if (direction === "prev" && page > 1) {
+      setPage(page - 1);
+    } else if (direction === "next" && page < qntPage) {
+      setPage(page + 1);
+    }
+  };
+
+  const handleChangeLimit = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLimit(parseInt(event.target.value));
+    setPage(1);
+    loadTransfers(1, Number(event.target.value));
+  };
+
+  async function loadTransfers(_page = page, _limit = limit) {
+    setIsLoading(true);
     const response = await getTransfers(
-      1,
-      9999,
+      _page,
+      _limit,
       school?.ESC_ID,
       county?.MUN_ID,
       orderBy,
       subject,
       studentSelect === "Todos" ? null : studentSelect
     );
+    if (response?.data?.meta) {
+      setQntPage(response.data.meta.totalPages);
+    } else {
+      setQntPage(1);
+    }
     setTransfer(response.data.items);
     setStudentSelect("");
     setHandleSubmit(false);
+    setIsLoading(false);
   }
 
   useEffect(() => {
-    loadTransfers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setDisablePrev(page === 1);
+    setDisableNext(page === qntPage || qntPage === 0 || page === 0);
+  }, [qntPage, page]);
 
   useEffect(() => {
     if (handleSubmit || handleReload) {
-      loadTransfers();
+      setPage(1);
+      loadTransfers(1, limit);
       setHandleReload(false);
+      setHandleSubmit(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleSubmit, handleReload]);
+
+  useEffect(() => {
+    if (!handleSubmit && !handleReload) {
+      loadTransfers(page, limit);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit]);
 
   return (
     <>
       <PageContainer>
         <Top title="Transferências" />
         <ContentFilterDataTransfers
+          changeState={setState}
           changeCounty={setCounty}
+          changeType={setType}
           changeSchool={setSchool}
           handleSubmit={setHandleSubmit}
         />
@@ -160,16 +213,54 @@ export default function Transferencias({ url, userInfo }) {
           county={county}
           school={school}
           />
-        <ContentSectionTranfers
-          transfers={transfers}
-          url={url}
-          school={school?.ESC_ID}
-          handleCancel={setModalCancelTransfer}
-          handleApprov={handleApprov}
-          handleUnapprov={handleUnapprov}
-          handleInfo={handleInfo}
-          user={userInfo?.user}
-        />
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <ContentSectionTranfers
+            transfers={transfers}
+            url={url}
+            school={school?.ESC_ID}
+            handleCancel={setModalCancelTransfer}
+            handleApprov={handleApprov}
+            handleUnapprov={handleUnapprov}
+            handleInfo={handleInfo}
+          />
+        )}
+        
+        {/* Componente de Paginação */}
+        {!isLoading && transfers?.length > 0 && (
+          <Box sx={{ width: "100%", marginTop: "20px" }}>
+            <Paper
+              sx={{
+                width: "100%",
+                borderBottomLeftRadius: "10px",
+                borderBottomRightRadius: "10px",
+                padding: "10px",
+              }}
+            >
+              <Pagination>
+                Linhas por página:
+                <FormSelectStyled value={limit} onChange={handleChangeLimit}>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </FormSelectStyled>
+                <ButtonPage
+                  onClick={() => handleChangePage2("prev")}
+                  disabled={disablePrev}
+                >
+                  <MdNavigateBefore size={24} />
+                </ButtonPage>
+                <ButtonPage
+                  onClick={() => handleChangePage2("next")}
+                  disabled={disableNext}
+                >
+                  <MdNavigateNext size={24} />
+                </ButtonPage>
+              </Pagination>
+            </Paper>
+          </Box>
+        )}
 
         <ModalAviso
           show={modalCancelTransfer}
@@ -281,16 +372,16 @@ Transferencias.getLayout = function getLayout(page: ReactElement) {
   return <Layout header={"Transferências"}>{page}</Layout>;
 };
 
-export async function getServerSideProps(context) {
-  let cookies = parseCookies(context);
-  const base64Url = cookies["__session"].split(".")[1];
-  const base64 = base64Url.replace("-", "+").replace("_", "/");
-  const userBuffer = base64 ? Buffer.from(base64, "base64").toString() : null;
 
-  return {
-    props: {
-      userInfo: userBuffer ? JSON.parse(userBuffer) : null,
-      url: process.env.NEXT_PUBLIC_API_URL,
-    },
-  };
-}
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: {
+        url: process.env.NEXT_PUBLIC_API_URL,
+      },
+    };
+  },
+  {
+    roles: [],
+  }
+);

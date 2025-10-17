@@ -5,16 +5,6 @@ import { Container } from "./styles";
 import { saveAs } from 'file-saver';
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 import { getExportReportNotEvaluated } from "src/services/relatorio-nao-avaliados.service";
-import { z } from "zod";
-
-const paramsSchema = z.object({
-  serie: z.number(),
-  year: z.string(),
-  edition: z.number(),
-  county: z.number().nullable().optional(),
-  school: z.number().nullable().optional(),
-  schoolClass: z.number().nullable().optional()
-})
 
 export function ExportReportNaoAvaliados({ handlePrint }) {
   const [isDisabled, setIsDisabled] = useState<'csv' | 'pdf' | ''>('');
@@ -32,6 +22,8 @@ export function ExportReportNaoAvaliados({ handlePrint }) {
 
   const {
     mapBreadcrumb,
+    epv,
+    type,
   } = useBreadcrumbContext()
 
 
@@ -45,30 +37,28 @@ export function ExportReportNaoAvaliados({ handlePrint }) {
 
   const downloadCsv = async () => {
     setIsDisabled('csv')
-    const edition = mapBreadcrumb.find((data) => data.level === "edition")
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const county = mapBreadcrumb.find((data) => data.level === "county")
-    const school = mapBreadcrumb.find((data) => data.level === "school")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )    
     
-    const params = paramsSchema.parse({
-      edition: edition?.id,
-      school: school?.id,
-      schoolClass: schoolClass?.id,
-      year: year?.id,
-      county: county?.id,
-      serie: serie?.SER_ID
-    })
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
     const resp = await getExportReportNotEvaluated(
-      params.edition,
-      params.school,
-      params.schoolClass,
-      params.year,
-      params.county,
-      params.serie
+      serie?.SER_ID,
+      _year?.id,
+      _edition?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id,
     );
     if(!resp.data.message) {
       saveAs(resp?.data, 'Relatório_Nao_Avaliados.csv');

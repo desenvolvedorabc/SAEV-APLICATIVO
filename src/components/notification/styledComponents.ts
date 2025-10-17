@@ -24,13 +24,14 @@ export const NotificationNumber = styled.span`
 `;
 
 export const NotificationList = styled.div`
-  height: 100vh;
+height: 100%;
   width: ${(props) => (props.open ? "414px" : "0")};
-  position: absolute;
+  position: fixed;
   background-color: #fff;
+  overflow-y: scroll;
   top: 0;
   right: 0;
-  z-index: 3;
+  z-index: 999;
   box-shadow: -5px 0px 10px rgba(0, 0, 0, 0.1);
   transition: "all .10s";
 `;

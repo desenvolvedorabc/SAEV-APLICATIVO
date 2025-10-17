@@ -6,7 +6,9 @@ import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 
 const levels = {
   edition: "Edições",
+  regional: "Regionais Estaduais",
   county: "Municípios",
+  regionalSchool: "Regionais Municipais/Únicas",
   school: "Escolas",
   schoolClass: "Turmas",
   student: "Alunos",

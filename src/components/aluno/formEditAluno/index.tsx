@@ -22,7 +22,7 @@ import ErrorText from "src/components/ErrorText";
 import ModalConfirmacao from "src/components/modalConfirmacao";
 import { useEffect, useRef, useState } from "react";
 import { loadCity, loadUf, completeCEP } from "src/utils/combos";
-import { maskCEP, maskCPF, maskPhone } from "src/utils/masks";
+import { maskCEP, maskCPF, maskPhone, maskPhoneCountry } from "src/utils/masks";
 import { useDropzone } from "react-dropzone";
 import Router, { useRouter } from "next/router";
 import * as yup from "yup";
@@ -111,7 +111,14 @@ export function FormEditStudent({ student }) {
       .min(6, "Deve ter no minimo 6 caracteres"),
     ALU_TEL1: yup
       .string()
-      .min(14, "Deve ter no minimo 14 caracteres"),
+      .min(14, "Deve ter no mínimo 14 caracteres"),
+    ALU_WHATSAPP: yup
+      .string()
+      .test("is-valid-phone", "Número de telefone inválido", (value) => {
+        if (!value) return true;              // campo vazio é válido (caso seja opcional)
+        if (value === "+55") return true;     // só +55 é válido
+        return /^\+55\s\(\d{2}\)\s\d{4,5}-\d{4}$/.test(value); // formato BR
+      }),
     ALU_EMAIL: yup
       .string()
       .email("Email inválido"),
@@ -232,6 +239,7 @@ export function FormEditStudent({ student }) {
       ALU_NOME_RESP: student?.ALU_NOME_RESP ? student?.ALU_NOME_RESP : "",
       ALU_TEL1: student?.ALU_TEL1 ? student?.ALU_TEL1 : "",
       ALU_TEL2: student?.ALU_TEL2 ? student?.ALU_TEL2 : "",
+      ALU_WHATSAPP: student?.ALU_WHATSAPP ? student?.ALU_WHATSAPP : "+55",
       ALU_EMAIL: student?.ALU_EMAIL ? student?.ALU_EMAIL : "",
       ALU_DEFICIENCIAS: student?.ALU_DEFICIENCIAS,
       ALU_DEFICIENCIA_BY_IMPORT: student?.ALU_DEFICIENCIA_BY_IMPORT,
@@ -248,7 +256,6 @@ export function FormEditStudent({ student }) {
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
-
       if(isPcd === 'Sim' && !values.ALU_DEFICIENCIA_BY_IMPORT && selectedPcds.length === 0){
         setErrorPcds(true);
         return;
@@ -261,6 +268,7 @@ export function FormEditStudent({ student }) {
       values.ALU_NOME_MAE = values.ALU_NOME_MAE.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
       values.ALU_NOME_PAI = values.ALU_NOME_PAI.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
       values.ALU_NOME_RESP = values.ALU_NOME_RESP.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
+      values.ALU_WHATSAPP = values.ALU_WHATSAPP === '+55' ? null : values.ALU_WHATSAPP
 
       if(selectedPcds.length > 0){
         values.ALU_DEFICIENCIAS = selectedPcds.map(pcd => {return {PCD_ID: pcd?.PCD_ID}})
@@ -306,11 +314,11 @@ export function FormEditStudent({ student }) {
 
   function hideConfirm() {
     setModalShowConfirm(false);
-    if (errorMessage) {
-      formik.resetForm();
-      return true;
+    if (modalStatus) {
+      // formik.resetForm();
+      // return true;
+      Router.reload();
     }
-    Router.reload();
   }
 
   const handleChangeIsPCD = (e) => {    
@@ -384,6 +392,7 @@ export function FormEditStudent({ student }) {
               <InputGroup2>
                 <div>
                   <TextField
+                    data-test='ESC_UF'
                     fullWidth
                     label="UF"
                     id="ESC_UF"
@@ -398,6 +407,7 @@ export function FormEditStudent({ student }) {
                 </div>
                 <div>
                   <TextField
+                    data-test='ESC_CIDADE'
                     fullWidth
                     label="Municipio"
                     id="ESC_CIDADE"
@@ -413,6 +423,7 @@ export function FormEditStudent({ student }) {
               </InputGroup2>
               <div>
                 <TextField
+                  data-test='ESC_ENDERECO'
                   fullWidth
                   label="Escola"
                   id="ESC_ENDERECO"
@@ -427,6 +438,7 @@ export function FormEditStudent({ student }) {
               </div>
               <div>
                 <TextField
+                  data-test='ESC_INEP'
                   fullWidth
                   label="Código INEP"
                   id="ESC_INEP"
@@ -450,6 +462,7 @@ export function FormEditStudent({ student }) {
             <InputGroup3>
               <div>
                 <TextField
+                  data-test='ALU_SER'
                   fullWidth
                   label="Série"
                   id="ALU_SER"
@@ -464,6 +477,7 @@ export function FormEditStudent({ student }) {
               </div>
               <div>
                 <TextField
+                  data-test='ALU_TUR'
                   fullWidth
                   label="Turma"
                   id="ALU_TUR"
@@ -535,7 +549,7 @@ export function FormEditStudent({ student }) {
               <div>
                 <TextField
                   fullWidth
-                  label="Número do INEP"
+                  label="Número do INEP do aluno"
                   name="ALU_INEP"
                   id="ALU_INEP"
                   value={formik.values.ALU_INEP}
@@ -568,7 +582,7 @@ export function FormEditStudent({ student }) {
                 <div className="">
                   <TextField
                     fullWidth
-                    label="CPF"
+                    label="CPF do aluno"
                     name="ALU_CPF"
                     id="ALU_CPF"
                     value={maskCPF(formik.values.ALU_CPF)}
@@ -667,6 +681,22 @@ export function FormEditStudent({ student }) {
               <div>
                 <TextField
                   fullWidth
+                  label="WhatsApp"
+                  name="ALU_WHATSAPP"
+                  id="ALU_WHATSAPP"
+                  placeholder="+00 (00) 00000-0000"
+                  inputProps={{ maxLength: 19 }}
+                  value={maskPhoneCountry(formik.values.ALU_WHATSAPP)}
+                  onChange={(e) => {e.target.value = maskPhoneCountry(e.target.value); formik.handleChange(e)}}
+                  size="small"
+                />
+                {formik.touched.ALU_WHATSAPP && formik.errors.ALU_WHATSAPP ? (
+                  <ErrorText>{formik.errors.ALU_WHATSAPP}</ErrorText>
+                ) : null}
+              </div>
+              <div>
+                <TextField
+                  fullWidth
                   label="Email"
                   name="ALU_EMAIL"
                   id="ALU_EMAIL"
@@ -686,6 +716,7 @@ export function FormEditStudent({ student }) {
                   locale={brLocale}
                 >
                   <DatePicker
+                    data-test='dataNasc'
                     openTo="year"
                     views={["year", "month", "day"]}
                     label="Data de Nascimento"
@@ -703,6 +734,8 @@ export function FormEditStudent({ student }) {
                       <TextField
                         fullWidth
                         size="small"
+                        id='dataNasc'
+                        data-test="dataNasc"
                         {...params}
                         sx={{ backgroundColor: "#FFF" }}
                       />
@@ -950,13 +983,18 @@ export function FormEditStudent({ student }) {
               <div style={{ width: 160 }}>
                 {active ? (
                   <ButtonDisable
+                    dataTest='inactive'
                     type="button"
                     onClick={() => setModalShowQuestion(true)}
                   >
                     Desativar
                   </ButtonDisable>
                 ) : (
-                  <ButtonPadrao type="button" onClick={() => setModalShowQuestion(true)}>
+                  <ButtonPadrao 
+                    dataTest='active'
+                    type="button"
+                    onClick={() => setModalShowQuestion(true)}
+                  >
                     Ativar
                   </ButtonPadrao>
                 )}
@@ -965,6 +1003,7 @@ export function FormEditStudent({ student }) {
               <div style={{ display: "flex" }}>
                 <div style={{ width: 160 }}>
                   <ButtonWhite
+                    dataTest='cancel'
                     type="button"
                     onClick={() => setModalShowWarning(true)}
                   >
@@ -973,6 +1012,7 @@ export function FormEditStudent({ student }) {
                 </div>
                 <div className="ms-3" style={{ width: 160 }}>
                   <ButtonPadrao
+                    dataTest='save'
                     type="submit"
                     disable={isDisabled}
                     onClick={(e) => {

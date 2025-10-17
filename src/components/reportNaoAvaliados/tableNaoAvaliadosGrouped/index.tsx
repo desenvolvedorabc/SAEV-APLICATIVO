@@ -18,17 +18,8 @@ interface EnhancedTableProps {
   level: string;
 }
 
-const levels = {
-  county: "ANO",
-  school: "MUNICIPIO",
-  serie: "ESCOLA",
-  schoolClass: 'SÉRIE',
-  student: "TURMA",
-};
-
 function EnhancedTableHead({
   data,
-  level,
 }: EnhancedTableProps) {
 
   let headCells = [];
@@ -85,8 +76,6 @@ function EnhancedTableHead({
 export function TableNaoAvaliadosGrouped({
   notEvaluated,
   level,
-  levelName,
-  isLoading,
   notEvaluatedStudents
 }) {
 
@@ -96,7 +85,7 @@ export function TableNaoAvaliadosGrouped({
   
   let data
 
-  if (level === 'Estudantes') {
+  if (level === 'student') {
     data = notEvaluatedStudents || null
   } else {
     data = notEvaluated || null

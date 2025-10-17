@@ -1,21 +1,18 @@
 import {ButtonPadrao} from "src/components/buttons/buttonPadrao";
 import { useState, useEffect } from "react";
-import { Button, SelectMultiple } from "./styledComponents";
+import { Button } from "./styledComponents";
 import { DatePicker, LocalizationProvider } from "@mui/lab";
-import { TextField } from "@mui/material";
+import { Autocomplete, TextField } from "@mui/material";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import brLocale from 'date-fns/locale/pt-BR';
 import { isValidDate } from "src/utils/validate";
-import { format, isAfter } from 'date-fns';
-import { Checkbox, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, SelectChangeEvent } from "@mui/material";
+import { format, isAfter, isBefore } from 'date-fns';
 import ErrorText from "src/components/ErrorText";
 import { Form, Modal } from "react-bootstrap";
-// import { useGetAssessments } from "src/services/avaliaoces.service";
 
 export default function ModalAlterarPeriodo(props) {
   const [selectedList, setSelectedList] = useState([])
-  const [selectedMun, setSelectedMun] = useState([]);
-  const [disp, setDisp] = useState(props.disp)
+  const [disp, setDisp] = useState(null)
   const [errorModalDisp, setErrorModalDisp] = useState(true)
   const [errorModalDispText, setErrorModalDispText] = useState("")
   const [lancInicio, setLancInicio] = useState(null)
@@ -26,19 +23,8 @@ export default function ModalAlterarPeriodo(props) {
   const [errorModalLancFim, setErrorModalLancFim] = useState(true)
   const [initialDisp, setInitialDisp] = useState()
 
-  // const { data: editionsList } = useGetAssessments(null, 1, 99999, null, null, null, null, null, null, null);
-
-  const getSelectedMun = () => {
-    let list = []
-    props.selected.map(x => {
-      list.push(x.AVM_MUN_NOME)
-    })
-    return list
-  }
-
   useEffect(() => {
     if (props.selected) {
-      setSelectedMun(getSelectedMun())
       setSelectedList(props.selected)
 
       let lastDate = props.selected[0]
@@ -48,92 +34,25 @@ export default function ModalAlterarPeriodo(props) {
         }
       });
       setInitialDisp(lastDate?.AVM_DT_DISPONIVEL)
-      setDisp(lastDate?.AVM_DT_DISPONIVEL)
+      setDisp(lastDate?.AVM_DT_DISPONIVEL && format(new Date(lastDate?.AVM_DT_DISPONIVEL), 'yyyy-MM-dd 23:59:59'))
       setLancInicio(lastDate?.AVM_DT_INICIO)
       setLancFim(lastDate?.AVM_DT_FIM)
     }
   }, [props.selected])
 
-  const handleChangeSelect = (event: SelectChangeEvent<typeof selectedMun>) => {
-    const {
-      target: { value },
-    } = event;
-
-    const aux = typeof value === 'string' ? value.split(',') : value
-
-    setSelectedMun(aux);
-
-    const selList = []
-    aux.map((selected) => {
-      props.list.map((mun) => {
-        if (mun.AVM_MUN_NOME === selected) {
-          selList.push(mun)
-        }
-      })
-    })
-    setSelectedList(selList)
-  };
-
-  const ITEM_HEIGHT = 48;
-  const ITEM_PADDING_TOP = 8;
-  const MenuProps = {
-    PaperProps: {
-      style: {
-        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-        width: 250,
-        top: 205
-      },
-    },
+  const handleChangeSelect = (newValue) => {
+    setSelectedList(newValue)
   };
 
   const handleSubmit = () => {
     props.handlechangeperiodo(selectedList, disp, lancInicio, lancFim)
   }
 
-  // const checkLancFim = () => {
-  //   let teste = false
-
-  //   teste = editionsList?.items?.some((item) => {
-  //     console.log('item', item)
-  //     return item?.AVA_AVM?.some((x) => {
-  //       const inicio = new Date(x.AVM_DT_INICIO)
-  //       const fim = new Date(x.AVM_DT_FIM)
-
-  //       console.log('inicio', inicio, lancFim)
-  //       console.log('fim', inicio, lancFim)
-   
-  //       if( inicio <= lancFim && fim >= lancFim && item.AVA_ID != props.edition?.AVA_ID && x.AVM_MUN.MUN_ID === props.county?.MUN_ID){
-  //         return true
-  //       }
-  //       else{
-  //         return false
-  //       }
-  //     })
-  //   })
-    
-  //   console.log("teste", teste)
-  //   console.log("errorModalDisp", errorModalDisp)
-  //   console.log("errorModalLancInicio", errorModalLancInicio)
-  //   console.log("errorModalLancFim", errorModalLancFim)
-  //   if(teste){
-  //     setErrorModalLancFimText("Já existe uma edição nessa data")
-  //     setErrorModalLancFim(true)
-  //   }
-  //   // else{
-  //   //   setErrorModalLancFim(false)
-  //   // }
-  // }
-
-  // useEffect(() => {
-  //   checkLancFim()
-  // // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [lancFim])
-
   useEffect(() => {
     if(!isValidDate(disp)){
       setErrorModalDispText("Data inválida")
       setErrorModalDisp(true)
-    } else if(new Date(disp) < new Date() && disp !== initialDisp){
+    } else if(isBefore(disp, new Date()) && disp !== initialDisp){
       setErrorModalDispText("Data inferior à atual")
       setErrorModalDisp(true)
     } else{
@@ -176,29 +95,22 @@ export default function ModalAlterarPeriodo(props) {
         <Modal.Body className="d-flex flex-column align-items-center mt-3">
           <Form className="d-flex flex-column mt-3 col-12 px-5 pb-4 pt-2 justify-content-center align-items-center">
             <div className="mb-2 col-12" >
-              <FormControl sx={{ m: 0, width: "100%", height: 38 }}>
-                <InputLabel id="multiple-checkbox-label">Municípios</InputLabel>
-                <SelectMultiple
-                  labelId="multiple-checkbox-label"
-                  id="multiple-checkbox"
-                  multiple
-                  value={selectedMun}
-                  onChange={handleChangeSelect}
-                  input={<OutlinedInput label="Municípios" />}
-                  renderValue={(selected) => selected.join(', ')}
-                  MenuProps={MenuProps}
-                >
-                  <MenuItem disabled value="">
-                    <em>Município</em>
-                  </MenuItem>
-                  {props.list.map((mun) => (
-                    <MenuItem key={mun.AVM_MUN_ID} value={mun.AVM_MUN_NOME}>
-                      <Checkbox checked={selectedMun.indexOf(mun.AVM_MUN_NOME) > -1} />
-                      <ListItemText primary={mun.AVM_MUN_NOME} />
-                    </MenuItem>
-                  ))}
-                </SelectMultiple>
-              </FormControl>
+              <Autocomplete
+                multiple
+                className=""
+                id="size-small-outlined"
+                size="small"
+                value={selectedList}
+                noOptionsText="Municípios"
+                options={props.list || []}
+                getOptionLabel={(option) => `${option.AVM_MUN_NOME}`}
+                onChange={(_event, newValue) => {
+                  handleChangeSelect(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField size="small" {...params} label="Municípios" />
+                )}
+              />
             </div>
             <div className="mb-2 col-12">
               <LocalizationProvider dateAdapter={AdapterDateFns} locale={brLocale}>
@@ -215,19 +127,22 @@ export default function ModalAlterarPeriodo(props) {
                       return
                     }
                     if(error === "minDate" && value !== initialDisp){
+                    console.log('initialDisp :', initialDisp);
+                    console.log('value :', value);
                       setErrorModalDispText("Data inferior à atual")
                       setErrorModalDisp(true)
                       return
                     } 
                     if(!error || value === initialDisp){
+                      console.log('dawdad')
                       setErrorModalDispText("")
                       setErrorModalDisp(false)
                     }
                   }}
                   onChange={(val) => {
                     if (isValidDate(val)) { 
-                        val = format(new Date(val), 'yyyy-MM-dd 23:59:59')
-                        setDisp(val)
+                        let value = format(new Date(val), 'yyyy-MM-dd 23:59:59')
+                        setDisp(value)
                         return 
                     }
                     setDisp("")
@@ -237,6 +152,7 @@ export default function ModalAlterarPeriodo(props) {
                 />
               </LocalizationProvider>
               {errorModalDispText ? <ErrorText>{errorModalDispText}</ErrorText> : null}
+              {console.log('errorModalDispText :', errorModalDispText)}
             </div>
             <div className="mb-2 col-12">
               <LocalizationProvider dateAdapter={AdapterDateFns} locale={brLocale}>

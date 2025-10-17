@@ -2,10 +2,17 @@ import { TableSortLabel } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 import { ItemSubject } from "src/services/sintese-geral.service";
-import { TableNotesReading } from "../TableNotesReading";
 import * as S from "./styles";
 
 const arrayFake = [];
+
+enum Niveis {
+  regional = 'Regionais Estaduais',
+  county = "Municípios",
+  regionalSchool = 'Regionais Municipais/Únicas',
+  school = "Escolas",
+  schoolClass = "Turmas",
+}
 
 for (let i = 0; i < 8; i++) {
   const person = {
@@ -30,16 +37,18 @@ type TableProps = {
 };
 
 export function TableClassReading({ orderBy, selectedItem, isPdf = false }: TableProps) {
-  const [isVisibleClass, setIsVisibleClass] = useState(false);
   const [order, setOrder] = useState<"asc" | "desc">("asc");
   const [selectedColumn, setSelectedColumn] = useState("name");
 
   const {
     addBreadcrumbs,
+    changeState,
+    changeStateRegional,
+    changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
     handleClickBar,
-    changeCounty,
   } = useBreadcrumbContext();
 
   const data = useMemo(() => {
@@ -68,31 +77,62 @@ export function TableClassReading({ orderBy, selectedItem, isPdf = false }: Tabl
     return data;
   }, [order, selectedColumn, selectedItem]);
 
-  function handleSelectClass(id: string, name: string) {
-    console.log(id, name);
-    
-    if (selectedItem.level === "county") {
+  function handleSelectClass(id: string, name: string) {    
+    if (selectedItem.level === "state") {
+      changeState({
+        id: id,
+        name: name,
+      });
+      changeStateRegional(null);
+      const url = window.location.href.split('&state=')
+      const newUrl = url[0].concat('&state=' + id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (selectedItem.level === "regional") {
+      changeStateRegional({
+        id: id,
+        name: name,
+      });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (selectedItem.level === "county") {
       changeCounty({
-        AVM_MUN: {
-          MUN_ID: id,
-          MUN_NOME: name,
-        },
+        MUN_ID: id,
+        MUN_NOME: name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + id + '&countyName=' + name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (selectedItem.level === "regionalSchool") {
+      changeCountyRegional({
+        id: id,
+        name: name,
       });
       changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     } else if (selectedItem.level === "school") {
       changeSchool({
         ESC_ID: id,
         ESC_NOME: name,
       });
       changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     } else if (
-      selectedItem.level === "school-class" ||
       selectedItem.level === "schoolClass"
     ) {
       changeSchoolClass({
         TUR_ID: id,
         TUR_NOME: name,
       });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
 
     addBreadcrumbs(id, name, selectedItem.level);
@@ -117,7 +157,7 @@ export function TableClassReading({ orderBy, selectedItem, isPdf = false }: Tabl
           <thead>
             <tr>
               <th>
-                {selectedItem.level === "school" ? "Escolas" : "Turmas"} (
+                {Niveis[selectedItem.level] || selectedItem.level} (
                 {data?.length}){" "}
                 <TableSortLabel
                   active={selectedColumn === "name"}
@@ -203,7 +243,18 @@ export function TableClassReading({ orderBy, selectedItem, isPdf = false }: Tabl
             {data?.map((data, index) => (
               <tr key={index}>
                 <button style={{minHeight: 58}} onClick={() => handleSelectClass(data.id, data.name)}>
-                  <td>{data.name}</td>
+                  <td>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      {data.name} 
+                      {selectedItem.level === "school" ?
+                        <div style={{ backgroundColor: '#989898', minWidth: '26px', height: '21px', borderRadius: '16px', textAlign: 'center', marginRight: '8px', color: '#fff', fontSize: '14px' }}>
+                          {data.type === 'MUNICIPAL' ? 'M' : 'E'}
+                        </div>
+                        :
+                        <div></div>
+                      }
+                    </div>
+                  </td>
                 </button>
                 <td>{data.countTotalStudents.toLocaleString("pt-BR")}</td>
                 <td>

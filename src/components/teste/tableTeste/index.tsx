@@ -137,7 +137,7 @@ export default function TableTeste(props) {
   const { data: dataYears } = useGetYears(null, 1, 999999, null, 'DESC', null);
 
   const { data: dataSerie } = useGetSeries(
-    null, 1, 9999999, null, 'ASC', null
+    null, 1, 9999999, null, 'ASC', null, "1"
   );
 
   const { data: dataSubjects, isLoading } = useGetSubjects(

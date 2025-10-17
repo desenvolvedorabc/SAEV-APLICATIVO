@@ -42,7 +42,12 @@ export interface Options {
 interface IGetReportSyntheticParams {
   year?: string
   edition?: number
+  isEpvPartner?: number
+  typeSchool?: string
+  stateId?: number
+  stateRegionalId?: number
   county?: number
+  municipalityOrUniqueRegionalId?: number
   school?: number
   schoolClass?: number
   serie?: number

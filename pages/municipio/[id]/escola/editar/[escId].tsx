@@ -6,20 +6,21 @@ import { useGetCounty } from "src/services/municipios.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
 import LoadingScreen from "src/components/loadingPage";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarEscola({id, escId, url}) {
 
   const { data: escola, isLoading: loadingSchool } = useGetSchool(escId, url);
-  const { data: city, isLoading: loadingCounty } = useGetCounty(id, url);
+  const { data: county, isLoading: loadingCounty } = useGetCounty(id, url);
 
   return (
     <>
       {!loadingCounty && !loadingSchool ? (
         <PageContainer>
-          <Top link={`/municipio/${id}/escola/${escola?.ESC_ID}`}  title={`Municípios > ${city?.MUN_NOME} > Escolas > ${escola?.ESC_NOME} > Editar`}/>
+          <Top link={`/municipio/${id}/escola/${escola?.ESC_ID}`}  title={`Municípios > ${county?.MUN_NOME} > Escolas > ${escola?.ESC_NOME} > Editar`}/>
           {escola &&
-            <FormEditEscola escola={escola} city={city}/>
+            <FormEditEscola escola={escola} county={county}/>
           }
         </PageContainer>
         )
@@ -38,13 +39,18 @@ EditarEscola.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id, escId} = context.params
-  return {
-    props: {
-      id,
-      escId,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const { id, escId } = ctx.params;
+    return {
+      props: {
+        id,
+        escId,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

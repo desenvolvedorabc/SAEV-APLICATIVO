@@ -43,7 +43,9 @@ interface EnhancedTableProps {
 
 const levels = {
   edition: "EDIÇÃO",
-  county: "MUNICIPIO",
+  regional: "REGIONAL ESTADUAL",
+  county: "MUNICÍPIO",
+  regionalSchool: "REGIONAL MUNICIPAL/ÚNICA",
   schoolClass: "TURMA",
   school: "ESCOLA",
 };
@@ -173,8 +175,10 @@ export function TableNivelPerformance({
   const [click, setClick] = useState(false);
   const [descriptorLength, setDescriptorLength] = useState(0);
   const {
-    changeCounty,
     changeEdition,
+    changeStateRegional,
+    changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
     addBreadcrumbs,
@@ -310,22 +314,58 @@ export function TableNivelPerformance({
   };
 
   const handleClickTable = (data) => {
+
     if (level === "edition") {
       changeEdition({ AVA_ID: data.id, AVA_NOME: data.name });
-    }
-    if (level === "county") {
-      changeCounty({
-        AVM_MUN: {
-          MUN_ID: data.id,
-          MUN_NOME: data.name,
-        },
+      const url = window.location.href.split('&edition=')
+      const newUrl = url[0].concat('&edition=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "regional") {
+      changeStateRegional({
+        id: data.id,
+        name: data.name,
       });
-    }
-    if (level === "school") {
-      changeSchool({ ESC_ID: data.id, ESC_NOME: data.name });
-    }
-    if (level === 'schoolClass') {
-      changeSchoolClass({ TUR_ID: data.id, TUR_NOME: data.name });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "county") {
+      changeCounty({
+        MUN_ID: data.id,
+        MUN_NOME: data.name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + data.id + '&countyName=' + data.name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "regionalSchool") {
+      changeCountyRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "school") {
+      changeSchool({
+        ESC_ID: data.id,
+        ESC_NOME: data.name,
+      });
+      changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      level === "schoolClass"
+    ) {
+      changeSchoolClass({
+        TUR_ID: data.id,
+        TUR_NOME: data.name,
+      });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
     addBreadcrumbs(data.id, data.name, level);
     setClick(true);

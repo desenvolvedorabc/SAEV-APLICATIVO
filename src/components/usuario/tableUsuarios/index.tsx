@@ -17,8 +17,8 @@ import { MdOutlineFilterAlt, MdNavigateNext, MdNavigateBefore } from "react-icon
 import { ButtonPadrao } from 'src/components/buttons/buttonPadrao';
 
 import Link from 'next/link'
-import { getAllPerfis, useGetAllPerfis } from 'src/services/perfis.service'
-import { getSubBase, useGetSubBase } from 'src/services/sub-perfis.service'
+import { RoleProfile, useGetProfiles } from 'src/services/perfis.service'
+import { useGetSubBase } from 'src/services/sub-perfis.service'
 import { Autocomplete, TextField } from '@mui/material'
 import { AutoCompletePagMun } from 'src/components/AutoCompletePag/AutoCompletePagMun'
 import { AutoCompletePagEscMun } from 'src/components/AutoCompletePag/AutoCompletePagEscMun'
@@ -162,11 +162,11 @@ export default function TableUsuarios() {
   const [searchTerm, setSearchTerm] = useState(null)
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const { data, isLoading } = useGetUsers(search, page, limit, selectedColumn, order.toUpperCase(), filterCity?.MUN_ID, filterSchool?.ESC_ID, filterPerfilBase?.PER_ID, filterPerfil?.SPE_ID);
+  const { data, isLoading } = useGetUsers(search, page, limit, selectedColumn, order.toUpperCase(), filterCity?.MUN_ID, filterSchool?.ESC_ID, filterPerfilBase, filterPerfil?.SPE_ID);
+
   
-  const { data: perfis, isLoading: isLoadingPerfis } = useGetAllPerfis();
-  
-  const { data: subPerfis, isLoading: isLoadingSubPerfis } = useGetSubBase(selectedPerfilBase?.PER_ID, !!selectedPerfilBase);
+
+  const { data: subPerfis, isLoading: isLoadingSubPerfis } = useGetProfiles(null, 1, 999999, null, 'ASC', selectedPerfilBase, !!selectedPerfilBase);
   
   useEffect(() => {
     let list = [];
@@ -181,7 +181,7 @@ export default function TableUsuarios() {
           x.USU_EMAIL, 
           x.USU_MUN?.MUN_NOME, 
           x.USU_ESC?.ESC_NOME, 
-          x.USU_SPE?.SPE_PER?.PER_NOME, 
+          RoleProfile[x.USU_SPE?.role], 
           x.USU_SPE?.SPE_NOME
         )
       );
@@ -317,16 +317,16 @@ export default function TableUsuarios() {
             </Marker>
           </OverlayTrigger>
           <div className="d-flex flex-row-reverse align-items-center ">
-            <InputSearch size={16} type="text" placeholder="Pesquise" name="searchTerm"
+            <InputSearch data-test='search' size={16} type="text" placeholder="Pesquise" name="searchTerm"
               onChange={handleChangeSearch}
             />
             <IconSearch color={'#7C7C7C'} />
           </div>
         </div>
         <div>
-          <Link href="/usuario" passHref>
+          <Link href="/usuario" passHref data-test='newUser'>
             <div style={{ width: 160 }}>
-              <ButtonPadrao onClick={() => { /* TODO document why this arrow function is empty */  }}>Adicionar Usuário</ButtonPadrao>
+              <ButtonPadrao dataTest='btNewUser' onClick={() => { /* TODO document why this arrow function is empty */  }}>Adicionar Usuário</ButtonPadrao>
             </div>
           </Link>
         </div>
@@ -337,21 +337,21 @@ export default function TableUsuarios() {
             <AutoCompletePagMun county={selectedCity} changeCounty={handleSelectCity} width={"150px"} />
           </div>
           <div className="pe-2 me-2 border-end border-white">
-            <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCity} resetSchools={resetSchool} width={"150px"}  />
+            <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCity} resetSchools={resetSchool} width={"150px"} disabled={!selectedCity} />
           </div>
           <div className="pe-2 me-2 border-end border-white">
             <Autocomplete
               style={{width: 150, background: "#FFF"}}
               className=""
-              id="size-small-outlined"
+              data-test="profile"
+              id="profile"
               size="small"
               value={selectedPerfilBase}
               noOptionsText="Perfil Base"
-              options={perfis}
-              getOptionLabel={(option) =>  `${option?.PER_NOME}`}
+              options={Object.keys(RoleProfile)}
+              getOptionLabel={(option) =>  `${RoleProfile[option]}`}
               onChange={(_event, newValue) => {
                 handleSelectPerfilBase(newValue)}}
-              loading={isLoadingPerfis}
               sx={{
                 "& .Mui-disabled": {
                   background: "#D3D3D3",
@@ -368,7 +368,7 @@ export default function TableUsuarios() {
               size="small"
               value={selectedPerfil}
               noOptionsText="Sub-Perfil"
-              options={subPerfis}
+              options={subPerfis?.items}
               getOptionLabel={(option) =>  `${option?.SPE_NOME}`}
               onChange={(_event, newValue) => {
                 handleSelectPerfil(newValue)}}

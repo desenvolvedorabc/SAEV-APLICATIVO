@@ -5,6 +5,7 @@ import ButtonWhite from "src/components/buttons/buttonWhite";
 import ModalAlterarPeriodo from "../modalAlterarPeriodo";
 import ScoreTotal from "./ScoreTotal";
 import * as S from "./styles";
+import { useAuth } from "src/context/AuthContext";
 
 export function ContentInfoDataAndOptionsSubject({
   isSchoolClass = false,
@@ -25,12 +26,13 @@ export function ContentInfoDataAndOptionsSubject({
   handleCsv = null,
   county,
   edition,
+  type,
 }) {
   const [labelOrder, setLabelOrder] = useState("A-Z");
   const [labelVisualization, setLabelVisualization] = useState("Carrossel");
   const [modalShow, setModalShow] = useState(false)
   const [dateFim, setDateFim] = useState(selectedReleaseSubject?.AVM_DT_FIM)
-  const perfil = window.localStorage.getItem("PER_NOME")
+  const { user } = useAuth()
 
   const [anchorOrderBy, setAnchorOrderBy] = useState<null | HTMLElement>(null);
   const [anchorVisualizationBy, setAnchorVisualizationBy] =
@@ -113,12 +115,12 @@ export function ContentInfoDataAndOptionsSubject({
     Object.create(null)
   ).length;
 
-  const changeFim = () => {
-    setDateFim(selectedReleaseSubject?.AVM_DT_FIM)
+  const changeFim = (newValue) => {
+    setDateFim(newValue)
   }
 
   const verifyPerfil = () => {
-    if(perfil === "SAEV" || perfil === "Município")
+    if(user?.USU_SPE?.role === "SAEV" || user?.USU_SPE?.role === "MUNICIPIO_MUNICIPAL" || user?.USU_SPE?.role === "MUNICIPIO_ESTADUAL")
       return true;
     return false;
   };
@@ -140,9 +142,9 @@ export function ContentInfoDataAndOptionsSubject({
             Período de Lançamento:{" "}
             {new Date(
               selectedReleaseSubject?.AVM_DT_INICIO
-            ).toLocaleDateString()}{" "}
+            ).toLocaleDateString('pt-BR')}{" "}
             a{" "}
-            {new Date(dateFim).toLocaleDateString()}.
+            {new Date(dateFim).toLocaleDateString('pt-BR')}.
           </b>
         </p>
         {verifyPerfil() &&
@@ -330,6 +332,7 @@ export function ContentInfoDataAndOptionsSubject({
         fim={selectedReleaseSubject?.AVM_DT_FIM}
         handlechangeperiodo={changeFim}
         edition={edition}
+        type={type}
       />
     </S.Container>
   );

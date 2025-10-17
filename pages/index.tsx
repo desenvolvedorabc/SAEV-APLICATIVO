@@ -11,9 +11,25 @@ import type { ReactElement } from "react";
 import { useGetSerieReport } from "src/services/series.service";
 import { withSSRAuth } from "src/utils/withSSRAuth";
 import { Loading } from "src/components/Loading";
+import { useAuth } from "src/context/AuthContext";
 
 export default function Home({ userInfo }) {
   const [isAuthenticated, setAuth] = useState(true);
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if(user){
+      if(user?.USU_SPE?.role === "ESCOLA") {
+        Router.push(`/municipio/${user?.USU_MUN.MUN_ID}/escola/${user?.USU_ESC.ESC_ID}`)
+      } else if(user?.USU_SPE?.role === "MUNICIPIO_ESTADUAL"){
+        Router.push(`/municipio/${user?.USU_MUN.MUN_ID}`)
+      } else if(user?.USU_SPE?.role === "MUNICIPIO_MUNICIPAL"){
+        Router.push(`/municipio/${user?.USU_MUN.MUN_ID}`)
+      } else if(user?.USU_SPE?.role === "ESTADO"){
+        Router.push(`/municipios`)
+      }
+    }
+  },[user])
 
   const handleClick = () => {
     setAuth(!isAuthenticated);

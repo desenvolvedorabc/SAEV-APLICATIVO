@@ -61,9 +61,11 @@ export default function FormLogin(props) {
   return (
     <>
       <Form onSubmit={formik.handleSubmit}>
-        <Form.Group className="mb-3" controlId="formBasicEmail">
+        <Form.Group className="mb-3" controlId="email">
           <div className="d-flex align-items-center">
             <InputLogin
+              data-test='email'
+              id='email'
               type="email"
               name="email"
               placeholder="Email"
@@ -72,14 +74,16 @@ export default function FormLogin(props) {
             <IconMail color={"#7C7C7C"} />
           </div>
           {formik.errors.email ? (
-            <ErrorText>{formik.errors.email}</ErrorText>
+            <ErrorText id='errorEmail'>{formik.errors.email}</ErrorText>
           ) : null}
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          {error ? <ErrorText id='errorEmail'>{error}</ErrorText> : null}
         </Form.Group>
 
-        <Form.Group className="mb-4" controlId="formBasicPassword">
+        <Form.Group className="mb-4" controlId="password">
           <div className="d-flex align-items-center">
             <InputLogin
+              data-test='password'
+              id='password'
               type="password"
               name="password"
               placeholder="Senha"
@@ -88,11 +92,12 @@ export default function FormLogin(props) {
             <IconLock color={"#7C7C7C"} size={16} />
           </div>
           {formik.errors.password ? (
-            <ErrorText>{formik.errors.password}</ErrorText>
+            <ErrorText id='errorPassword'>{formik.errors.password}</ErrorText>
           ) : null}
         </Form.Group>
         <ButtonPadrao
           type="submit"
+          dataTest="confirm"
           onClick={(e) => {
             e.preventDefault();
             formik.handleSubmit(e);

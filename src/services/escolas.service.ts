@@ -8,6 +8,25 @@ const cookies = parseCookies();
 const token = cookies["__session"];
 const HALF_HOUR = 30;
 
+export enum TypeSchool {
+  MUNICIPAL= 'Escola Municipal',
+  ESTADUAL= 'Escola Estadual'
+}
+
+export type IGetSchools = {
+  search?: string,
+  page?: number,
+  limit?: number,
+  column?: string,
+  order?: string,
+  county?: number,
+  municipalityOrUniqueRegionalId?: number,
+  active?: "0" | "1",
+  enabled?: boolean,
+  verifyExistsRegional?: 0 | 1,
+  typeSchool?: 'MUNICIPAL' | 'ESTADUAL'
+}
+
 export async function getSchools(
   search: string,
   page: number,
@@ -55,6 +74,7 @@ export interface SchoolReportItem {
   ESC_ID: number;
   ESC_INEP: string;
   ESC_NOME: string;
+  ESC_MUN: string;
   ESC_STATUS: string;
   INFREQUENCIA: number;
 }
@@ -67,9 +87,12 @@ export function useGetSchoolsReport(
   order: string,
   active: string,
   county: string,
+  stateId: string,
+  typeSchool: string,
+  enabled: boolean,
   options?: UseQueryOptions<Pagination<SchoolReportItem>>
 ) {
-  const params = { search, page, limit, order, active, column, county };
+  const params = { search, page, limit, order, active, column, county, stateId, typeSchool };
 
   return useQuery<Pagination<SchoolReportItem>>({
     queryKey: ["schools_report", params],
@@ -78,6 +101,7 @@ export function useGetSchoolsReport(
       return response.data;
     },
     staleTime: 1000 * 60 * 1, // 1 minute
+    enabled,
     ...options,
   });
 }
@@ -108,24 +132,71 @@ export interface EscMun {
   MUN_NOME: string
 }
 
-export function useGetSchools(
+export function useGetSchools({
+  search,
+  page,
+  limit,
+  column,
+  order,
+  active,
+  county,
+  municipalityOrUniqueRegionalId,
+  verifyExistsRegional,
+  typeSchool,
+  enabled = true,
+}: IGetSchools) {
+  const params = { search, page, limit, order, column, active, verifyExistsRegional, county, municipalityOrUniqueRegionalId, typeSchool  };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["schools", params],
+    queryFn: async () => {
+      const response = await api.get("/school", { params });
+
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 1, // 1 minutes,
+    enabled: enabled,
+  });
+
+  return {
+    data,
+    isLoading,
+  };
+}
+
+export type IGetSchoolsPag = {
   search: string,
   limit: number,
   column: string,
   order: string,
   active: string,
   county: string,
+  typeSchool: string,
+  enabled: boolean,
   options?: UseInfiniteQueryOptions<Pagination<SchoolItem>>
-) {
-  const params = { search, limit, order, active, column, county };
+}
+
+export function useGetSchoolsPag({
+  search,
+  limit,
+  column,
+  order,
+  active,
+  county,
+  typeSchool,
+  enabled,
+  options,
+}) {
+  const params = { search, limit, order, active, column, county, typeSchool };
 
   const query = useInfiniteQuery<Pagination<SchoolItem>>({
-    queryKey: ["schools", search, limit, column, order, active, county],
+    queryKey: ["schools_pag", search, limit, column, order, active, county, typeSchool],
     queryFn: async ({ pageParam }) => {
       const response = await api.get("/school", { params: { ...params, page: pageParam }});
       return response.data;
     },
     staleTime: 1000 * 60 * 1,
+    enabled,
     getNextPageParam: (lastPage) => {
       const { currentPage, totalPages } = lastPage.meta;
       return currentPage < totalPages ? currentPage + 1 : undefined;

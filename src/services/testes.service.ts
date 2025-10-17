@@ -114,7 +114,20 @@ export async function editTest(
     token,
   };
 
-  const responseUpdate = await axios.put(`/api/test/edit/${id}`, { data });
+  const responseUpdate = await api.put(`/tests/${id}`, data )
+  .then((response) => {
+    console.log("response: ", response);
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 401,
+      data: {
+        message: error.response?.data?.message,
+      },
+    };
+  });
   return responseUpdate;
 }
 

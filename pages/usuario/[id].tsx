@@ -6,6 +6,7 @@ import { getUser } from "src/services/usuarios.service";
 import CardInfoUsuarioRelatorio from "src/components/usuario/cardInfoUsuarioRelatorio";
 import Layout from "src/components/layout";
 import type { ReactElement } from "react";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 const Termo = styled.div`
   background-color: #fff;
@@ -56,12 +57,17 @@ UsuarioDetalhe.getLayout = function getLayout(page: ReactElement) {
   return <Layout header={"Usuários"}>{page}</Layout>;
 };
 
-export async function getServerSideProps(context) {
-  const { id } = context.params;
-  return {
-    props: {
-      id,
-      url: process.env.NEXT_PUBLIC_API_URL,
-    },
-  };
-}
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { 
+        id,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
+  }
+);

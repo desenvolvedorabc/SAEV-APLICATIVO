@@ -159,6 +159,7 @@ export default function LancarResultados({url}) {
               changeOrderBy={handleChangeOrderBy}
               county = {county}
               edition={edition}
+              type={school?.ESC_TIPO}
             />
 
             <ContentReleasesStudent

@@ -61,7 +61,7 @@ export default function Search ({open = false}) {
   async function searchCharacters(search) {
     let count = 0;
 
-    const respCounties = await getCounties(search, 1, 9999, null, "ASC", null)
+    const respCounties = await getCounties(search, 1, 9999, null, "ASC", null, null)
     count += respCounties.data.items.length
 
     const respUsers = await getUsers(search, 1, 9999, null, "ASC", null, null, null, null)
@@ -70,7 +70,7 @@ export default function Search ({open = false}) {
     const respSchool = await getSchools(search, 1, 9999, null, "ASC", null, null)
     count += respSchool.data.items.length
     
-    const respStudent = await getStudentsNames(search, 1, 9999, null, "ASC", null, null, null, null)
+    const respStudent = await getStudentsNames(search, 1, 9999, null, "ASC", null, null, null, null, null, null, null, null)
     count += respStudent.data.items.length
     
     setResultCount(count)

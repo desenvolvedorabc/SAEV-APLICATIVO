@@ -33,10 +33,10 @@ export default function ModalPergunta(props) {
       </Modal.Body>
       <Modal.Footer className="d-flex flex-column justify-content-center border-0 align-center px-5 ">
         <div style={{width: props.size === "sm" ? 164 : 248}}>
-          <ButtonVermelho onClick={props.onHide}>{props.buttonNo}</ButtonVermelho>
+          <ButtonVermelho dataTest='close' onClick={props.onHide}>{props.buttonNo}</ButtonVermelho>
         </div>
         <div style={{width: props.size === "sm" ? 164 : 248}}>
-          <ButtonWhite border={props.warning && false} onClick={props.onConfirm}>
+          <ButtonWhite dataTest='confirm' border={props.warning && false} onClick={props.onConfirm}>
             {props.buttonYes}
           </ButtonWhite>
         </div>

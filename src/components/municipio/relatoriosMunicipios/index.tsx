@@ -15,7 +15,7 @@ import Chair from "public/assets/images/chair.svg";
 import AlunosDesempenho from "public/assets/images/alunos-desempenho.svg";
 import { useMemo } from "react";
 import { useAuth } from "src/context/AuthContext";
-import { useGetSubPerfil } from "src/services/sub-perfis.service";
+import { useGetPerfil } from "src/services/perfis.service";
 
 interface MunicipioData {
   MUN_ID: string;
@@ -45,13 +45,14 @@ type Area = {
 
 export default function Relatorios({ municipio }) {
   const { user } = useAuth();
-  const { data: subPerfil  }= useGetSubPerfil(user?.USU_SPE?.SPE_ID, !!user?.USU_SPE?.SPE_ID)
+  const { data: subPerfil  }= useGetPerfil(user?.USU_SPE?.SPE_ID, !!user?.USU_SPE?.SPE_ID)
 
   const areas = subPerfil?.AREAS ?? []
 
   const formattedCards = useMemo(() => {
     let cards = [
       <CardRelatorio
+        dataTest='sinteseGeral'
         icon={<MdOutlineCalculate color={"#3E8277"} size={40} />}
         link={"/sintese-geral"}
         title="Resultados"
@@ -59,6 +60,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Síntese Geral"
       />,
       <CardRelatorio
+        dataTest='resultadosDescritores'
         icon={<MdListAlt color={"#3E8277"} size={40} />}
         link={"/resultados-descritores"}
         ARE_NOME={["DESC", "REL"]}
@@ -66,6 +68,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Descritores"
       />,
       <CardRelatorio
+        dataTest='lancamentos'
         icon={<MdOutlineFactCheck color={"#3E8277"} size={40} />}
         link={"/lancamentos"}
         ARE_NOME={["LANC", "REL"]}
@@ -73,6 +76,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Escola"
       />,
       <CardRelatorio
+        dataTest='enturmacao'
         icon={<MdOutlineFactCheck color={"#3E8277"} size={40} />}
         ARE_NOME={["ENTU", "REL"]}
         link={"/enturmacao"}
@@ -80,6 +84,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Escola"
       />,
       <CardRelatorio
+        dataTest='linhaEvolutiva'
         icon={<MdTimeline color={"#3E8277"} size={40} />}
         link={"/linha-evolutiva"}
         ARE_NOME={["LIN_EVO", "REL"]}
@@ -87,6 +92,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Turmas, Séries e Edição"
       />,
       <CardRelatorio
+        dataTest='infrequencia'
         icon={<Chair color={"#3E8277"} size={40} />}
         link={"/infrequencia"}
         ARE_NOME={["INF"]}
@@ -94,6 +100,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Escola"
       />,
       <CardRelatorio
+        dataTest='transferencia'
         icon={<AlunosDesempenho color={"#3E8277"} size={40} />}
         link={`/transferencias`}
         ARE_NOME={["TRF_ALU"]}
@@ -101,6 +108,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Aluno"
       />,
       <CardRelatorio
+        dataTest='nivelDesempenho'
         icon={<AlunosDesempenho color={"#3E8277"} size={40} />}
         ARE_NOME={["NIV_DES", "REL"]}
         link={"/nivel-desempenho"}
@@ -108,6 +116,7 @@ export default function Relatorios({ municipio }) {
         subTitle="Por Aluno"
       />,
       <CardRelatorio
+        dataTest='escolas'
         icon={<MdOutlineSchool color={"#3E8277"} size={40} />}
         link={`/municipio/${municipio?.MUN_ID}/escolas`}
         ARE_NOME={["ESC"]}
@@ -115,6 +124,7 @@ export default function Relatorios({ municipio }) {
         subTitle={municipio?.TOTAL_ESCOLAS?.toLocaleString("pt-BR")}
       />,
       <CardRelatorio
+        dataTest='professores'
         icon={<Teacher color={"#3E8277"} size={40} />}
         link={`/municipio/${municipio?.MUN_ID}/professores`}
         ARE_NOME={["PRO"]}
@@ -122,6 +132,7 @@ export default function Relatorios({ municipio }) {
         subTitle={municipio?.TOTAL_PROFESSORES?.toLocaleString("pt-BR")}
       />,
       <CardRelatorio
+        dataTest='alunos'
         icon={<Alunos color={"#3E8277"} size={40} />}
         link={`/municipio/${municipio?.MUN_ID}/escola/${null}/alunos`}
         ARE_NOME={["ALU"]}
@@ -129,6 +140,7 @@ export default function Relatorios({ municipio }) {
         subTitle={municipio?.TOTAL_ALUNOS?.toLocaleString("pt-BR")}
       />,
       <CardRelatorio
+        dataTest='usuarios'
         icon={<MdOutlineGroup color={"#3E8277"} size={40} />}
         link={"/usuarios"}
         ARE_NOME={["USU"]}

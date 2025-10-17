@@ -18,6 +18,8 @@ export function ExportReportInfrequencia({ handlePrint }) {
   };
 
   const {
+    epv,
+    type,
     mapBreadcrumb,
   } = useBreadcrumbContext()
 
@@ -32,23 +34,29 @@ export function ExportReportInfrequencia({ handlePrint }) {
 
   const downloadCsv = async () => {
     setIsDisabled('csv')
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const county = mapBreadcrumb.find((data) => data.level === "county")
-    const school = mapBreadcrumb.find((data) => data.level === "school")
-    const serie = mapBreadcrumb.find((data) => data.level === "serie")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _serie = mapBreadcrumb.find((data) => data.level === "serie")
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
     const resp = await getExportReportAbsence(
-      school?.id,
-      schoolClass?.id,
-      year?.id,
-      county?.id,
-      serie?.id
+      _year?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _serie?.id,
+      _schoolClass?.id
     );
     if(!resp.data.message) {
-      saveAs(resp?.data, 'Relatório_Infrequência.xls');
+      saveAs(resp?.data, 'Relatório_Infrequência.csv');
     } else {
     }
     setIsDisabled('')

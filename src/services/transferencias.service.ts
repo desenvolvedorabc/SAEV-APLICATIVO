@@ -10,11 +10,11 @@ export async function getTransfers(
   limit: number,
   school: string,
   county: string,
-  order: string,
+  column: string,
   status: string,
   student: string
 ) {
-  const params = { page, limit, school, county, order, status, student };
+  const params = { page, limit, school, county, column, status, student };
   return await api.get("/transfer", { params });
 }
 

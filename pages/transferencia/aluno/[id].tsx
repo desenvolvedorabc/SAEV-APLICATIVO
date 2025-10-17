@@ -5,6 +5,7 @@ import { getStudent } from "src/services/alunos.service";
 import { CardInfoAlunoTransfer } from "src/components/transfers/cardInfoAlunoTransfer";
 import Layout from "src/components/layout";
 import type { ReactElement } from "react";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 export default function AlunoDetalhe({ id, url }) {
   const [aluno, setAluno] = useState(null);
@@ -35,12 +36,17 @@ AlunoDetalhe.getLayout = function getLayout(page: ReactElement) {
   return <Layout header={"Nova Transferência"}>{page}</Layout>;
 };
 
-export async function getServerSideProps(context) {
-  const { id } = context.params;
-  return {
-    props: {
-      id,
-      url: process.env.NEXT_PUBLIC_API_URL
-    },
-  };
-}
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { 
+        id,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
+  }
+);

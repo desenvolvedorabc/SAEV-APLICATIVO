@@ -174,7 +174,19 @@ export async function getAllYearsAssessments() {
 }
 
 export async function getYearAssessment(ano) {
-  return axios.get(`/api/assessment/year/${ano}?token=${token}`);
+  return api.get(`/assessments/years/${ano}`)
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
 }
 
 export async function prorrogationAssessment(id: string, data: any) {

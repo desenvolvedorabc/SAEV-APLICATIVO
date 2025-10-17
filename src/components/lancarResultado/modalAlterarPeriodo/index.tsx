@@ -25,7 +25,11 @@ export default function ModalAlterarPeriodo(props) {
 
   const handleSubmit = async () => {
     const data = {
-      idsCounties: [props.county?.MUN_ID],
+      counties: [
+        {
+          id: props.county?.MUN_ID, 
+          type: props.type
+        }],
       newDate: new Date(lancFim)
     }
 
@@ -174,7 +178,7 @@ export default function ModalAlterarPeriodo(props) {
       <ModalConfirmacao
         show={modalShowConfirm}
         onHide={() => {
-          setModalShowConfirm(false); modalStatus && setModalShowConfirm(false);
+          setModalShowConfirm(false); modalStatus && props.handlechangeperiodo(new Date(lancFim));
         }}
         text={
           modalStatus

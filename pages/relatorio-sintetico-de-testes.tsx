@@ -14,6 +14,7 @@ import { useAuth } from "src/context/AuthContext"
 import { useBreadcrumbContext } from "src/context/breadcrumb.context"
 import { getReportSynthetic, SubjectProps } from "src/services/report-synthetic"
 import { useGenearePdf } from "src/utils/generatePdf"
+import { withSSRAuth } from "src/utils/withSSRAuth"
 
 export default function RelatorioSintetico() {
   const { user } = useAuth()
@@ -22,20 +23,31 @@ export default function RelatorioSintetico() {
   const [ isLoading, setIsLoading ] = useState<boolean>(false)
 
   const {
-    year,
-    county,
-    school,
-    edition,
     serie,
+    year,
+    state,
+    epv,
+    type,
+    stateRegional,
+    edition,
+    county,
+    countyRegional,
+    school,
     schoolClass,
     isUpdateData,
     setIsUpdateData,
+    mapBreadcrumb,
     changeSerie,
     changeYear,
+    changeEpv,
+    changeType,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
+    changeEdition,
     changeSchool,
     changeSchoolClass,
-    changeEdition,
     handleClickBreadcrumb,
     clickBreadcrumb,
     visibleBreadcrumbs,
@@ -52,14 +64,27 @@ export default function RelatorioSintetico() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   async function loadData() {
     setIsLoading(true)
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
     
     const dataReports = await getReportSynthetic({
-      year: year?.ANO,
-      edition: edition?.AVA_ID,
-      county: county?.AVM_MUN?.MUN_ID,
       serie: serie?.SER_ID,
-      school: school?.ESC_ID,
-      schoolClass: schoolClass?.TUR_ID
+      year: _year?.id,
+      edition: _edition?.id,
+      isEpvPartner: epv === 'Exclusivo Epv' ? 1 : 0,
+      typeSchool: type === 'PUBLICA' ? null : type,
+      stateId: _state?.id,
+      stateRegionalId: _stateRegional?.id,
+      county: _county?.id,
+      municipalityOrUniqueRegionalId: _countyRegional?.id,
+      school: _school?.id,
+      schoolClass: _schoolClass?.id
     })
     
     if (dataReports?.items?.length === 0 || Object.keys(dataReports).length === 0) {
@@ -95,13 +120,24 @@ export default function RelatorioSintetico() {
     setReportSynthetic(report)
   }
 
-  const handleChangeSerie = (e) => {
-    changeSerie(e ? e.target.value : null);
+  const handleChangeSerie = (newValue, add = false) => {
+    changeSerie(newValue);
     changeYear(null);
-    changeCounty(null);
-    changeSchool(null);
     changeEdition(null);
+    changeEpv(null);
+    changeType(null);
+    changeState(null);
+    changeStateRegional(null);
+    changeCounty(null);
+    changeCountyRegional(null);
+    changeSchool(null);
     changeSchoolClass(null);
+
+    if(add){
+      const url = window.location.href.split('?serie=')
+      const newUrl = url[0].concat('?serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
   };
 
   const onPressBreadcrump = useCallback(() => {
@@ -134,13 +170,17 @@ export default function RelatorioSintetico() {
   }, [examId, reportSyntheticData])
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!edition)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -158,6 +198,7 @@ export default function RelatorioSintetico() {
         isDisableYear={!serie}
         isDisable={onDisableReportFilter()}
         yearOrder="DESC"
+        isSaev={user?.USU_SPE?.role === 'SAEV'}
       />
       {isLoading ? 
         <Loading />
@@ -252,3 +293,14 @@ RelatorioSintetico.getLayout = function getLayout(page: ReactElement) {
     <Layout header={"Relatório Sintético de Testes"}>{page}</Layout>
   )
 }
+
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: {},
+    };
+  },
+  {
+    roles: [],
+  }
+);

@@ -33,7 +33,12 @@ export async function getNivels(
   serie: string,
   year: string,
   edition: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   schoolClass: string
 ) {
@@ -44,7 +49,12 @@ export async function getNivels(
     serie,
     year,
     edition,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
   };

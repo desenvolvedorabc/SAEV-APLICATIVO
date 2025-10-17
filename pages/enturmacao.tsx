@@ -123,6 +123,8 @@ function createDataStudent(
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 import { withSSRAuth } from "src/utils/withSSRAuth";
 import { format } from "date-fns";
+import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
 
 export default function Enturmacao() {
   const [search, setSearch] = useState("");
@@ -132,6 +134,8 @@ export default function Enturmacao() {
   const [selectedColumn, setSelectedColumn] = useState("name");
   const [isLoading, setIsLoading] = useState(false);
   const [excelCreated, setExcelCreated] = useState(false);
+  const router = useRouter();
+  const {user} = useAuth()
 
   const [listScore, setListScore] = useState<ItemSubjectLancamento>(
     {} as ItemSubjectLancamento
@@ -144,10 +148,13 @@ export default function Enturmacao() {
 
   const { componentRef, handlePrint } = useGenearePdf();
   const {
-    changeSerie,
     handleClickBreadcrumb,
     mapBreadcrumb,
     isUpdateData,
+    serie,
+    epv,
+    type,
+    state,
     county,
     school,
     setIsUpdateData,
@@ -166,10 +173,10 @@ export default function Enturmacao() {
 
   },[excelCreated]);
 
-  useEffect(() => {
-    changeSerie(null);
-    setIsUpdateData(true);
-  }, [changeSerie, setIsUpdateData]);
+  // useEffect(() => {
+  //   changeSerie(null);
+  //   setIsUpdateData(true);
+  // }, [changeSerie, setIsUpdateData]);
 
   function loadData(
     page: number,
@@ -188,14 +195,29 @@ export default function Enturmacao() {
 
   useEffect(() => {
     async function loadData() {
-      let county = mapBreadcrumb.find((x) => x.level === "county");
-      let school = mapBreadcrumb.find((x) => x.level === "school");
-      let serie = mapBreadcrumb.find((x) => x.level === "serie");
-      let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+      const _state = mapBreadcrumb.find((data) => data.level === "state");
+      const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+      const _county = mapBreadcrumb.find((data) => data.level === "county");
+      const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+      const _school = mapBreadcrumb.find((data) => data.level === "school");
+      const _serie = mapBreadcrumb.find((data) => data.level === "serie");
+      const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
-      if (!county) {
-        return;
-      }
+      // let newUrl = `${router.pathname}?`
+        
+      // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+      // if(type) newUrl = newUrl.concat('&type=' + type)
+      // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+      // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+      // if(_county) {
+      //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+      // }
+      // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+      // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+      // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+       
+      // window.history.pushState({ path: newUrl }, '', newUrl);
+
       setIsLoading(true);
 
       const response_data = await getItensGrouping(
@@ -203,13 +225,16 @@ export default function Enturmacao() {
         order,
         page,
         limit,
-        county?.id,
-        school?.id,
-        serie?.id,
-        schoolClass?.id,
+        _serie?.id,
+        epv === 'Exclusivo Epv' ? 1 : 0,
+        type,
+        _state?.id,
+        _stateRegional?.id,
+        _county?.id,
+        _countyRegional?.id,
+        _school?.id,
+        _schoolClass?.id,
         search,
-        mapBreadcrumb?.length,
-        selectedColumn
       );
 
       setIsLoading(false);
@@ -218,55 +243,63 @@ export default function Enturmacao() {
       setItensEdition(response_data);
     }
 
-    if (isUpdateData) {
+    if (isUpdateData && (mapBreadcrumb.length > 0)) {
       loadData();
       setIsUpdateData(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    county,
     order,
     page,
     mapBreadcrumb,
     limit,
-    school,
     search,
     isUpdateData,
     setIsUpdateData,
   ]);
 
-  console.log('oi', mapBreadcrumb)
-
   const generateDataImportExcel = async () => {
-    let county = mapBreadcrumb.find((x) => x.level === "county");
-    let school = mapBreadcrumb.find((x) => x.level === "school");
-    let serie = mapBreadcrumb.find((x) => x.level === "serie");
-    let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _serie = mapBreadcrumb.find((data) => data.level === "serie");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
-    if (!county) {
+    if (!_state) {
       return;
     }
 
     const response_grouping = await getItensGrouping(
-      "mun",
+      "county",
       order,
       1,
       999,
-      county?.id,
-      school?.id,
-      serie?.id,
-      schoolClass?.id,
+      _serie?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id,
       search,
-      mapBreadcrumb?.length,
-      selectedColumn
     );
 
     let list = [];
     let tempCsv = [];
 
     let level = "";
-    if (response_grouping.type === "mun") {
-      level = "Município";
+    if (response_grouping.type === "regional" || response_grouping.type === "county" || response_grouping.type === "regionalSchool") {
+      if(response_grouping.type === "regional"){
+        level = "Regional Estadual";
+      } else if(response_grouping.type === "county"){
+        level = "Município";
+      } else if(response_grouping.type === "regionalSchool"){
+        level = "Regional Municipal/Única";
+      }
       response_grouping.itens?.map((x) => {
         list.push(
           createDataMun(level, x.name, x.grouped, x.not_grouped, x.total, 
@@ -349,16 +382,35 @@ export default function Enturmacao() {
   //   setIsUpdateData(true);
   // }, [mapBreadcrumb, setIsUpdateData]);
 
+  function onDisableReportFilter(): boolean {
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
+        return !(!!county)
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
+        return !(!!school)
+      case "SAEV":
+        return !(!!state)
+      default:
+        return false
+    }
+  }
+
   return (
     <>
       <PageContainer>
         <Top title="Enturmação" />
         <ReportFilter
-          isDisable={!county}
+          isDisable={onDisableReportFilter()}
           isYear={false}
           isEdition={false}
           isSerie={true}
           isSchoolClass={true}
+          testActive="1"
+          isPublic={false}
         />
 
         <>
@@ -368,12 +420,14 @@ export default function Enturmacao() {
             <header>
               {!!itemsEdition?.itens?.length ? (
                 <>
-                  <p>
+                  <div/>
+                  {/* <p>
                     Lançamentos de{" "}
-                    {itemsEdition.TOTAL_MUN?.toLocaleString("pt-BR")} municípios
-                    e {itemsEdition.TOTAL_SCHOOLS?.toLocaleString("pt-BR")}{" "}
-                    escolas:
-                  </p>
+                    {itemsEdition.TOTAL_MUN?.toLocaleString("pt-BR")} municípios {
+                      itemsEdition.TOTAL_SCHOOLS ? `e ${itemsEdition.TOTAL_SCHOOLS?.toLocaleString("pt-BR")} escolas` : null
+                    }
+                    :                   
+                  </p> */}
                   <ButtonMenu
                     handlePrint={handlePrint}
                     handleCsv={downloadCsv}
@@ -417,14 +471,6 @@ function GeneratePdfPage({ componentRef, listScore, itemsEdition }) {
         <PageContainer isPdf>
           <ContainerScore>
             <ReportBreadcrumb onPress={() => {}} />
-            {!!itemsEdition?.itens?.length ? (
-              <p>
-                Lançamentos de {itemsEdition.TOTAL_MUN} municípios e{" "}
-                {itemsEdition.TOTAL_SCHOOLS} escolas:
-              </p>
-            ) : (
-              <p>Nenhum lançamento encontrado!</p>
-            )}
           </ContainerScore>
 
           <TableGrouping

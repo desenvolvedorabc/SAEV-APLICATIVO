@@ -9,7 +9,12 @@ export async function getGeneralSynthesis(
   serie: string,
   year: string,
   edition: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   schoolClass: string
 ) {
@@ -19,7 +24,12 @@ export async function getGeneralSynthesis(
     serie,
     year,
     edition,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
   };
@@ -35,7 +45,12 @@ export async function getGeneralSynthesisCSV(
   serie: string,
   year: string,
   edition: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   schoolClass: string
 ) {
@@ -45,7 +60,12 @@ export async function getGeneralSynthesisCSV(
     serie,
     year,
     edition,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
   };
@@ -65,11 +85,13 @@ export interface ItemSubject {
   min: number;
   max: number;
   avg: number;
+  dis_tipo?: string;
   optionsReading: string[];
   numberSerie: number;
   items: {
     id: string;
     name: string;
+    type: string;
     value: number;
     totalStudents: number;
     countTotalStudents: number;

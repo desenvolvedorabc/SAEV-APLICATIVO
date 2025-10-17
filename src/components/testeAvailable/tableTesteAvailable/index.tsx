@@ -22,6 +22,7 @@ import ReactLoading from 'react-loading';
 import useDebounce from 'src/utils/use-debounce'
 import { parseCookies } from 'nookies'
 import ModalConfirmacao from 'src/components/modalConfirmacao'
+import { useAuth } from 'src/context/AuthContext'
 
 interface Data {
   id: number
@@ -180,9 +181,7 @@ export function TableTesteAvailable({id, escId, url}) {
   const [searchTerm, setSearchTerm] = useState(null);
   const [showModalErrorEdler, setShowModalErrorEdler] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-  const cookies = parseCookies();
-  const perfil = cookies["PER_NOME"]
+  const { user } = useAuth()
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -271,7 +270,7 @@ export function TableTesteAvailable({id, escId, url}) {
   };
 
   const downloadFile = (teste) => {
-    if(perfil === 'Escola') return 
+    if(user?.USU_SPE?.role === 'ESCOLA') return 
     
     setLoading(true)
     if(teste.file){

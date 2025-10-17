@@ -69,11 +69,27 @@ type TableEditionsProps = {
 };
 
 const TITLE_ITENS = {
+  regional: [
+    {
+      id: "name",
+      status: false,
+      label: "REGIONAL ESTADUAL",
+    },
+    ...headCells,
+  ],
   county: [
     {
       id: "name",
       status: false,
       label: "MUNICÍPIO",
+    },
+    ...headCells,
+  ],
+  regionalSchool: [
+    {
+      id: "name",
+      status: false,
+      label: "REGIONAL MUNICIPAL/ÚNICA",
     },
     ...headCells,
   ],
@@ -202,13 +218,16 @@ export function TableGrouping({
   const [showFilter, setShowFilter] = useState(false);
   const [click, setClick] = useState(false);
   const [searchTerm, setSearchTerm] = useState(null);
-
+  
+  console.log('item :', item);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const {
     changeSerie,
     setIsUpdateData,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
     addBreadcrumbs,
@@ -278,23 +297,60 @@ export function TableGrouping({
   }, [item.itens, selectedColumn, order]);
 
   const handleClickTable = (data) => {
-    if (item.type === "county") {
-      changeCounty({
-        AVM_MUN: {
-          MUN_ID: data.id,
-          MUN_NOME: data.name,
-        },
+    if (item.type === "regional") {
+      changeStateRegional({
+        id: data.id,
+        name: data.name,
       });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "county") {
+      changeCounty({
+        MUN_ID: data.id,
+        MUN_NOME: data.name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + data.id + '&countyName=' + data.name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "regionalSchool") {
+      changeCountyRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "school") {
+      changeSchool({
+        ESC_ID: data.id,
+        ESC_NOME: data.name,
+      });
+      changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "serie") {
+        changeSerie({ SER_ID: data.id, SER_NOME: data.name });
+        const url = window.location.href.split('&serie=')
+        const newUrl = url[0].concat('&serie=' + data.id)
+        window.history.pushState({ path: newUrl }, '', newUrl);
+      
+    } else if (
+      item.type === "schoolClass"
+    ) {
+      changeSchoolClass({
+        TUR_ID: data.id,
+        TUR_NOME: data.name,
+      });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
-    if (item.type === "school") {
-      changeSchool({ ESC_ID: data.id, ESC_NOME: data.name });
-    }
-    if (item.type === "serie") {
-      changeSerie({ SER_ID: data.id, SER_NOME: data.name });
-    }
-    if (item.type === "schoolClass") {
-      changeSchoolClass({ TUR_ID: data.id, TUR_NOME: data.name });
-    }
+
     setPage(1);
     setSearchTerm(null)
     addBreadcrumbs(data.id, data.name, item.type);
@@ -369,11 +425,12 @@ export function TableGrouping({
                         item={item}
                         orderBy={selectedColumn}
                       />
-
-                      <TableBody>
+                      <TableBody data-test='tableGrouping'>
                         {dataMapping?.map((data) => (
                           <TableRowStyled
                             key={data?.id}
+                            data-test='table-item'
+                            id='table-item'
                             role="checkbox"
                             tabIndex={-1}
                             onClick={() =>
@@ -410,13 +467,22 @@ export function TableGrouping({
                                 padding="normal"
                                 //  style={{ cursor: "pointer" }}
                               >
-                                {data?.name}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                  {data?.name} 
+                                  {item.type === "school" ?
+                                    <div style={{ backgroundColor: '#989898', minWidth: '26px', height: '21px', borderRadius: '16px', textAlign: 'center', marginRight: '8px', color: '#fff', fontSize: '14px' }}>
+                                      {data?.type === 'MUNICIPAL' ? 'M' : 'E'}
+                                    </div>
+                                    :
+                                    <div></div>
+                                  }
+                                </div>
                               </TableCell>
                               {item.type === "school" && (
                                 <TableCellBorder>{data?.inep}</TableCellBorder>
                               )}
                               <TableCellBorder>
-                                {data?.grouped} ({data?.total === 0 ? 0 : (data?.grouped * 100 / data?.total).toFixed(0)}%)
+                                {data?.grouped.toLocaleString("pt-BR")} ({data?.total === 0 ? 0 : (data?.grouped * 100 / data?.total).toFixed(0)}%)
                               </TableCellBorder>
                               {item.type !== "serie" &&
                                 item.type !== "schoolClass" && (
@@ -446,10 +512,10 @@ export function TableGrouping({
                             >
                               Total/Média
                             </TableCell>
-                            {item.type === "county" && (
+                            {item.type === "regional" || item.type === "county" || item.type === "regionalSchool" ? (
                               <>
                                 <TableCellBorder>
-                                  {item.TOTAL_ENTURMADO} ({(item?.TOTAL_ENTURMADO * 100 / item?.TOTAL_ALUNOS).toFixed(0)}%)
+                                  {item.TOTAL_ENTURMADO.toLocaleString("pt-BR")} ({(item?.TOTAL_ENTURMADO * 100 / item?.TOTAL_ALUNOS).toFixed(0)}%)
                                 </TableCellBorder>
                                 <TableCellBorder>
                                   {item.TOTAL_NAO_ENTURMADO?.toLocaleString("pt-BR")}
@@ -458,7 +524,7 @@ export function TableGrouping({
                                   {item.TOTAL_ALUNOS?.toLocaleString("pt-BR")}
                                 </TableCellBorder>
                               </>
-                            )}
+                            ) : null}
 
                             {item.type === "school" && (
                               <>

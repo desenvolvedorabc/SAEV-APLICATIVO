@@ -41,16 +41,22 @@ import { saveAs } from 'file-saver';
 
 import Link from "next/link";
 import ButtonWhite from "src/components/buttons/buttonWhite";
-import { FormControl, InputLabel, MenuItem, Select, Tooltip } from "@mui/material";
-import { AutoCompletePagMun } from "src/components/AutoCompletePag/AutoCompletePagMun";
+import { Autocomplete, TextField, Tooltip } from "@mui/material";
 import { AutoCompletePagEscMun } from "src/components/AutoCompletePag/AutoCompletePagEscMun";
 import useDebounce from "src/utils/use-debounce";
-import { useRouter } from "next/router";
 import Router from "next/router";
 import ModalConfirmacao from "src/components/modalConfirmacao";
 import { Loading } from "src/components/Loading";
 import { format } from "date-fns";
 import { useAuth } from "src/context/AuthContext";
+import { useGetStates } from "src/services/estados.service";
+import { AutoCompletePagMun2 } from "src/components/AutoCompletePag/AutoCompletePagMun2";
+
+enum enumType {
+  ESTADUAL = 'Estadual',
+  MUNICIPAL = 'Municipal',
+  PUBLICA = 'Publica'
+}
 
 interface Data {
   ALU_ID: string;
@@ -86,19 +92,6 @@ function createData(
     TUR_NOME,
     ALU_ATIVO
   };
-}
-
-interface DataExport {
-  ALU_ID: string;
-  ALU_NOME: string;
-  ALU_DT_NASC: number;
-  ALU_NOME_MAE: string;
-  MUN_NOME: string;
-  ESC_NOME: string;
-  SER_NOME: string;
-  TUR_NOME: string;
-  ALU_ATIVO: string;
-
 }
 
 interface HeadCell {
@@ -206,11 +199,16 @@ export function TableAlunos({idMun, idEsc}) {
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("ALU_ID");
   const [selectedColumn, setSelectedColumn] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
+  const [filterState, setFilterState] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
   const [filterCity, setFilterCity] = useState(idMun !== 'null' ? {MUN_ID: idMun} : null);
+  const [typeList, setTypeList] = useState([]);
+  const [selectedType, setSelectedType] = useState(null);
+  const [filterType, setFilterType] = useState(null);
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [filterSchool, setFilterSchool] = useState(idEsc != "null" ? {ESC_ID: idEsc} : null);
-  const [selectedEnturmado, setSelectedEnturmado] = useState("");
+  const [selectedEnturmado, setSelectedEnturmado] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [filterEnturmado, setFilterEnturmado] = useState(null)
   const [filterStatus, setFilterStatus] = useState(null)
@@ -226,37 +224,71 @@ export function TableAlunos({idMun, idEsc}) {
   const [showFilter, setShowFilter] = useState(false);
   const [resetSchool, setResetSchool] = useState(false)
 
-  useEffect(() => {
-    if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Município"){
-      setFilterCity({MUN_ID: user?.USU_MUN?.MUN_ID})
-    }
-    if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Escola"){
-      setFilterCity({MUN_ID: user?.USU_MUN?.MUN_ID})
-      setFilterSchool({ESC_ID: user?.USU_ESC?.ESC_ID})
-    }
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
 
+  useEffect(() => {
+    if(user){
+      if(user?.USU_SPE?.role === "ESTADO"){
+        setFilterState({id: user?.stateId})
+      }
+      if(user?.USU_SPE?.role === "MUNICIPIO_MUNICIPAL" || user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+        setFilterState({id: user?.stateId})
+        setFilterCity({MUN_ID: user?.USU_MUN?.MUN_ID})
+      }
+      if(user?.USU_SPE?.role === "ESCOLA"){
+        setFilterState({id: user?.stateId})
+        setFilterCity({MUN_ID: user?.USU_MUN?.MUN_ID})
+        setFilterSchool({ESC_ID: user?.USU_ESC?.ESC_ID})
+      }
+
+      if(user?.USU_SPE?.role === "ESTADO" || user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+        setTypeList(['ESTADUAL'])
+        setFilterType('ESTADUAL')
+      } else if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+        setTypeList(['MUNICIPAL'])
+        setFilterType('MUNICIPAL')
+      } else if(user?.USU_SPE?.role === 'ESCOLA' ){
+        setTypeList([user?.USU_ESC?.ESC_TIPO])
+        setFilterType(user?.USU_ESC?.ESC_TIPO)        
+      } else {
+        setTypeList(['ESTADUAL', 'MUNICIPAL', 'PUBLICA'])
+      }
+    }
   }, [user])
    
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const { data, isLoading } = useGetStudents(
+  const { data, isLoading } = useGetStudents({
     search,
     page,
     limit,
-    selectedColumn,
-    order.toUpperCase(),
-    filterCity?.MUN_ID,
-    filterSchool?.ESC_ID,
-    filterEnturmado,
-    null,
-    filterStatus
-  );
+    column: selectedColumn,
+    order: order.toUpperCase(),
+    stateId: filterState?.id,
+    county: filterCity?.MUN_ID,
+    typeSchool: filterType === 'PUBLICA' ? null : filterType,
+    school: filterSchool?.ESC_ID,
+    status: filterEnturmado,
+    serie: null,
+    active: filterStatus
+  });
 
   const filterSelected = () => {
+    setFilterState(selectedState)
     setFilterCity(selectedCity)
+    if(user?.USU_SPE?.role === "ESTADO" || user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+      setFilterType('ESTADUAL')
+    } else if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+      setFilterType('MUNICIPAL')
+    } else if(user?.USU_SPE?.role === 'ESCOLA' ){
+      setFilterType(user?.USU_ESC?.ESC_TIPO)        
+    } else {
+      setFilterType(selectedType)
+    }
+    setFilterType(selectedType)
     setFilterSchool(selectedSchool)
     setFilterEnturmado(selectedEnturmado)
-    setFilterStatus(selectedStatus)
+    setFilterStatus(selectedStatus ? selectedStatus === 'Ativo' ? 1 : 0 : null)
     setPage(1)
   }
   
@@ -281,7 +313,6 @@ export function TableAlunos({idMun, idEsc}) {
       );
     });
     setRows(list);
-    console.log('list :', list);
   }, [data?.items, data?.meta?.totalPages]);
 
   const handleRequestSort = (
@@ -313,17 +344,13 @@ export function TableAlunos({idMun, idEsc}) {
   const [rows, setRows] = useState([]);
   const tableBody = useRef();
 
-  // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * limit - rows.length) : 0;
-    
   useEffect(() => {
     setPage(1)
     if (debouncedSearchTerm) {
       setSearch(debouncedSearchTerm)
     }
     else
-    setSearch("")
+      setSearch("")
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[debouncedSearchTerm]);
 
@@ -331,41 +358,53 @@ export function TableAlunos({idMun, idEsc}) {
     setSearchTerm(e.target.value);
   };
 
+  const handleSelectState = (newValue) => {
+    setSelectedState(newValue);
+    handleSelectCity(null)
+  };
+
   const handleSelectCity = (newValue) => {
     setSelectedCity(newValue);
-    setSelectedSchool(null);
-    setFilterSchool(null);
+    handleSelectType(null);
+  };
+
+  const handleSelectType = (newValue) => {
+    setSelectedType(newValue);
+    handleSelectSchool(null);
     setResetSchool(!resetSchool)
   };
+
   const handleSelectSchool = (newValue) => {
     setSelectedSchool(newValue);
   };
 
-  const handleSelectEnturmado = (e) => {
-    setSelectedEnturmado(e.target.value != " " ? e.target.value : null);
+  const handleSelectEnturmado = (newValue) => {
+    setSelectedEnturmado(newValue);
   };
 
-  const handleSelectStatus = (e) => {
-    setSelectedStatus(e.target.value != " " ? e.target.value : null);
+  const handleSelectStatus = (newValue) => {
+    setSelectedStatus(newValue);
   };
 
   const changeShowFilter = (e) => {
     setShowFilter(!showFilter);
   };
 
-
   const downloadCsv = async () => {
-    const resp = await getExportStudentsExcel(
+    const resp = await getExportStudentsExcel({
       search,
-      1,
-      999999,
-      selectedColumn,
-      order.toUpperCase(),
-      filterCity?.MUN_ID,
-      filterSchool?.ESC_ID,
-      filterEnturmado,
-      null
-    );
+      page: 1,
+      limit: 9999999,
+      column: selectedColumn,
+      order: order.toUpperCase(),
+      stateId: filterState?.id,
+      county: filterCity?.MUN_ID,
+      typeSchool: filterType === 'PUBLICA' ? null : filterType,
+      school: filterSchool?.ESC_ID,
+      status: filterEnturmado,
+      serie: null,
+      active: filterStatus
+    });
     if(!resp.data.message) {
       saveAs(resp?.data, 'Alunos.xls');
     } else {
@@ -388,14 +427,18 @@ export function TableAlunos({idMun, idEsc}) {
             {row.ALU_ID}
           </TableCell>
           <TableCellBorderWidth>{row.ALU_NOME}</TableCellBorderWidth>
-          <TableCellBorder>{row.ALU_DT_NASC && !Number.isNaN(new Date(row.ALU_DT_NASC).getTime()) ? format(new Date(row.ALU_DT_NASC), 'dd/MM/yyyy') : ''}</TableCellBorder>
+          <TableCellBorder>
+            {
+              row.ALU_DT_NASC && !Number.isNaN(new Date(row.ALU_DT_NASC).getTime()) ? format(new Date(row.ALU_DT_NASC), 'dd/MM/yyyy') : ''
+            }
+          </TableCellBorder>
           <TableCellBorder>{row.ALU_NOME_MAE}</TableCellBorder>
           <TableCellBorder>{row.MUN_NOME}</TableCellBorder>
           <TableCellBorder>{row.ESC_NOME}</TableCellBorder>
           <TableCellBorder>{row.SER_NOME}</TableCellBorder>
           <TableCellBorder>{row.TUR_NOME}</TableCellBorder>
           <TableCellBorder align="center">
-            <ActiveTag active={row.ALU_ATIVO}>
+            <ActiveTag data-test='tagStatus' active={row.ALU_ATIVO}>
               <PointActiveTag active={row.ALU_ATIVO} />
               {row.ALU_ATIVO ? 'Ativo' : 'Inativo'}
               <div></div>
@@ -433,6 +476,7 @@ export function TableAlunos({idMun, idEsc}) {
           <div className="d-flex flex-row-reverse align-items-center ">
             <InputSearch
               size={16}
+              data-test='search'
               type="text"
               placeholder="Pesquise"
               name="searchTerm"
@@ -444,6 +488,7 @@ export function TableAlunos({idMun, idEsc}) {
         <div className="d-flex">
           <div className="pe-2" style={{ width: 110 }}>
             <ButtonWhite
+              data-test='export'
               onClick={(e) => {
                 downloadCsv();
               }}
@@ -469,7 +514,15 @@ export function TableAlunos({idMun, idEsc}) {
               }}
             >
               <div>
-                <ButtonPadrao onClick={() => {Router.push(`/municipio/${filterCity?.MUN_ID}/escola/${filterSchool?.ESC_ID}/aluno`)}} disable={!filterCity}>Cadastrar Aluno</ButtonPadrao>
+                <ButtonPadrao 
+                  dataTest='newStudent' 
+                  onClick={() => {
+                    Router.push(`/municipio/${filterCity?.MUN_ID}/escola/${filterSchool?.ESC_ID}/aluno`)
+                  }} 
+                  disable={!filterCity}
+                >
+                  Cadastrar Aluno
+                </ButtonPadrao>
               </div>
             </Tooltip>
           </div>
@@ -478,61 +531,107 @@ export function TableAlunos({idMun, idEsc}) {
       {showFilter && (
         <FilterSelectedContainer>
           <div className="me-2">
-            <AutoCompletePagMun county={selectedCity} changeCounty={handleSelectCity} width={"150px"} />
+            <Autocomplete
+              sx={{background: "#FFF", width: '137px'}}
+              fullWidth
+              className=""
+              data-test='state'
+              id="state"
+              size="small"
+              value={selectedState}
+              noOptionsText="Estado"
+              options={states}
+              loading={isLoadingStates}
+              getOptionLabel={option => option.name}
+              onChange={(_event, newValue) => {
+                handleSelectState(newValue)
+              }}
+              renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+            />
           </div>
+          <div className="me-2">
+            <AutoCompletePagMun2 
+              county={selectedCity} 
+              changeCounty={handleSelectCity} 
+              width={"150px"} 
+              stateId={selectedState?.id} 
+              disabled={!selectedState}
+            />
+          </div>
+          <div className="me-2">
+          <Autocomplete
+            className=""
+            id="type"
+            size="small"
+            value={selectedType}
+            noOptionsText="Rede"
+            options={typeList}
+            getOptionLabel={(option) => `${enumType[option]}`}
+            onChange={(_event, newValue) => {
+              handleSelectType(newValue);
+            }}
+            disabled={!selectedCity}
+            sx={{
+              background: "#FFF",
+              width: '137px',
+              "& .Mui-disabled": {
+                background: "#D3D3D3",
+              },
+            }}
+            renderInput={(params) => (
+              <TextField size="small" {...params} label="Rede" />
+            )}
+          />
+          </div> 
           <div className="pe-2 me-2 border-end border-white">
-            <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCity} resetSchools={resetSchool} width={"150px"} />
+            <AutoCompletePagEscMun 
+              school={selectedSchool}
+              changeSchool={handleSelectSchool}
+              mun={selectedCity}
+              resetSchools={resetSchool}
+              width={"150px"}
+              typeSchool={selectedType}
+              disabled={!selectedType}
+              enabled={!!selectedType}
+            />
           </div> 
           <div className="me-2 pe-2 border-end border-white">
-            <FormControl sx={{ width: 150 }} size="small">
-              <InputLabel id="status">Enturmação</InputLabel>
-              <Select
-                labelId="status"
-                id="status"
-                value={selectedEnturmado}
-                label="Enturmação"
-                onChange={handleSelectEnturmado}
-                sx={{
-                  backgroundColor:"#fff",
-                  "& .Mui-disabled": {
-                    background: "#D3D3D3",
-                  },
-                }}
-              >
-                <MenuItem value={" "}>
-                  <em>Todos</em>
-                </MenuItem>
-                <MenuItem value="Enturmado">Enturmado</MenuItem>
-                <MenuItem value="Não Enturmado">Não Enturmado</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              sx={{background: "#FFF", width: '150px'}}
+              fullWidth
+              className=""
+              data-test='enturmacao'
+              id="enturmacao"
+              size="small"
+              value={selectedEnturmado}
+              noOptionsText="Enturmação"
+              options={["Enturmado", "Não Enturmado"]}
+              onChange={(_event, newValue) => {
+                handleSelectEnturmado(newValue)
+              }}
+              renderInput={(params) => <TextField size="small" {...params} label="Enturmação" />}
+            />
           </div>
           <div className="me-3">
-            <FormControl sx={{ width: 150 }} size="small">
-              <InputLabel id="status">Status</InputLabel>
-              <Select
-                labelId="status"
-                id="status"
-                value={selectedStatus}
-                label="Status"
-                onChange={handleSelectStatus}
-                sx={{
-                  backgroundColor:"#fff",
-                  "& .Mui-disabled": {
-                    background: "#D3D3D3",
-                  },
-                }}
-              >
-                <MenuItem value={" "}>
-                  <em>Todos</em>
-                </MenuItem>
-                <MenuItem value="1">Ativo</MenuItem>
-                <MenuItem value="0">Inativo</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              sx={{background: "#FFF", width: '150px'}}
+              fullWidth
+              className=""
+              data-test='status'
+              id="status"
+              size="small"
+              value={selectedStatus}
+              noOptionsText="Status"
+              options={["Ativo", "Inativo"]}
+              onChange={(_event, newValue) => {
+                handleSelectStatus(newValue)
+              }}
+              renderInput={(params) => <TextField size="small" {...params} label="Status" />}
+            />
           </div>
           <div style={{ width: 83 }}>
             <ButtonWhite
+              data-test='filter'
               onClick={() => {
                 filterSelected();
               }}
@@ -577,18 +676,20 @@ export function TableAlunos({idMun, idEsc}) {
         )}
           <Pagination>
             Linhas por página:
-            <FormSelectStyled value={limit} onChange={handleChangeLimit}>
+            <FormSelectStyled data-test='limit' value={limit} onChange={handleChangeLimit}>
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </FormSelectStyled>
             <ButtonPage
+              data-test='previous'
               onClick={() => handleChangePage2("prev")}
               disabled={disablePrev}
             >
               <MdNavigateBefore size={24} />
             </ButtonPage>
             <ButtonPage
+              data-test='next'
               onClick={() => handleChangePage2("next")}
               disabled={disableNext}
             >

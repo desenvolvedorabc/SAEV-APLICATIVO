@@ -33,6 +33,9 @@ import RelatorioNaoAvaliados from "public/assets/images/nao-avaliado.svg";
 import RelatorioCorRaca from "public/assets/images/cor-raca.svg";
 import Alunos from "public/assets/images/alunosMenu.svg";
 import Sintetic from "public/assets/images/sintetic.svg";
+import RegionaisEst from "public/assets/images/regionais_estaduais.svg";
+import RegionaisMun from "public/assets/images/regionais_municipais.svg";
+import RegionalUni from "public/assets/images/regional_unica.svg";
 
 export const PERFISLINKS = [
   {
@@ -61,7 +64,7 @@ export const PERFISLINKS = [
         name: "Alunos",
         path: `/municipio/${null}/escola/${null}/alunos`,
         ARE_NOME: "ALU",
-        icon: <Alunos size={22} color={'#fff'} />,
+        icon: <Alunos size={22} color={"#fff"} />,
       },
       {
         name: "Lançar Resultados",
@@ -92,6 +95,30 @@ export const PERFISLINKS = [
         ARE_NOME: "TUR",
         path: "/turmas",
         icon: <MdOutlineGroupWork size={22} />,
+      },
+    ],
+  },
+  {
+    grupo: "REGIONAIS",
+    ARE_NOME: "REG",
+    items: [
+      {
+        name: "Regional Única",
+        ARE_NOME: "REG_UNI",
+        path: "/regionais-unicas",
+        icon: <RegionalUni size={22} />,
+      },
+      {
+        name: "Regionais Estaduais",
+        ARE_NOME: "REG_EST",
+        path: "/regionais-estaduais",
+        icon: <RegionaisEst size={22} />,
+      },
+      {
+        name: "Regionais Municipais",
+        ARE_NOME: "REG_MUN",
+        path: "/regionais-municipais",
+        icon: <RegionaisMun size={22} />,
       },
     ],
   },
@@ -171,6 +198,12 @@ export const PERFISLINKS = [
         path: "/relatorio-sintetico-de-testes",
         icon: <Sintetic size={22} />,
       },
+      {
+        name: "Histórico de Desempenho",
+        ARE_NOME: "HIST_DES",
+        path: "/historico-desempenho",
+        icon: <MdOutlineCalculate size={22} />,
+      },
     ],
   },
   {
@@ -245,25 +278,36 @@ export const PERFISLINKS = [
     ],
   },
   {
-    grupo: "OUTROS",
+    grupo: "Comunicação",
     items: [
       {
-        name: "Mensagens",
+        name: "Mensagens Institucionais",
         ARE_NOME: "MEN",
         path: `/mensagens`,
         icon: <MdOutlineMessage size={22} />,
       },
-       {
+      {
+        name: "Mensagens aos Tutores",
+        ARE_NOME: "MEN_TUT",
+        path: `/mensagens-tutores`,
+        icon: <MdOutlineMessage size={22} />,
+      },
+    ],
+  },
+  {
+    grupo: "OUTROS",
+    items: [
+      {
         name: "Importar Dados",
         ARE_NOME: "IMP_EXP",
         path: `/importar-dados`,
         icon: <MdImportExport size={22} />,
       },
       {
-       name: "Exportar Microdados",
-       ARE_NOME: "EXP_DAD",
-       path: `/exportar-dados`,
-       icon: <Download size={22} />,
+        name: "Exportar Microdados",
+        ARE_NOME: "EXP_DAD",
+        path: `/exportar-dados`,
+        icon: <Download size={22} />,
       },
       {
         name: "Logs do Sistema",
@@ -344,6 +388,36 @@ export const ADMINLINKS = [
         ARE_NOME: "TRF_ALU",
         icon: <MdOutlineImportExport size={22} />,
       },
+      {
+        name: "Turmas",
+        ARE_NOME: "TUR",
+        path: "/turmas",
+        icon: <MdOutlineGroupWork size={22} />,
+      },
+    ],
+  },
+  {
+    grupo: "Regionais",
+    ARE_NOME: "REG",
+    items: [
+      {
+        name: "Regional Única",
+        ARE_NOME: "REG_UNI",
+        path: "/regionais-unicas",
+        icon: <RegionalUni size={22} />,
+      },
+      {
+        name: "Regionais Estaduais",
+        ARE_NOME: "REG_EST",
+        path: "/regionais-estaduais",
+        icon: <RegionaisEst size={22} />,
+      },
+      {
+        name: "Regionais Municipais",
+        ARE_NOME: "REG_MUN",
+        path: "/regionais-municipais",
+        icon: <RegionaisMun size={22} />,
+      },
     ],
   },
   {
@@ -422,6 +496,12 @@ export const ADMINLINKS = [
         path: "/relatorio-sintetico-de-testes",
         icon: <Sintetic size={22} />,
       },
+      {
+        name: "Histórico de Desempenho",
+        ARE_NOME: "HIST_DES",
+        path: "/historico-desempenho",
+        icon: <MdOutlineCalculate size={22} />,
+      },
     ],
   },
   {
@@ -498,25 +578,36 @@ export const ADMINLINKS = [
     ],
   },
   {
-    grupo: "OUTROS",
+    grupo: "Comunicação",
     items: [
       {
-        name: "Mensagens",
+        name: "Mensagens Institucionais",
         ARE_NOME: "MEN",
         path: `/mensagens`,
         icon: <MdOutlineMessage size={22} />,
       },
-       {
+      {
+        name: "Mensagens aos Tutores",
+        ARE_NOME: "MEN_TUT",
+        path: `/mensagens-tutores`,
+        icon: <MdOutlineMessage size={22} />,
+      },
+    ],
+  },
+  {
+    grupo: "OUTROS",
+    items: [
+      {
         name: "Importar Dados",
         ARE_NOME: "IMP_EXP",
         path: `/importar-dados`,
         icon: <MdImportExport size={22} />,
       },
       {
-       name: "Exportar Microdados",
-       ARE_NOME: "EXP_DAD",
-       path: `/exportar-dados`,
-       icon: <Download size={22} />,
+        name: "Exportar Microdados",
+        ARE_NOME: "EXP_DAD",
+        path: `/exportar-dados`,
+        icon: <Download size={22} />,
       },
       {
         name: "Logs do Sistema",

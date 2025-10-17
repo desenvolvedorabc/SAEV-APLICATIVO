@@ -6,6 +6,7 @@ export default function ButtonWhite({
   disable = false,
   type = "button",
   border = true,
+  dataTest = ''
 }) {
   return (
     <ButtonStyled
@@ -13,6 +14,7 @@ export default function ButtonWhite({
       border={border}
       onClick={onClick}
       disabled={disable}
+      data-test={dataTest}
     >
       {children}
     </ButtonStyled>

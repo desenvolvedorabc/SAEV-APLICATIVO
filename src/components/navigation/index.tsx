@@ -16,15 +16,15 @@ import {
   TitleGroup,
 } from "./styledComponents";
 import Link from "next/link";
-import { useGetSubPerfil } from "src/services/sub-perfis.service";
 import { useAuth } from "src/context/AuthContext";
+import { useGetPerfil } from "src/services/perfis.service";
 
 export default function Navigation(props) {
   const { pathname } = useRouter();
 
   const { signOut } = useAuth();
  
-  const { data } = useGetSubPerfil(props?.userInfo?.USU_SPE_ID, !!props?.userInfo?.USU_SPE_ID)
+  const { data } = useGetPerfil(props?.userInfo?.USU_SPE_ID, !!props?.userInfo?.USU_SPE_ID)
   const areas =  data?.AREAS ?? [];
 
   const filterLinks = useMemo(() => {

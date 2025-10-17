@@ -4,17 +4,7 @@ import { useState } from 'react'
 import { Container } from "./styles";
 import { saveAs } from 'file-saver';
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
-import { getExportReportNotEvaluated } from "src/services/relatorio-nao-avaliados.service";
-import { z } from "zod";
 import { getExportReportRace } from "src/services/report-race.service";
-
-const paramsSchema = z.object({
-  serie: z.number(),
-  year: z.string(),
-  county: z.number().nullable().optional(),
-  school: z.number().nullable().optional(),
-  schoolClass: z.number().nullable().optional()
-})
 
 export function ExportReportCorRaca({ handlePrint }) {
   const [isDisabled, setIsDisabled] = useState<'csv' | 'pdf' | ''>('');
@@ -30,6 +20,8 @@ export function ExportReportCorRaca({ handlePrint }) {
 
   const {
     serie,
+    epv,
+    type,
     mapBreadcrumb,
   } = useBreadcrumbContext()
 
@@ -44,22 +36,27 @@ export function ExportReportCorRaca({ handlePrint }) {
 
   const downloadCsv = async () => {
     setIsDisabled('csv')
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const county = mapBreadcrumb.find((data) => data.level === "county")
-    const school = mapBreadcrumb.find((data) => data.level === "school")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )    
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
     
-    const params = paramsSchema.parse({
-      school: school?.id,
-      schoolClass: schoolClass?.id,
-      year: year?.id,
-      county: county?.id,
-      serie: serie.SER_ID
-    })
 
-    const resp = await getExportReportRace(params);
+    const resp = await getExportReportRace({
+      serie: serie?.SER_ID,
+      year: _year?.id,
+      isEpvPartner: epv === 'Exclusivo Epv' ? 1 : 0,
+      typeSchool: type === 'PUBLICA' ? null : type,
+      stateId: _state?.id,
+      stateRegionalId: _stateRegional?.id,
+      county: _county?.id,
+      municipalityOrUniqueRegionalId: _countyRegional?.id,
+      school: _school?.id,
+      schoolClass: _schoolClass?.id
+    });
     if(!resp.data.message) {
       saveAs(resp?.data, 'Relatório_Cor_Raca.csv');
     } else {

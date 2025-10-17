@@ -20,8 +20,10 @@ interface EnhancedTableProps {
 }
 
 const levels = {
-  county: "ANO",
-  school: "MUNICIPIO",
+  regional: "ESTADO",
+  county: "REGIONAL ESTADUAL",
+  regionalSchool: "MUNICIPIO",
+  school: "REGIONAL MUNICIPAL/ÚNICA",
   serie: "ESCOLA",
   schoolClass: 'SÉRIE',
   student: "TURMA",
@@ -172,7 +174,7 @@ export function TableReportInfrequenciaGrouped({
               >
                 <EnhancedTableHead
                   absences={absences}
-                  level={level}
+                  level={levelName === 'Exclusivo Epv' ? 'epv' : level}
                 />
                 {
                   isLoading ? (

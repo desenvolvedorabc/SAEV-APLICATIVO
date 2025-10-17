@@ -24,6 +24,8 @@ export const Nome = styled.div`
   background-color: #f6f6f6;
   padding: 7px 0px 7px 8px;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding-right: 10px;
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;

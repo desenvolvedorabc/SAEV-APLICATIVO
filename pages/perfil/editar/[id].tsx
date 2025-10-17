@@ -2,9 +2,10 @@ import PageContainer from "src/components/pageContainer";
 import Top from "src/components/top";
 import {useState, useEffect} from 'react';
 import FormEditPerfil from "src/components/perfil/formEditPerfil";
-import { getSubPerfil } from "src/services/sub-perfis.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import { getPerfil } from "src/services/perfis.service";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarPerfil({id}) {
@@ -15,7 +16,7 @@ export default function EditarPerfil({id}) {
 
   const loadInfos = async () => {
 
-    const resp = await getSubPerfil(id)
+    const resp = await getPerfil(id)
     resp.data = {
       ...resp.data,
     }
@@ -38,11 +39,14 @@ EditarPerfil.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id} = context.params
-  return {
-    props: {
-      id,
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { id },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

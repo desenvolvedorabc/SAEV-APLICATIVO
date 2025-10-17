@@ -16,6 +16,8 @@ import { useGenearePdf } from "src/utils/generatePdf"
 import { Box } from "@mui/material"
 import { ExportItem, JustificativasTypes, SchemaStudentsProps, getNotEvaluated } from "src/services/relatorio-nao-avaliados.service"
 import { Title } from "styles/pages/relatorio-nao-avaliados.style"
+import { useRouter } from "next/router"
+import { withSSRAuth } from "src/utils/withSSRAuth"
 
 export const reasons: { id: JustificativasTypes, label: string }[] = [
   {
@@ -54,19 +56,19 @@ export default function RelatorioNaoAvaliados() {
   const [ notEvaluated, setNotEvaluated ] = useState<ExportItem>({} as ExportItem)
   const [ isLoading, setIsLoading ] = useState<boolean>(false)
   const [ isGraphVisible, setIsGraphVisible ] = useState<boolean>(false)
-  const [page, setPage] = useState<number>(1)
-  const [ isPageChange, setIsPageChange ] = useState<boolean>(false)
-  const [limit, setLimit] = useState<number>(5)
   const [level, setLevel] = useState<string>()
-  const [levelName, setLevelName] = useState<string>()
   const [disableCounty, setDisableCounty]  = useState<boolean>(false)
   const [disableSchool, setDisableSchool]  = useState<boolean>(false)
   const [ examList, setExamList ] = useState<string[]>([])
   const [ examId, setExamId ] = useState<string>('Leitura')
+  const router = useRouter();
 
   const {
     serie,
     edition,
+    state,
+    epv,
+    type,
     county,
     school,
     changeCounty,
@@ -85,38 +87,54 @@ export default function RelatorioNaoAvaliados() {
   } = useBreadcrumbContext()  
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  async function loadData(page: number) {
+  async function loadData() {
     setIsLoading(true)
+    
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )
+    // let newUrl = `${router.pathname}?`
+      
+    // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(_edition) newUrl = newUrl.concat('&edition=' + _edition?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     const subject: string | null = examId || null    
     
     const dataReports = await getNotEvaluated(
-      page,
-      limit,
-      edition?.AVA_ID,
-      school?.ESC_ID,
-      schoolClass?.id,
-      year?.id,
-      county?.AVM_MUN?.MUN_ID,
       serie?.SER_ID,
-      subject
+      _year?.id,
+      _edition?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id,
     )
+    setLevel(dataReports?.items[0]?.level)
 
-    let level = "";
-
-    if (dataReports?.items[0]?.level === "school") level = "Escola";
-    if (dataReports?.items[0]?.level === "schoolClass") level = "Turma";
-    if (dataReports?.items[0]?.level === "student") level = "Estudantes";
-    setLevel(level);    
-
-    if (dataReports?.items[0]?.level === "county") setLevel("county");
-
-    if (level === 'Estudantes') {
+    if (dataReports?.items[0]?.level === 'student') {
       setNotEvaluatedData(dataReports)
       const data = dataReports?.items?.filter(report => report.subject === examId)
       const [reports] = data
@@ -129,7 +147,7 @@ export default function RelatorioNaoAvaliados() {
     } else {
       setNotEvaluatedData(dataReports)
       const data = dataReports?.items?.filter(report => report.subject === examId)
-      const [reports] = data      
+      const [reports] = data
       const exams: string[] = []
       dataReports?.items.map((currentData) => {
         exams.push(currentData.subject)
@@ -152,13 +170,7 @@ export default function RelatorioNaoAvaliados() {
 
   useEffect(() => {
     if (isUpdateData || visibleBreadcrumbs) {
-      if(isPageChange){
-        loadData(page)
-        setIsPageChange(false)
-      } else{
-        setPage(1)
-        loadData(1)
-      }
+      loadData()
       hideBreadcrumbs()
       setIsUpdateData(false)
     }
@@ -168,12 +180,10 @@ export default function RelatorioNaoAvaliados() {
     hideBreadcrumbs,
     setIsUpdateData,
     loadData,
-    isPageChange,
-    limit,
   ])
 
   useEffect(() => {
-    if (level === 'Estudantes') {      
+    if (level === 'student') {      
       const [reports] = notEvaluatedData?.items?.filter(report => report.subject === examId)      
 
       setNotEvaluatedStudentes(reports)
@@ -182,24 +192,17 @@ export default function RelatorioNaoAvaliados() {
       
       setNotEvaluated(reports)
     }
-
   }, [examId])
 
-
-  const handleChangePage = (page: number) => {
-    setPage(page)
-    setIsPageChange(true)
-    setIsUpdateData(true)
-  }
-
-  const handleChangeLimit = (limit: number) => {
-    setLimit(limit)
-    setIsUpdateData(true)
-  }
-
-  const handleChangeSerie = (e) => {
-    changeSerie(e ? e.target.value : null);
+  const handleChangeSerie = (newValue, add = false) => {
+    changeSerie(newValue);
     changeYear(null);
+
+    if(add){
+      const url = window.location.href.split('?serie=')
+      const newUrl = url[0].concat('?serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
 
     if (!disableCounty) {
       changeCounty(null);
@@ -214,13 +217,17 @@ export default function RelatorioNaoAvaliados() {
   };
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!edition)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -236,7 +243,7 @@ export default function RelatorioNaoAvaliados() {
       <ReportFilter
         isDisableYear={!serie}
         isDisable={onDisableReportFilter()}
-        yearOrder="DESC"
+        isSaev={user?.USU_SPE?.role === 'SAEV'}
       />
       {isLoading ? (
         <Loading />
@@ -261,19 +268,13 @@ export default function RelatorioNaoAvaliados() {
               }
             </header>
             <GraphNaoAvaliados visible={isGraphVisible} notEvaluatedStudents={notEvaluatedStudentes} notEvaluated={notEvaluated} level={level} />
-            <TableNaoAvaliadosGrouped notEvaluated={notEvaluated} notEvaluatedStudents={notEvaluatedStudentes} level={level} levelName={levelName} isLoading={false} />
+            <TableNaoAvaliadosGrouped notEvaluated={notEvaluated} notEvaluatedStudents={notEvaluatedStudentes} level={level} />
             <TableReportNaoAvaliados notEvaluated={notEvaluated} notEvaluatedStudents={notEvaluatedStudentes} level={level} />
             <GeneratePdfPage
               componentRef={componentRef}
               notEvaluatedData={notEvaluatedData}
-              notEvaluated={notEvaluated}
-              notEvaluatedStudentes={notEvaluatedStudentes}
-              page={page}
               level={level}
-              levelName={levelName}
               isGraphVisible={isGraphVisible}
-              handleChangePage={handleChangePage}
-              handleChangeLimit={handleChangeLimit}
               subjects={examList}
             />              
           </section>
@@ -286,14 +287,8 @@ export default function RelatorioNaoAvaliados() {
 function GeneratePdfPage({
   componentRef,
   notEvaluatedData,
-  notEvaluated,
-  notEvaluatedStudentes,
   isGraphVisible,
   level,
-  levelName,
-  page,
-  handleChangePage,
-  handleChangeLimit,
   subjects
 }) {
 
@@ -331,16 +326,11 @@ function GeneratePdfPage({
                     notEvaluated={getData(subject)}
                     notEvaluatedStudents={getData(subject)}
                     level={level}
-                    levelName={levelName}
-                    isLoading={false}
                   />
                   <TableReportNaoAvaliados
                     notEvaluated={getData(subject)}
                     notEvaluatedStudents={getData(subject)}
                     level={level}
-                    page={page}
-                    changePage={handleChangePage}
-                    changeLimit={handleChangeLimit}
                   />
                 </div>
               ))
@@ -357,3 +347,14 @@ RelatorioNaoAvaliados.getLayout = function getLayout(page: ReactElement) {
     <Layout header={"Relatório de Não Avaliados"}>{page}</Layout>
   )
 }
+
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: {},
+    };
+  },
+  {
+    roles: [],
+  }
+);

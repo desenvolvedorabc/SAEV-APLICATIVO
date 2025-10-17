@@ -9,10 +9,9 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import { visuallyHidden } from "@mui/utils";
-import { useGetSchoolsReport } from "src/services/escolas.service";
+import { TypeSchool, useGetSchoolsReport } from "src/services/escolas.service";
 import {
   Container,
-  Circle,
   Marker,
   InputSearch,
   IconSearch,
@@ -26,7 +25,7 @@ import {
   TableRowStyled,
   TableSortLabelStyled,
 } from "./styledComponents";
-import { Form, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import {
   MdOutlineFilterAlt,
   MdNavigateNext,
@@ -38,13 +37,16 @@ import Router from "next/router";
 import Link from "next/link";
 import useDebounce from "src/utils/use-debounce";
 import { Loading } from "src/components/Loading";
-import { AutoCompletePagMun } from "src/components/AutoCompletePag/AutoCompletePagMun";
 import { ActiveTag, FilterSelectedContainer, PointActiveTag } from "src/shared/styledTables";
 import { Autocomplete, TextField } from "@mui/material";
+import { useGetStates } from "src/services/estados.service";
+import { AutoCompletePagMun2 } from "src/components/AutoCompletePag/AutoCompletePagMun2";
+import { useAuth } from "src/context/AuthContext";
 
 interface Data {
   ESC_ID: number;
   ESC_NOME: string;
+  ESC_MUN: string;
   ESC_INEP: string;
   ESC_ENTURMADOS: number;
   ESC_INFREQUENCIA: number;
@@ -54,6 +56,7 @@ interface Data {
 function createData(
   ESC_ID: number,
   ESC_NOME: string,
+  ESC_MUN: string,
   ESC_INEP: string,
   ESC_ENTURMADOS: number,
   ESC_INFREQUENCIA: number,
@@ -62,6 +65,7 @@ function createData(
   return {
     ESC_ID,
     ESC_NOME,
+    ESC_MUN,
     ESC_INEP,
     ESC_ENTURMADOS,
     ESC_INFREQUENCIA,
@@ -80,6 +84,11 @@ const headCells: readonly HeadCell[] = [
     id: "ESC_NOME",
     status: false,
     label: "NOME",
+  },
+  {
+    id: "ESC_MUN",
+    status: false,
+    label: "MUNICÍPIO",
   },
   {
     id: "ESC_INEP",
@@ -160,6 +169,10 @@ export default function TableEscolas({ munId = null }) {
   const [orderBy] = useState("ESC_NOME");
   const [selectedCity, setSelectedCity] = useState(null);
   const [filterCity, setFilterCity] = useState(munId || null);
+  const [selectedState, setSelectedState] = useState(null);
+  const [filterState, setFilterState] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
+  const [filterType, setFilterType] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
   const [selectedColumn, setSelectedColumn] = useState(null);
@@ -173,10 +186,13 @@ export default function TableEscolas({ munId = null }) {
   const [disableNext, setDisableNext] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const { user } = useAuth()
 
   useEffect(() => {
     setFilterCity(munId)
   }, [munId])
+
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
 
   const { data, isLoading } = useGetSchoolsReport(
     search,
@@ -186,6 +202,9 @@ export default function TableEscolas({ munId = null }) {
     order?.toUpperCase(),
     filterStatus,
     filterCity,
+    filterState,
+    filterType,
+    !!filterCity,
   );
 
   const handleRequestSort = (
@@ -228,6 +247,7 @@ export default function TableEscolas({ munId = null }) {
         createData(
           x.ESC_ID,
           x.ESC_NOME,
+          x.ESC_MUN,
           x.ESC_INEP,
           x.ENTURMADOS,
           x.INFREQUENCIA,
@@ -238,12 +258,19 @@ export default function TableEscolas({ munId = null }) {
     setRows(list);
   }, [data?.items, data?.meta?.totalPages])
 
+  const handleSelectState = (newValue) => {
+    setSelectedState(newValue);
+    setSelectedCity(null)
+  };
+
   const handleSelectStatus = (newValue) => {
     setSelectedStatus(newValue);
   };
 
   const handleFilter = () => {
+    setFilterState(selectedState?.id)
     !munId && setFilterCity(selectedCity?.MUN_ID)
+    setFilterType(selectedType)
     setFilterStatus(selectedStatus?.value)
     setPage(1);
   };
@@ -265,6 +292,12 @@ export default function TableEscolas({ munId = null }) {
     setShowFilter(!showFilter);
   };
 
+  const showType = () => {
+    if(user?.USU_SPE?.role === 'SAEV' || user?.USU_SPE?.role === 'ESTADO')
+      return true
+    return false
+  }
+
   const setRow = (row, index) => {
     const labelId = `enhanced-table-checkbox-${index}`;
     return (
@@ -278,6 +311,9 @@ export default function TableEscolas({ munId = null }) {
             {row.ESC_NOME}
           </TableCell>
           <TableCellBorder component="th" id={labelId} scope="row" padding="normal">
+            {row.ESC_MUN}
+          </TableCellBorder>
+          <TableCellBorder component="th" id={labelId} scope="row" padding="normal">
             {row.ESC_INEP}
           </TableCellBorder>
           <TableCellBorder component="th" id={labelId} scope="row" padding="normal">
@@ -288,7 +324,7 @@ export default function TableEscolas({ munId = null }) {
           </TableCellBorder>
           <TableCellBorder align="center">
             <ActiveTag active={row.ESC_ATIVO}>
-              <PointActiveTag active={row.ESC_ATIVO} />
+              <PointActiveTag data-test='status' active={row.ESC_ATIVO} />
               {row.ESC_ATIVO ? 'Ativo' : 'Inativo'}
               <div></div>
             </ActiveTag>
@@ -307,12 +343,13 @@ export default function TableEscolas({ munId = null }) {
             placement={"top"}
             overlay={<Tooltip id={`tooltip-top`}>Filtro Avançado</Tooltip>}
           >
-            <Marker onClick={changeShowFilter}>
+            <Marker data-test='filter' onClick={changeShowFilter} type='button'>
               <MdOutlineFilterAlt color="#FFF" size={24} />
             </Marker>
           </OverlayTrigger>
           <div className="d-flex flex-row-reverse align-items-center ">
             <InputSearch
+              data-test='search'
               size={16}
               type="text"
               placeholder="Pesquise"
@@ -326,6 +363,8 @@ export default function TableEscolas({ munId = null }) {
           filterCity &&
             <div>
               <ButtonPadrao
+                dataTest='newSchool'
+                type="button"
                 onClick={() => {
                   Router.push(`/municipio/${filterCity}/escola`);
                 }}
@@ -338,29 +377,72 @@ export default function TableEscolas({ munId = null }) {
       {showFilter && (
         <FilterSelectedContainer>
           {!munId &&
+            <>
+              <div className="me-2">
+                <Autocomplete
+                  style={{background: "#FFF", width: '137px'}}
+                  fullWidth
+                  className=""
+                  data-test='state'
+                  id="state"
+                  size="small"
+                  value={selectedState}
+                  noOptionsText="Estado"
+                  options={states}
+                  loading={isLoadingStates}
+                  getOptionLabel={option => option.name}
+                  onChange={(_event, newValue) => {
+                    handleSelectState(newValue)
+                  }}
+                  renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+                />
+              </div>
+              <div className="me-2">
+                <AutoCompletePagMun2 county={selectedCity} changeCounty={setSelectedCity} width={"150px"} stateId={selectedState?.id} active={1} disabled={!selectedState} />
+              </div>
+            </>
+          }
+          {showType() &&
             <div className="me-2">
-              <AutoCompletePagMun county={selectedCity} changeCounty={setSelectedCity} width={"150px"} />
+              <Autocomplete
+                style={{background: "#FFF", width: '137px'}}
+                fullWidth
+                className=""
+                data-test='type'
+                id="type"
+                size="small"
+                value={selectedType}
+                noOptionsText="Tipo de Rede"
+                options={Object.keys(TypeSchool)}
+                getOptionLabel={option => TypeSchool[option]}
+                onChange={(_event, newValue) => {
+                  setSelectedType(newValue)
+                }}
+                renderInput={(params) => <TextField size="small" {...params} label="Tipo de Rede" />}
+              />
             </div>
           }
           <div>
-          <Autocomplete
-            style={{background: "#FFF", width: '137px'}}
-            fullWidth
-            className=""
-            id="type"
-            size="small"
-            value={selectedStatus}
-            noOptionsText="Status"
-            options={[{name: "Ativo", value: '1'}, {name: "Inativo", value: '0'}]}
-            getOptionLabel={option => option.name}
-            onChange={(_event, newValue) => {
-              handleSelectStatus(newValue)
-            }}
-            renderInput={(params) => <TextField size="small" {...params} label="Status" />}
-          />
+            <Autocomplete
+              style={{background: "#FFF", width: '137px'}}
+              fullWidth
+              className=""
+              data-test='active'
+              id="active"
+              size="small"
+              value={selectedStatus}
+              noOptionsText="Status"
+              options={[{name: "Ativo", value: '1'}, {name: "Inativo", value: '0'}]}
+              getOptionLabel={option => option.name}
+              onChange={(_event, newValue) => {
+                handleSelectStatus(newValue)
+              }}
+              renderInput={(params) => <TextField size="small" {...params} label="Status" />}
+            />
           </div>
           <div>
             <ButtonStyled
+              data-test="btFilter"
               onClick={() => {
                 handleFilter();
               }}
@@ -379,7 +461,7 @@ export default function TableEscolas({ munId = null }) {
             borderBottomRightRadius: "10px",
           }}
         >
-         {isLoading ? (
+         {filterCity ? isLoading ? (
           <Loading />
          ) : (
            <TableContainer>
@@ -394,18 +476,20 @@ export default function TableEscolas({ munId = null }) {
               onRequestSort={handleRequestSort}
               rowCount={rows.length}
             />
-            {filterCity ? 
+            {rows?.length > 0 ? 
               <TableBody>
                 {rows.map((row, index) => {
                   return setRow(row, index);
                 })}
               </TableBody>
             :
-              <div style={{ padding: '10px' }}>Necessário selecionar um município no filtro</div>  
+              <div style={{ padding: '10px' }}>Nenhum resultado encontrado</div>  
             }
            </Table>
          </TableContainer>
-         )}
+         ) :
+           <div style={{ padding: '10px' }}>Necessário selecionar um município no filtro</div> 
+           }
           <Pagination>
             Linhas por página:
             <FormSelectStyled value={limit} onChange={handleChangeLimit}>

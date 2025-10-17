@@ -3,6 +3,7 @@ import Top from "src/components/top";
 import FormAddPerfil from "src/components/perfil/formAddPerfil";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function AdicionarPerfil() {
@@ -20,3 +21,14 @@ AdicionarPerfil.getLayout = function getLayout(page: ReactElement) {
     <Layout header={"Novo Perfil de Acesso"}>{page}</Layout>
   )
 }
+
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: { },
+    };
+  },
+  {
+    roles: [],
+  }
+);

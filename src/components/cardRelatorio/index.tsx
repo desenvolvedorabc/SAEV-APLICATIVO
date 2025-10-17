@@ -7,6 +7,7 @@ export default function CardRelatorio({
   subTitle,
   link,
   ARE_NOME = [],
+  dataTest = ''
 }) {
   const checkPositive = (title) => {
     if (title[0] === "-") return false;
@@ -14,7 +15,7 @@ export default function CardRelatorio({
   };
 
   return (
-    <CardRelatorioStyled onClick={() => Router.push(link)}>
+    <CardRelatorioStyled data-test={dataTest} onClick={() => Router.push(link)}>
       {icon}
       {checkPositive(title) ? (
         <Numeros color={"#3E8277"}>{title}</Numeros>

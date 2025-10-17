@@ -48,6 +48,38 @@ export async function getSchoolClasses(
   return await api.get("/school-class", { params });
 }
 
+export async function getSchoolClassesTransfer(
+  search: string,
+  page: number,
+  limit: number,
+  column: string,
+  order: string,
+  serie: string,
+  year: string,
+  county: string,
+  school: string,
+  type: string,
+  status: number
+) {
+  const params = {
+    search,
+    page,
+    limit,
+    order,
+    column,
+    serie,
+    year,
+    county,
+    school,
+    type,
+    status,
+  };
+
+  // const cache = new CacheControl(HALF_HOUR, "get_api_schoolClass");
+
+  return await api.get("/school-class/transfer", { params });
+}
+
 export function useGetSchoolClasses(
   search: string,
   page: number,
@@ -80,6 +112,51 @@ export function useGetSchoolClasses(
     queryKey: ["schoolClasses", params],
     queryFn: async () => {
       const response = await api.get("/school-class", { params });
+
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes,
+    enabled: enabled,
+  });
+
+  return {
+    data,
+    isLoading,
+  };
+}
+
+export function useGetSchoolClassesTransfer(
+  search: string,
+  page: number,
+  limit: number,
+  column: string,
+  order: string,
+  year: string,
+  county: string,
+  school: string,
+  serie: string,
+  type: string,
+  status: number,
+  enabled = true as boolean
+) {
+  const params = {
+    search,
+    page,
+    limit,
+    order,
+    column,
+    year,
+    county,
+    school,
+    serie,
+    type,
+    status,
+  };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["schoolClassesTransfer", params],
+    queryFn: async () => {
+      const response = await api.get("/school-class/transfer", { params });
 
       return response.data;
     },

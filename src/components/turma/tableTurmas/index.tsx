@@ -428,7 +428,7 @@ export default function TableTurmas() {
             <AutoCompletePagMun county={selectedCity} changeCounty={handleSelectCity} width={"150px"} />
           </div>
           <div className="pe-2 me-2 border-end border-white">
-            <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCity} resetSchools={resetSchool} width={"150px"}  />
+            <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCity} resetSchools={resetSchool} width={"150px"} disabled={!selectedCity} />
           </div>
           <div className="pe-2 me-2 border-end border-white">
             <FormControl sx={{}} size="small">

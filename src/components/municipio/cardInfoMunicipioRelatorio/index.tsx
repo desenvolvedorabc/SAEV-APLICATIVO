@@ -56,7 +56,7 @@ export default function CardInfoMunicipioRelatorio({municipio}) {
           {/* </Indicators> */}
           <div className="d-flex justify-content-between align-items-center">
             <div style={{width:140}}>
-              <ButtonWhite onClick={() => {Router.push(`/municipio/editar/${municipio?.MUN_ID}`)}} >Editar</ButtonWhite>
+              <ButtonWhite dataTest='edit' onClick={() => {Router.push(`/municipio/editar/${municipio?.MUN_ID}`)}} >Editar</ButtonWhite>
             </div>
           </div>
         </div>

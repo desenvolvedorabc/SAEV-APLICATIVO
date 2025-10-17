@@ -65,7 +65,7 @@ export default function FormEditAvaliacao({ avaliacao }) {
     }
     return errors;
   };
-
+  
   const formik = useFormik({
     initialValues: {
       AVA_NOME: avaliacao.AVA_NOME,
@@ -79,9 +79,12 @@ export default function FormEditAvaliacao({ avaliacao }) {
       setIsDisabled(true)
 
       values.AVA_ATIVO = avaliacao.AVA_ID ? avaliacao.AVA_ATIVO : true
+      values.AVA_AVM?.forEach((value) => {
+        value.id = value.AVM_MUN_ID
+      })
       
       let response
-    
+      
       try{
         response = avaliacao.AVA_ID ? await editAssessment(avaliacao.AVA_ID, values) : await createAssessment(values)
       }
@@ -100,10 +103,13 @@ export default function FormEditAvaliacao({ avaliacao }) {
         setErrorMessage(response.data.message || 'Erro ao criar/atualizar avaliação')
         setModalStatus(false)
         setModalShowConfirm(true)
+        values.AVA_AVM?.forEach((value) => {
+          value.id = value.AVM_MUN_ID + value.AVM_TIPO
+        })
       }
     }
   });
-
+  
   async function changeAvaliacao() {
     setModalShowQuestion(false)
     avaliacao = {
@@ -177,13 +183,14 @@ export default function FormEditAvaliacao({ avaliacao }) {
       let list = []
       formik.values.AVA_AVM.map(x => {
         list.push({
-          id: x.AVM_MUN?.MUN_ID,
+          id: x.AVM_MUN?.MUN_ID + x.AVM_TIPO,
           AVM_MUN_ID: x.AVM_MUN?.MUN_ID,
           AVM_MUN_NOME: x.AVM_MUN?.MUN_NOME,
           AVM_DT_INICIO: x.AVM_DT_INICIO,
           AVM_DT_FIM: x.AVM_DT_FIM,
           AVM_DT_DISPONIVEL: x.AVM_DT_DISPONIVEL,
-          AVM_ATIVO: x.AVM_ATIVO
+          AVM_ATIVO: x.AVM_ATIVO,
+          AVM_TIPO: x.AVM_TIPO,
         })
       })
       changeListMunAdd(list)
@@ -218,12 +225,6 @@ export default function FormEditAvaliacao({ avaliacao }) {
                 }}
                 renderInput={(params) => <TextField size="small" {...params} label="Ano" />}
               />
-              {/* <Form.Select name="AVA_ANO" value={formik.values.AVA_ANO} onChange={formik.handleChange}>
-                <option value="">Ano</option>
-                {dataYears?.items?.map((item) => (
-                  <option key={item.ANO_ID} value={item.ANO_NOME}>{item.ANO_NOME}</option>
-                ))}
-              </Form.Select> */}
               {formik.errors.AVA_ANO ? <ErrorText>{formik.errors.AVA_ANO}</ErrorText> : null}
             </div>
             <div className="" style={{ width: 226}}>

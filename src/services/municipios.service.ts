@@ -1,13 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { UseInfiniteQueryOptions, UseQueryOptions, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { parseCookies } from "nookies";
-import CacheControl from "src/utils/cache-request";
 import { getBase64 } from "src/utils/get-base64";
 import { api } from "./api";
+import { Pagination } from "./pagination";
 
 const cookies = parseCookies();
 const token = cookies["__session"];
-const ONE_HOUR = 60;
+
+export type IGetCounties = {
+  search?: string,
+  page?: number,
+  limit?: number,
+  column?: string,
+  order?: string,
+  status?: string,
+  stateId?: number,
+  stateRegionalId?: number,
+  active?: "0" | "1",
+  enabled?: boolean,
+  verifyExistsRegional?: 0 | 1
+}
 
 export async function getCounties(
   search: string,
@@ -16,32 +29,81 @@ export async function getCounties(
   column: string,
   order: string,
   status: string,
+  stateId: number,
   active?: "0" | "1"
 ) {
-  const params = { search, page, limit, order, status, column, active };
+  const params = { search, page, limit, order, status, column, stateId, active };
 
   // const cache = new CacheControl(ONE_HOUR, "get_api_county");
 
   // return await cache.get("/api/county", params);
-  return await api.get("counties", { params });
+  return await api.get("/counties", { params });
 }
 
-export function useGetCounties(
+
+export type IGetCountiesPag = {
   search: string,
-  page: number,
   limit: number,
   column: string,
   order: string,
-  status: string,
+  stateId: number,
   active?: "0" | "1",
-  enabled = true as boolean
-) {
-  const params = { search, page, limit, order, status, column, active };
+  isEpvPartner?: 0 | 1
+  options?: UseInfiniteQueryOptions<Pagination<any>>
+}
+
+export function useGetCountiesPag({
+  search,
+  limit,
+  column,
+  order,
+  stateId,
+  active,
+  isEpvPartner,
+  options,
+}: IGetCountiesPag) {
+  const params = { search, limit, order, active, column, stateId, isEpvPartner };
+
+  const query = useInfiniteQuery<Pagination<any>>({
+    queryKey: ["counties-pag", search, limit, column, order, active, stateId, isEpvPartner],
+    queryFn: async ({ pageParam }) => {
+      const response = await api.get("/counties", { params: { ...params, page: pageParam }});
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 1,
+    getNextPageParam: (lastPage) => {
+      const { currentPage, totalPages } = lastPage.meta;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    ...options,
+  });
+
+  const flatData = query.data?.pages.map((page) => page.items).flat() ?? [];
+
+  return {
+    query,
+    flatData,
+  };
+}
+
+export function useGetCounties({
+  search,
+  page,
+  limit,
+  column,
+  order,
+  active,
+  stateId,
+  stateRegionalId,
+  verifyExistsRegional,
+  enabled = true,
+}: IGetCounties) {
+  const params = { search, page, limit, order, column, active, verifyExistsRegional, stateId, stateRegionalId };
 
   const { data, isLoading } = useQuery({
     queryKey: ["counties", params],
     queryFn: async () => {
-      const response = await api.get("counties", { params });
+      const response = await api.get("/counties", { params });
 
       return response.data;
     },
@@ -98,11 +160,20 @@ export async function findDistricts(uf) {
 }
 
 export async function createCounty(data: any, logo: File, file: File) {
-  data = {
-    ...data,
-    token,
-  };
-  const response = await axios.post("/api/county/create", { data });
+  const response = await api.post("/counties", data)
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
+
   if (logo !== null) {
     const result = await getBase64(logo);
 
@@ -141,6 +212,24 @@ export async function createCounty(data: any, logo: File, file: File) {
   return response;
 }
 
+
+export async function changeShareData(id){
+  return await api
+    .patch(`/counties/${id}/change-share-data`)
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.log("error: ", error);
+      return {
+        status: 400,
+        data: {
+          message: error.response.data.message,
+        },
+      };
+    });
+  }
+
 export async function editCounty(
   id: string,
   data: any,
@@ -166,10 +255,6 @@ export async function editCounty(
       base64: result,
     });
   }
-  data = {
-    ...data,
-    token,
-  };
 
   const resp = await api
     .put(`/counties/${id}`, data)
@@ -189,16 +274,15 @@ export async function editCounty(
 }
 
 export async function getCounty(id) {
-  return await axios.get(`/api/county/${id}?token=${token}`);
+  return await api.get(`/counties/${id}`);
 }
 
 export function useGetCounty(id, url = "") {
   const { data, isLoading } = useQuery({
     queryKey: ["county", id],
     queryFn: async () => {
-      const response = await axios.get(`/api/county/${id}?token=${token}`);
-
-      return response.data;
+      const response = await api.get(`/counties/${id}`);
+      return response.data
     },
     staleTime: 1000 * 60,
   });
@@ -214,15 +298,22 @@ export function useGetCounty(id, url = "") {
   };
 }
 
+export async function getCountyReport(id) {
+  return await api.get(`/counties/${id}/report`);
+}
+
 export function useGetCountyReport(id, url = "") {
   const { data, isLoading } = useQuery({
     queryKey: ["county-report", id],
     queryFn: async () => {
-      const response = await axios.get(
-        `/api/county/report/${id}`
+      const response = await api.get(
+        `/counties/${id}/report`
       );
 
-      return response.data;
+      return {
+        ...response.data,
+        MUN_LOGO_URL: `${url}/counties/avatar/${data?.MUN_LOGO}`,
+      };
     },
     staleTime: 1000 * 60,
   });
@@ -233,7 +324,7 @@ export function useGetCountyReport(id, url = "") {
   };
 
   return {
-    data: formattedData,
+    data,
     isLoading,
   };
 }

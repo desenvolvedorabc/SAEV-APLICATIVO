@@ -81,7 +81,7 @@ export default function FormEditTeste({ teste }) {
   const [listDescritores, setListDescritores] = useState([]);
   const [answers, setAnswers] = useState(teste?.TES_TEG);
   const [listSelectedDescritores, setListSelectedDescritores] = useState([])
-  const [errorMessage, setErrorMessage] = useState('Erro ao editar Teste')
+  const [errorMessage, setErrorMessage] = useState(null)
   const [isDisabled, setIsDisabled] = useState(false);
 
   let countGabarito = teste?.TES_TEG?.length
@@ -158,8 +158,6 @@ export default function FormEditTeste({ teste }) {
         values.TES_MAR = null;
       }
 
-      console.log('values :', values);
-
       setIsDisabled(true)
       let response = null;
       try{
@@ -171,17 +169,13 @@ export default function FormEditTeste({ teste }) {
         setIsDisabled(false)
       }
 
-      if (
-        response.status === 200 &&
-        response.data.TES_NOME === values.TES_NOME
-      ) {
-        setErrorMessage('Erro ao editar Teste')
+      if (!response.data.message) {
         setModalStatus(true);
-        setModalShowConfirm(true);
       } else {
         setModalStatus(false);
-        setModalShowConfirm(true);
+        setErrorMessage(response.data.message)
       }
+      setModalShowConfirm(true);
     },
   });
 
@@ -370,6 +364,7 @@ export default function FormEditTeste({ teste }) {
     } else {
       setModalStatus(false);
       setModalShowConfirmQuestion(true);
+      setErrorMessage(response.message);
     }
   }
 
@@ -764,7 +759,7 @@ export default function FormEditTeste({ teste }) {
         }}
         text={modalStatus ? `${formik.values.TES_NOME} ${
           active === true ? "ativado" : "desativado"
-        } com sucesso!` : `Erro ao ${!active ? "ativar" : "desativar"}`}
+        } com sucesso!` : errorMessage || `Erro ao ${!active ? "ativar" : "desativar"}`}
         status={modalStatus}
       />
       <ModalConfirmacao

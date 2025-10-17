@@ -251,12 +251,13 @@ export default function TableMunicipios() {
             </Marker>
           </OverlayTrigger> */}
           <div className="ms-2 d-flex flex-row-reverse align-items-center ">
-            <InputSearch size={16} type="text" placeholder="Pesquise" name="searchTerm" onChange={handleChangeSearch} />
+            <InputSearch data-test='search' size={16} type="text" placeholder="Pesquise" name="searchTerm" onChange={handleChangeSearch} />
             <IconSearch color={"#7C7C7C"} />
           </div>
         </div>
         <div style={{ width: 160 }}>
           <ButtonPadrao
+            dataTest='newCounty'
             onClick={() => {
               Router.push("/municipio");
             }}
@@ -341,7 +342,9 @@ export default function TableMunicipios() {
                     );
                   })
                 ) : (
-                  <></>
+                  <div style={{ padding: 10 }}>
+                    Nenhum resultado encontrado
+                  </div>
                 )}
               </TableBody>
             </Table>
@@ -349,15 +352,15 @@ export default function TableMunicipios() {
         )}
           <Pagination>
             Linhas por página:
-            <FormSelectStyled value={limit} onChange={handleChangeLimit}>
+            <FormSelectStyled data-test='limit' value={limit} onChange={handleChangeLimit}>
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={25}>25</option>
             </FormSelectStyled>
-            <ButtonPage onClick={() => handleChangePage2("prev")} disabled={disablePrev}>
+            <ButtonPage data-test='previous' onClick={() => handleChangePage2("prev")} disabled={disablePrev}>
               <MdNavigateBefore size={24} />
             </ButtonPage>
-            <ButtonPage onClick={() => handleChangePage2("next")} disabled={disableNext}>
+            <ButtonPage data-test='next' onClick={() => handleChangePage2("next")} disabled={disableNext}>
               <MdNavigateNext size={24} />
             </ButtonPage>
           </Pagination>

@@ -296,6 +296,18 @@ export function DetailsStudentRelease({
     }
   }
 
+  const verifyJustification = () => {
+    if(justificativa && justificativa !== "Recusou-se a participar" && 
+      justificativa !== "Faltou mas está Frequentando a escola" && 
+      justificativa !== "Abandonou a escola" && 
+      justificativa !== "Motivos de deficiência" && 
+      justificativa !== "Não participou" && 
+      justificativa !== "Foi Transferido para outra escola"){
+        return true;
+      }
+      return false;
+  }
+
   return (
     <>
       <S.Container>
@@ -407,6 +419,7 @@ export function DetailsStudentRelease({
                     Motivos de deficiência
                   </MenuItem>
                   <MenuItem value="Não participou">Não participou</MenuItem>
+                  {verifyJustification() && <MenuItem value={justificativa}>{justificativa}</MenuItem>}
                 </Select>
               </FormControl>
             )}
@@ -462,19 +475,24 @@ export function DetailsStudentRelease({
         </S.ContentQuestions>
         <S.BottomContent>
           <div>
-            {data?.answers[0]?.USU_NOME ? (
-              <p>
-                Lançado dia{" "}
-                {data?.answers[0]?.ALT_DT_ATUALIZACAO &&
-                  format(
+            <p>
+              {data?.answers[0]?.ALT_DT_ATUALIZACAO &&
+                <>
+                  Lançado dia{" "} 
+                  {format(
                     new Date(data?.answers[0]?.ALT_DT_ATUALIZACAO),
                     "dd/MM/yyyy HH:mm:ss"
                   )}{" "}
-                por {data?.answers[0]?.USU_NOME}
-              </p>
-            ) : (
-              <div />
-            )}
+                </>
+              }
+              {data?.answers[0]?.USU_NOME ? (
+                <>
+                  por {data?.answers[0]?.USU_NOME}
+                </>
+              ) : (
+                <div/>
+              )}
+            </p>
 
             <ButtonPadrao
               type="button"
@@ -505,6 +523,13 @@ export function DetailsStudentRelease({
           ) : data?.answers[0]?.ALT_BY_AVA_ONLINE ? (
             <S.FlagHerby>
               <S.TextFlag>Resultado Processado pela Avaliação Online</S.TextFlag>
+              <div>
+                <MdCheckCircleOutline size={18} />{" "}
+              </div>
+            </S.FlagHerby>
+          ) : data?.answers[0]?.ALT_FORNECEDOR ? (
+            <S.FlagHerby>
+              <S.TextFlag>Resultado Processado por: {data?.answers[0]?.ALT_FORNECEDOR}</S.TextFlag>
               <div>
                 <MdCheckCircleOutline size={18} />{" "}
               </div>

@@ -31,7 +31,9 @@ interface EnhancedTableProps {
 }
 
 const levels = {
+  regional: "REGIONAL ESTADUAL",
   county: "MUNICIPIO",
+  regionalSchool: "REGIONAL MUNICIPAL/ÚNICA",
   school: "ESCOLA",
   serie: 'SÉRIE',
   schoolClass: "TURMA",
@@ -53,7 +55,7 @@ function EnhancedTableHead({
 
   let headCells = [];
 
-  if (level !== 'Estudantes') {
+  if (level !== 'student') {
     if (notEvaluated) {
       headCells.push({
         id: "name",
@@ -91,7 +93,7 @@ function EnhancedTableHead({
       })
     }
   }
-  if(level != 'Estudantes') {
+  if(level != 'student') {
     headCells.push({
       id: "total",
       status: true,
@@ -113,7 +115,7 @@ function EnhancedTableHead({
             padding={"normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
-            {level != 'Estudantes' ?
+            {level != 'student' ?
                 <TableSortLabelStyled
                   active={orderBy === headCell.id}
                   direction={order === "asc" ? "desc" : "asc"}
@@ -145,9 +147,6 @@ interface ITableReportNaoAvaliadosProps {
   notEvaluated?: ExportItem
   notEvaluatedStudents?: any
   level?: any
-  page?: any
-  changePage?: any
-  changeLimit?: any
 }
 
 export function TableReportNaoAvaliados({
@@ -160,8 +159,9 @@ export function TableReportNaoAvaliados({
   const [selectedColumn, setSelectedColumn] = useState("name");
   const [click, setClick] = useState(false);
   const {
-    year,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSerie,
     changeSchoolClass,
@@ -179,25 +179,64 @@ export function TableReportNaoAvaliados({
     setSelectedColumn(property)
   }
 
-  const handleClickTable = (data) => {    
-    if (level === "county") {
-      changeCounty({
-        AVM_MUN: {
-          MUN_ID: data.id,
-          MUN_NOME: data.name,
-        },
+  const handleClickTable = (data) => { 
+    if (level === "regional") {
+      changeStateRegional({
+        id: data.id,
+        name: data.name,
       });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "county") {
+      changeCounty({
+        MUN_ID: data.id,
+        MUN_NOME: data.name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + data.id + '&countyName=' + data.name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "regionalSchool") {
+      changeCountyRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (level === "school") {
+      changeSchool({
+        ESC_ID: data.id,
+        ESC_NOME: data.name,
+      });
+      changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      level === "serie"
+    ) {
+      changeSerie({
+        SER_ID: data.id,
+        SER_NOME: data.name,
+      });
+      const url = window.location.href.split('&serie=')
+      const newUrl = url[0].concat('&serie=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      level === "schoolClass"
+    ) {
+      changeSchoolClass({
+        TUR_ID: data.id,
+        TUR_NOME: data.name,
+      });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
-    if (level === "Escola") {
-      changeSchool({ ESC_ID: data.id, ESC_NOME: data.name });
-    }
-    if (level === "serie") {
-      changeSerie({ SER_ID: data.id, SER_NOME: data.name });
-    }
-    if (level === 'Turma') {
-      changeSchoolClass({ TUR_ID: data.id, TUR_NOME: data.name });
-      level = 'schoolClass'
-    }    
 
     addBreadcrumbs(data.id, data.name, level);
     setClick(true);
@@ -243,7 +282,7 @@ export function TableReportNaoAvaliados({
                   level={level}
                 />
                 {
-                  (level !== 'Estudantes') ? (
+                  (level !== 'student') ? (
                     <DefaultTableLevel notEvaluated={notEvaluated} handleClickTable={handleClickTable} totalInPercentage={totalInPercentage} order={order} selectedColumn={selectedColumn} />
                   ) : (
                     <TableLevelStudents notEvaluatedStudents={notEvaluatedStudents}  />
@@ -260,9 +299,12 @@ export function TableReportNaoAvaliados({
 
 
 function DefaultTableLevel({ notEvaluated, handleClickTable, totalInPercentage, selectedColumn, order }) { 
-  const [orderedData, setOrderedData] = useState(notEvaluated?.items)
+  const [orderedData, setOrderedData] = useState(null)
+  useEffect(() => {
+    setOrderedData(notEvaluated?.items)
+  },[notEvaluated])
   const getTotal = (data) => {
-    return data?.recusa + data?.ausencia + data?.abandono + data?.transferencia + data?.deficiencia + data?.nao_participou
+    return Number(data?.recusa) + Number(data?.ausencia) + Number(data?.abandono) + Number(data?.transferencia) + Number(data?.deficiencia) + Number(data?.nao_participou)
   }
   
   const orderTable = () => {

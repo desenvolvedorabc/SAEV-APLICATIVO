@@ -5,17 +5,20 @@ import {ButtonPadrao} from 'src/components/buttons/buttonPadrao';
 import ButtonWhite from 'src/components/buttons/buttonWhite';
 import ModalConfirmacao from 'src/components/modalConfirmacao';
 import ModalAviso from 'src/components/modalAviso';
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
 import Router from 'next/router'
 import ButtonVermelho from "src/components/buttons/buttonVermelho";
-import {FormControl, InputLabel, MenuItem, Select, TextField} from '@mui/material';
-import { findAllDistricts, findDistricts, getAllCounties } from "src/services/municipios.service";
-import { loadUf } from "src/utils/combos";
+import {Autocomplete, TextField} from '@mui/material';
+import { useGetCounties } from "src/services/municipios.service";
 import { MdClose } from "react-icons/md"
 import { createMessage } from "src/services/mensagens.service";
-import { getAllSchools, getSchools } from "src/services/escolas.service";
+import { useGetSchools } from "src/services/escolas.service";
 import { Editor } from "src/components/editor";
 import { AutoCompletePagMun } from "src/components/AutoCompletePag/AutoCompletePagMun";
+import { useGetStates } from "src/services/estados.service";
+import useDebounce from "src/utils/use-debounce";
+import { Loading } from "src/components/Loading";
+import { useGetRegionais } from "src/services/regionais-estaduais.service";
 
 type ValidationErrors = Partial<{ MEN_TITLE: string, MEN_TEXT: string, MUNICIPIOS: string, ESCOLAS: string }>
 
@@ -24,28 +27,34 @@ export default function FormCreateMessage({}) {
   const [modalStatus, setModalStatus] = useState(true)
   const [modalShowWarning, setModalShowWarning] = useState(false)
   const [errorMessage, setErrorMessage] = useState(true)
-  const [listUf, setListUf] = useState([])
-  const [listAllUf, setListAllUf] = useState([])
-  const [listMun, setListMun] = useState([])
-  const [uf, setUf] = useState("")
+  const [uf, setUf] = useState(null)
+  const [stateRegional, setStateRegional] = useState(null)
+  const [countyRegional, setCountyRegional] = useState(null)
   const [searchMun, setSearchMun] = useState(null)
+  const [munFilter, setMunFilter] = useState(null)
   const [searchSchool, setSearchSchool] = useState("")
   const [selectAllActive, setselectAllActive] = useState(false)
   const [selectAllActiveSchool, setselectAllActiveSchool] = useState(false)
-  const [listMunFilter, setListMunFilter] = useState([])
   const [mySelected, setMySelected] = useState([])
-  const [schoolList, setSchoolList] = useState([])
   const [mySelectedSchool, setMySelectedSchool] = useState([])
-  const [munFilter, setMunFilter] = useState(null)
   const [listAddMun, setListAddMun] = useState([])
   const [listAddEsc, setListAddEsc] = useState([])
-  const [filteredSchools, setFilteredSchools] = useState([])
   const [text, setText] = useState("")
   const [disableAll, setDisableAll] = useState(false)
   const [areaActive, setAreaActive] = useState(true)
-  const [pageMun, setPageMun] = useState(1);
-  const [completeMun, setCompleteMun] = useState(null);
   const [isDisabled, setIsDisabled] = useState(false);
+  const debouncedSearchTermCounty = useDebounce(searchMun, 500);
+  const debouncedSearchTermSchool = useDebounce(searchSchool, 500);
+
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
+
+  const { data: listStateRegional, isLoading: isLoadingStateRegional } = useGetRegionais(null, 1, 999999, null, 'ASC', null, uf?.id, 'ESTADUAL', !!uf);
+
+  const { data: listMun, isLoading } = useGetCounties({search: debouncedSearchTermCounty, page: 1, limit: 9999999, column: null, order: 'ASC', active: "1", verifyExistsRegional: null, stateId: uf?.id, stateRegionalId: stateRegional?.id, enabled: true});
+
+  const { data: listCountyRegional, isLoading: isLoadingCountyRegional } = useGetRegionais(null, 1, 999999, null, 'ASC', munFilter?.MUN_ID, null, null, !!munFilter);
+
+  const { data: listSchool, isLoading: isLoadingSchool } = useGetSchools({search: debouncedSearchTermSchool, page: 1, limit: 999999, column: null, order: 'ASC', active: "1", county: munFilter?.MUN_ID, municipalityOrUniqueRegionalId: countyRegional?.id, typeSchool: null, enabled: true});
 
   const validate = values => {
     const errors: ValidationErrors = {};
@@ -110,74 +119,25 @@ export default function FormCreateMessage({}) {
       }
     }
   });
-
-
-  async function loadMun(uf: string) {
-    let respMunicipios
-    if (uf === "") {
-      respMunicipios = await getAllCounties()
-    }
-    else {
-      respMunicipios = await findDistricts(uf)
-    }
-
-    setListMun(respMunicipios.data)
-  }
-
-  const filterMun = (searchMun) => {
-    let list = []
-    if(!searchMun)
-      setListMunFilter(listMun)
-    else{
-      list = listMun.filter(x => x.MUN_NOME.toUpperCase().includes(searchMun.toUpperCase()))
   
-      setListMunFilter(list)
-    }
+  const handleChangeUf = async (newValue) => {
+    setUf(newValue)
+    setStateRegional(null)
+    setMySelected([])
+    setselectAllActive(false)
   }
-
-  async function loadComboUfs() {
-    const respUfs = await findAllDistricts()
-
-    let list = []
-    respUfs?.data?.map(obj => {
-      listAllUf.map(obj2 => {
-        if (obj.MUN_UF === obj2.sigla) {
-          if (!list.includes(obj2)) {
-            list.push(obj2)
-          }
-        }
-      })
-    })
-    setListUf(list.sort((a, b) => a.sigla.localeCompare(b.sigla)))
-  }
-
-  useEffect(() => {
-    async function fetchAPI() {
-      setListAllUf(await loadUf());
-    }
-    fetchAPI()
-    loadSchool()
-
-  }, []);
-
-  const loadSchool = async () => {
-    const respEscolas = await getAllSchools()
-    if(respEscolas?.data?.length > 0) {
-      setSchoolList(respEscolas.data)
-    }
-  }
-
-  useEffect(() => {
-    loadComboUfs()
-    loadMun("")
-  }, [listAllUf]);
-
   
-  const handleChangeUf = async (e) => {
-    setUf(e.target.value)
-    await loadMun(e.target.value)
+  const handleChangeStateRegional = async (newValue) => {
+    setStateRegional(newValue)
+    setMySelected([])
+    setselectAllActive(false)
   }
-
+  
+  const handleChangeCountyRegional = async (newValue) => {
+    setCountyRegional(newValue)
+    setMySelectedSchool([])
+    setselectAllActiveSchool(false)
+  }
   
   const handleChangeSearchMun = (e) => {
     setSearchMun(e.target.value)
@@ -185,30 +145,14 @@ export default function FormCreateMessage({}) {
 
   const handleChangeMunFilter = (newValue) => {
     setMunFilter(newValue)
+    setCountyRegional(null)
+    setMySelectedSchool([])
+    setselectAllActiveSchool(false)
   }
 
   const handleChangeSearchSchool = (e) => {
     setSearchSchool(e.target.value)
   }
-
-  useEffect(() => {
-    let list = []
-
-    if(munFilter === null){
-      list = [...schoolList]
-    }
-    else{
-     list = schoolList?.filter((x) => x?.ESC_MUN.MUN_ID === munFilter?.MUN_ID)
-     setFilteredSchools(list)
-    }
-
-    if(searchSchool != ""){
-      list = list.filter((x) => x?.ESC_NOME.toUpperCase().includes(searchSchool.toUpperCase()))
-    }
-
-    setFilteredSchools(list)
-
-  }, [munFilter, searchSchool, schoolList])
 
   function onKeyDown(keyEvent) {
     if ((keyEvent.charCode || keyEvent.keyCode) === 13) {
@@ -220,7 +164,7 @@ export default function FormCreateMessage({}) {
     if (!selectAllActive) {
       let list = []
 
-      listMunFilter.forEach(async(x, index) => {
+      listMun?.items?.forEach(async(x, index) => {
         list.push(x)
     })
       setMySelected(list)
@@ -243,26 +187,25 @@ export default function FormCreateMessage({}) {
   }
   
   const verifyMySelected = (mun) => {
-    return mySelected.find((item) => {
+    return !!mySelected.find((item) => {
       return mun?.MUN_ID === item?.MUN_ID
     })
   }
 
   const verifyMySelectedSchool = (esc) => {
-    return mySelectedSchool.find((item) => {
-
+    return !!mySelectedSchool.find((item) => {
       return esc?.ESC_ID === item?.ESC_ID
     })
   }
 
   const handleSelectAllSchools = () => {
     if (!selectAllActiveSchool) {
-      setMySelectedSchool([...schoolList])
-      setselectAllActiveSchool(!selectAllActiveSchool)
+      setMySelectedSchool([...listSchool?.items])
+      setselectAllActiveSchool(true)
     }
     else {
       setMySelectedSchool([])
-      setselectAllActiveSchool(!selectAllActiveSchool)
+      setselectAllActiveSchool(false)
     }
   }
   
@@ -306,11 +249,6 @@ export default function FormCreateMessage({}) {
     setText(value)
   }
 
-  useEffect(() => {
-    filterMun(searchMun)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[listMun, searchMun])
-
   return (
     <>
       <div className="d-flex">
@@ -326,26 +264,41 @@ export default function FormCreateMessage({}) {
           {areaActive ? 
             <CardSelectionSide>
               <Title>Usuários das Secretarias Destinatárias</Title>
-              <FormControl fullWidth size="small">
-                <InputLabel id="MEN_UF">Estado</InputLabel>
-                <Select
-                  labelId="MEN_UF"
-                  id="MEN_UF"
-                  name="MEN_UF"
-                  value={uf} 
-                  onChange={(e) => handleChangeUf(e)}
-                  label="Estado"
-                >
-                  <MenuItem key={"allUf"} value={""}>
-                    Todos
-                  </MenuItem>
-                  {listUf.map((item, index) => (
-                    <MenuItem key={index} value={item.sigla}>
-                      {item.sigla} - {item.nome}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                sx={{background: "#FFF", marginTop: '10px'}}
+                fullWidth
+                className=""
+                data-test='state'
+                id="state"
+                size="small"
+                value={uf}
+                noOptionsText="Estado"
+                options={states}
+                loading={isLoadingStates}
+                getOptionLabel={option => option.name}
+                onChange={(_event, newValue) => {
+                  handleChangeUf(newValue)
+                }}
+                renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+              />
+              <Autocomplete
+                sx={{background: "#FFF", marginTop: '10px'}}
+                fullWidth
+                className=""
+                data-test='stateRegional'
+                id="stateRegional"
+                size="small"
+                value={stateRegional}
+                noOptionsText="Regional Estadual"
+                options={listStateRegional?.items || []}
+                loading={isLoadingStateRegional}
+                getOptionLabel={option => option.name}
+                onChange={(_event, newValue) => {
+                  handleChangeStateRegional(newValue)
+                }}
+                disabled={!uf}
+                renderInput={(params) => <TextField size="small" {...params} label="Regional Estadual" />}
+              />
               <div className="col mt-2 mb-3">
                 <TextField
                   fullWidth
@@ -375,27 +328,51 @@ export default function FormCreateMessage({}) {
                   </FormCheckLabel>
                 </FormCheck>
                 <ListOverflow>
-                  {listMunFilter.map(x => {
-                    return (
-                      <FormCheck
-                        key={x.MUN_ID}
-                        id={x.MUN_ID}
-                        className=""
-                      >
-                        <Form.Check.Input onChange={() => handleChangeSelect(x)} value={x} name="mySelected" type={"checkbox"} checked={verifyMySelected(x)} />
-                        <FormCheckLabel>
-                          <div>{x.MUN_NOME}</div>
-                        </FormCheckLabel>
-                      </FormCheck>
-                    )
-                  })}
+                  {isLoading ?
+                    <Loading />
+                    :
+                    listMun?.items?.map(x => {
+                      return (
+                        <FormCheck
+                          key={x.MUN_ID}
+                          id={x.MUN_ID}
+                          // key={uf?.id + stateRegional?.id + x.MUN_ID}
+                          // id={uf?.id + stateRegional?.id + x.MUN_ID}
+                          className=""
+                        >
+                          <Form.Check.Input onChange={() => handleChangeSelect(x)} value={x} name="mySelected" type={"checkbox"} checked={verifyMySelected(x)} />
+                          <FormCheckLabel>
+                            <div>{x.MUN_NOME}</div>
+                          </FormCheckLabel>
+                        </FormCheck>
+                      )
+                    })
+                  }
                 </ListOverflow>
               </List>
             </CardSelectionSide>
           :
             <CardSelectionSide>
               <Title>Selecionar Usuários das Escolas</Title>
-              <AutoCompletePagMun county={munFilter} changeCounty={handleChangeMunFilter} />
+              <AutoCompletePagMun county={munFilter} changeCounty={handleChangeMunFilter} showUf={true} />
+              <Autocomplete
+                sx={{background: "#FFF", marginTop: '10px'}}
+                fullWidth
+                className=""
+                data-test='countyRegional'
+                id="countyRegional"
+                size="small"
+                value={countyRegional}
+                noOptionsText="Regional Municipal/Estadual"
+                options={listCountyRegional?.items || []}
+                loading={isLoadingCountyRegional}
+                getOptionLabel={option => option.name}
+                onChange={(_event, newValue) => {
+                  handleChangeCountyRegional(newValue)
+                }}
+                disabled={!munFilter}
+                renderInput={(params) => <TextField size="small" {...params} label="Regional Municipal/Estadual" />}
+              />
               <div className="col mt-2 mb-3">
                 <TextField
                   fullWidth
@@ -425,17 +402,22 @@ export default function FormCreateMessage({}) {
                   </FormCheckLabel>
                 </FormCheck>
                 <ListOverflow>
-                  {filteredSchools.map((school) => (
-                    <FormCheck
-                      key={school.ESC_ID}
-                      id={school.ESC_ID}
-                      className=""
-                    >
-                      <Form.Check.Input onChange={() => handleChangeSelectSchool(school)} value={school} name="mySelectedSchool" type={"checkbox"} checked={verifyMySelectedSchool(school)} />
-                      <FormCheckLabel>
-                        <div>{school.ESC_NOME}</div>
-                      </FormCheckLabel>
-                    </FormCheck>
+                  {isLoadingSchool ?
+                    <Loading />
+                    :
+                    listSchool?.items?.map((school) => (
+                      <FormCheck
+                        key={school.ESC_ID}
+                        id={school.ESC_ID}
+                        // key={munFilter?.id + countyRegional?.id + school.ESC_ID}
+                        // id={munFilter?.id + countyRegional?.id + school.ESC_ID}
+                        className=""
+                      >
+                        <Form.Check.Input onChange={() => handleChangeSelectSchool(school)} value={school} name="mySelectedSchool" type={"checkbox"} checked={verifyMySelectedSchool(school)} />
+                        <FormCheckLabel>
+                          <div>{school.ESC_NOME}</div>
+                        </FormCheckLabel>
+                      </FormCheck>
                   ))}
                 </ListOverflow>
               </List>

@@ -46,7 +46,6 @@ export async function getStudents(
   return resp;
 }
 
-
 export async function getStudentsGrouping(
   search: string,
   page: number,
@@ -138,7 +137,11 @@ export async function getStudentsNames(
   limit: number,
   column: string,
   order: string,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   status: string,
   serie: string
@@ -148,6 +151,10 @@ export async function getStudentsNames(
     page,
     limit,
     order,
+    typeSchool,
+    stateId,
+    stateRegionalId,
+    municipalityOrUniqueRegionalId,
     column,
     county,
     school,
@@ -159,28 +166,53 @@ export async function getStudentsNames(
   return resp;
 }
 
-export function useGetStudents(
+
+export type IGetStudent = {
   search: string,
   page: number,
   limit: number,
   column: string,
   order: string,
+  stateId: string,
   county: string,
+  typeSchool: string,
   school: string,
   status: string,
   serie: string,
+  schoolClass?: string,
   active: string,
-) {
+  enabled?: boolean
+}
+
+export function useGetStudents({
+  search,
+  page,
+  limit,
+  column,
+  order = "ASC",
+  stateId,
+  county,
+  typeSchool,
+  school,
+  status,
+  serie,
+  schoolClass,
+  active,
+  enabled = true
+}: IGetStudent) {
   const params = {
     search,
     page,
     limit,
     order,
+    stateId,
     column,
     county,
+    typeSchool,
     school,
     status,
     serie,
+    schoolClass,
     active
   };
 
@@ -192,6 +224,7 @@ export function useGetStudents(
       return response.data;
     },
     staleTime: 1000 * 60 * 1, // 1 minutes,
+    enabled
   });
 
   return {
@@ -201,10 +234,19 @@ export function useGetStudents(
 }
 
 export async function createStudent(data: any, avatar: File) {
-  data = {
-    ...data,
-  };
-  const response = await axios.post("/api/student/create", { data });
+  const response = await api.post("/student", data)
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.log("error: ", error);
+      return {
+        status: 400,
+        data: {
+          message: error.response.data.message,
+        },
+      };
+    });
 
   if (avatar !== null) {
     const result = await getBase64(avatar);
@@ -248,48 +290,50 @@ export async function editStudent(id: string, data: any, avatar: File) {
 }
 
 export async function getStudent(id) {
-  const response = await axios.get(`/api/student/${id}`, {
-    params: {
-      id,
-      token,
-    },
-  });
+  const response = await api.get(`/student/${id}`
+    // {
+    // params: {
+    //   id,
+    //   token,
+    // },
+    // }
+  );
 
-  return {
-    ...response.data,
-    ALU_LEITURA: 3,
-    ALU_PORTUGUES: 55,
-    ALU_MATEMATICA: 76,
-    ALU_INFREQUENCIA: 68,
-    ALU_NIVEL: 3,
-    ALU_AVA: [
-      {
-        AVA_ID: "ava01",
-        AVA_ANO: 2020,
-        AVA_NOME: "1.2022",
-        AVA_SERIE: "3º Ano EF",
-        AVA_LEITURA: "Leitor",
-        AVA_PORTUGUES: 44,
-        AVA_MATEMATICA: 44,
-      },
-      {
-        AVA_ID: "ava02",
-        AVA_ANO: 2020,
-        AVA_NOME: "2.2022",
-        AVA_SERIE: "3º Ano EF",
-        AVA_LEITURA: "Leitor",
-        AVA_PORTUGUES: 40,
-        AVA_MATEMATICA: 40,
-      },
-    ],
-  };
+  return response.data
+  // {
+  //   ...,
+  //   ALU_LEITURA: 3,
+  //   ALU_PORTUGUES: 55,
+  //   ALU_MATEMATICA: 76,
+  //   ALU_INFREQUENCIA: 68,
+  //   ALU_NIVEL: 3,
+  //   ALU_AVA: [
+  //     {
+  //       AVA_ID: "ava01",
+  //       AVA_ANO: 2020,
+  //       AVA_NOME: "1.2022",
+  //       AVA_SERIE: "3º Ano EF",
+  //       AVA_LEITURA: "Leitor",
+  //       AVA_PORTUGUES: 44,
+  //       AVA_MATEMATICA: 44,
+  //     },
+  //     {
+  //       AVA_ID: "ava02",
+  //       AVA_ANO: 2020,
+  //       AVA_NOME: "2.2022",
+  //       AVA_SERIE: "3º Ano EF",
+  //       AVA_LEITURA: "Leitor",
+  //       AVA_PORTUGUES: 40,
+  //       AVA_MATEMATICA: 40,
+  //     },
+  //   ],
+  // };
 }
 
 export async function getStudentReports(id) {
-  const response = await axios.get(`/api/student/reports/${id}`, {
+  const response = await api.get(`/student/reports/${id}`, {
     params: {
       id,
-      token,
     },
   });
 
@@ -328,7 +372,6 @@ export async function getStudentEvaluationHistory(
   school: string
 ) {
   const params = {
-    token,
     id,
     page,
     limit,
@@ -337,34 +380,61 @@ export async function getStudentEvaluationHistory(
     school,
   };
 
-  const resp = await axios.get("/api/student/evaluation-history", { params });
+  const resp = await api.get(`/student/evaluation-history/${id}`, { params })
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.log("error: ", error);
+      return {
+        status: 400,
+        data: {
+          message: error.response.data.message,
+        },
+      };
+    });
   return resp;
 }
 
 export async function getAllPcd() {
-  const params = { token };
-  return axios.get("/api/student/pcd", { params });
+  return api.get("/student/pcd/all")
+    .then((response) => {
+      return response;
+    })
+    .catch((error) => {
+      console.log("error: ", error);
+      return {
+        status: 400,
+        data: {
+          message: error.response.data.message,
+        },
+      };
+    });
 }
 
-export async function getExportStudentsExcel(
-  search: string,
-  page: number,
-  limit: number,
-  column: string,
-  order: string,
-  county: string,
-  school: string,
-  status: string,
-  serie: string,
-  active?: "0" | "1"
-) {
+export async function getExportStudentsExcel({
+  search,
+  page,
+  limit,
+  column,
+  order,
+  stateId,
+  county,
+  typeSchool,
+  school,
+  status,
+  serie,
+  active,
+}: IGetStudent) {
   const params = {
     search,
     page,
     limit,
-    order,
     column,
+    order,
+    stateId,
     county,
+    typeSchool,
     school,
     status,
     serie,

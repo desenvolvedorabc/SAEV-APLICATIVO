@@ -1,4 +1,3 @@
-import { TextareaAutosize } from "@mui/material";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 // Import styled components ServerStyleSheet
 import { ServerStyleSheet } from "styled-components";

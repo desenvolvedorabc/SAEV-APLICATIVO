@@ -318,6 +318,7 @@ export default function FormEditTurma({ turma }) {
                 mun={selectedMun}
                 active="1"
                 resetSchools={resetSchool}
+                disabled={!!turma?.TUR_ID}
               />
             </InputGroup3>
             <InputGroup3>
@@ -331,7 +332,7 @@ export default function FormEditTurma({ turma }) {
                     value={formik.values.TUR_SER}
                     label="Série"
                     onChange={formik.handleChange}
-                    disabled={turma}
+                    disabled={!!turma?.TUR_ID}
                   >
                     {listSerie.map((item) => (
                       <MenuItem key={item.SER_ID} value={item.SER_ID}>

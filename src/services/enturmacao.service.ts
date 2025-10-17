@@ -35,6 +35,7 @@ export interface ItemEdition {
     cpf?: string;
     nasc?: string;
     mae?: string;
+    type?: string;
   }[];
 }
 
@@ -43,67 +44,54 @@ export async function getItensGrouping(
   order: string,
   page: number,
   limit: number,
+  serie: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
-  serie: any,
-  schoolClass: number,
+  schoolClass: string,
   search: string,
-  length: number,
-  selectedColumn: string
 ) {
-  console.log("length", length);
-  console.log("county", county);
-  console.log("school", school);
-  console.log("serie", serie);
-  console.log("schoolClass", schoolClass);
   let params = {
     page,
     limit,
     order,
     search,
-    county: null,
-    school: null,
-    serie: null,
-    schoolClass: null,
+    serie,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
+    county,
+    municipalityOrUniqueRegionalId,
+    school,
+    schoolClass,
   };
 
-  if (length <= 2) {
-    params = {
-      ...params,
-      county,
-    };
-  }
-  if (length <= 3) {
-    params = {
-      ...params,
-      school,
-    };
-  }
-  if (length <= 4) {
-    params = {
-      ...params,
-      school,
-      serie: serie,
-    };
-  }
-  if (length <= 5) {
-    params = {
-      ...params,
-      school,
-      serie: serie,
-      schoolClass: schoolClass,
-    };
-  }
-
   const response = await api.get("/reports/grouping", { params });
-
-  console.log("response", response);
+  console.log('response :', response);
 
   let formattedData = [];
   let type = typeTable;
 
-  if (!county) {
+  if (!stateRegionalId) {
+    formattedData = response?.data?.items?.map((reg) => {
+      type='regional'
+      return {
+        id: reg.id,
+        name: reg.name,
+        inep: null,
+        grouped: reg.TOTAL_ENTURMADO,
+        not_grouped: reg.TOTAL_NAO_ENTURMADO,
+        total: reg.TOTAL_ALUNOS,
+      };
+    });
+  } else if (!county) {
     formattedData = response?.data?.items?.map((mun) => {
+      type='county'
       return {
         id: mun.MUN_ID,
         name: mun.MUN_NOME,
@@ -111,6 +99,18 @@ export async function getItensGrouping(
         grouped: mun.TOTAL_ENTURMADO,
         not_grouped: mun.TOTAL_NAO_ENTURMADO,
         total: mun.TOTAL_ALUNOS,
+      };
+    });
+  } else if (!municipalityOrUniqueRegionalId) {
+    formattedData = response?.data?.items?.map((reg) => {
+      type = "regionalSchool"
+      return {
+        id: reg.id,
+        name: reg.name,
+        inep: null,
+        grouped: reg.TOTAL_ENTURMADO,
+        not_grouped: reg.TOTAL_NAO_ENTURMADO,
+        total: reg.TOTAL_ALUNOS,
       };
     });
   } else {
@@ -155,6 +155,7 @@ export async function getItensGrouping(
           grouped: item?.TOTAL_ENTURMADO,
           not_grouped: item?.TOTAL_NAO_ENTURMADO,
           total: item?.TOTAL_ALUNOS,
+          type: item?.ESC_TIPO,
         };
       }
     });
@@ -175,13 +176,13 @@ export async function getItensGrouping(
     TOTAL_MUN = response.data?.meta?.totalItems ?? 0;
   } else if (type === "school") {
     TOTAL_SCHOOLS = response.data?.meta?.totalItems ?? 0;
-    TOTAL_MUN = formattedData.length ? 1 : 0;
+    TOTAL_MUN = formattedData?.length ? 1 : 0;
   } else {
-    TOTAL_SCHOOLS = formattedData.length ? 1 : 0;
-    TOTAL_MUN = formattedData.length ? 1 : 0;
+    TOTAL_SCHOOLS = formattedData?.length ? 1 : 0;
+    TOTAL_MUN = formattedData?.length ? 1 : 0;
   }
 
-  const totalPages = response.data.meta.totalPages;
+  const totalPages = response.data?.meta?.totalPages;
 
   return {
     type,

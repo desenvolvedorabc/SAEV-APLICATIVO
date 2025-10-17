@@ -1,5 +1,6 @@
 import { Container } from "./styledComponents";
 import { MdChevronRight } from "react-icons/md";
+import { useAuth } from "src/context/AuthContext";
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
 
 export function ReportBreadcrumb({ onPress, isDisabledCounty = false, isDisabledSchool = false }: Props) {
   const { mapBreadcrumb, subtractBreadcrumbs, setIsUpdateData } = useBreadcrumbContext()
+  const { user } = useAuth()
 
   const handleClick = (id: string, level: string) => {
     subtractBreadcrumbs(id, level)
@@ -18,6 +20,19 @@ export function ReportBreadcrumb({ onPress, isDisabledCounty = false, isDisabled
   };
 
   const getDisabled = (level) => {
+    if(level === 'year') return true;
+    if(level === 'edition') return true;
+    if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL' || user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+      if(//level === 'epv' || level === 'type' || 
+        level === 'state' || level === 'regional'
+      )
+        return true
+    }
+    if(user?.USU_SPE?.role === 'ESCOLA'){
+      if(level !== 'school' && level !== 'serie')
+        return true
+    }
+    
     if(isDisabledCounty || isDisabledSchool) {
       if(level === 'year') return true;
     }

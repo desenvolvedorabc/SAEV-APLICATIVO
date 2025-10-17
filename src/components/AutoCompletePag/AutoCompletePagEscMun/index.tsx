@@ -1,9 +1,9 @@
 import { Autocomplete, TextField } from "@mui/material";
 import { useState, useEffect } from "react";
-import { useGetSchools } from "src/services/escolas.service";
+import { useGetSchoolsPag } from "src/services/escolas.service";
 import useDebounce from "src/utils/use-debounce";
 
-export function AutoCompletePagEscMun({ school, changeSchool, mun, resetSchools = false, width = "100%", active = null }) {
+export function AutoCompletePagEscMun({ school, changeSchool, mun, typeSchool = null, resetSchools = false, width = "100%", active = null, disabled, enabled = true }) {
   const [searchEsc, setSearchEsc] = useState(null);
   const [limitEsc, setLimitEsc] = useState(false);
   const [position, setPosition] = useState(0);
@@ -11,14 +11,17 @@ export function AutoCompletePagEscMun({ school, changeSchool, mun, resetSchools 
   
   const debouncedSearchTerm = useDebounce(searchEsc, 1000);
 
-  const { flatData: listSchool, query: { isLoading, fetchNextPage } } = useGetSchools(
-    debouncedSearchTerm,
-    10,
-    null,
-    'ASC',
+  const { flatData: listSchool, query: { isLoading, fetchNextPage } } = useGetSchoolsPag({
+    search: debouncedSearchTerm,
+    limit: 10,
+    column: null,
+    order: 'ASC',
     active,
-    mun?.MUN_ID,
-  );
+    county: mun?.MUN_ID,
+    typeSchool: typeSchool === 'PUBLICA' ? null : typeSchool,
+    enabled,
+    options: null
+  });
 
   useEffect(() => {
     setSearchEsc(null)
@@ -46,7 +49,8 @@ export function AutoCompletePagEscMun({ school, changeSchool, mun, resetSchools 
     <Autocomplete
       style={{width: width, background: "#FFF"}}
       className=""
-      id="size-small-outlined"
+      data-test='school'
+      id="school"
       size="small"
       value={school}
       noOptionsText="Escola"
@@ -61,13 +65,9 @@ export function AutoCompletePagEscMun({ school, changeSchool, mun, resetSchools 
       ListboxProps={{
         onScroll: handleScrollEsc
       }}
-      disabled={mun === null}
+      disabled={disabled}
       loading={isLoading}
-      sx={{
-        "& .Mui-disabled": {
-          background: "#D3D3D3",
-        },
-      }}
+      sx={{}}
       renderInput={(params) => <TextField size="small" {...params} label="Escola" />}
     />
   );

@@ -99,7 +99,8 @@ export default function CardInfoUsuarioRelatorio({ usuario }) {
             </div>
           )}
           <div className="ms-2" style={{ width: 140 }}>
-            <ButtonPadrao
+            <ButtonPadrao 
+              dataTest='edit'
               onClick={() => {
                 Router.push(`/usuario/editar/${usuario?.USU_ID}`);
               }}

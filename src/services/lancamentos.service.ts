@@ -55,7 +55,11 @@ export async function getItens(
   serie: string[],
   year: string,
   edition: string,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
   schoolClass: string
 ): Promise<ItemEdition> {
@@ -66,7 +70,11 @@ export async function getItens(
     serie: serie?.toString(),
     year,
     edition,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
   };
@@ -76,8 +84,10 @@ export async function getItens(
   });
 
   let typeSelect = "edition";
-  if (edition) typeSelect = "county";
-  if (county) typeSelect = "school";
+  if (stateId) typeSelect = "regional";
+  if (stateRegionalId) typeSelect = "county";
+  if (county) typeSelect = "regionalSchool";
+  if (municipalityOrUniqueRegionalId) typeSelect = "school";
   if (school) typeSelect = "schoolClass";
   if (schoolClass) typeSelect = "student";
 

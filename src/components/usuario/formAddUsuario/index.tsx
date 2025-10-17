@@ -19,12 +19,14 @@ import { maskCPF, maskPhone } from "src/utils/masks";
 import { useDropzone } from "react-dropzone";
 import { MdOutlineLock } from "react-icons/md";
 import Router from "next/router";
-import { useGetAllPerfis } from "src/services/perfis.service";
-import { useGetSubBase } from "src/services/sub-perfis.service";
+import { RoleProfile, useGetProfiles } from "src/services/perfis.service";
 import { isValidCPF } from "src/utils/validate";
 import { Autocomplete, TextField } from "@mui/material";
-import { AutoCompletePagMun } from "src/components/AutoCompletePag/AutoCompletePagMun";
 import { AutoCompletePagEscMun } from "src/components/AutoCompletePag/AutoCompletePagEscMun";
+import { useGetStates } from "src/services/estados.service";
+import { queryClient } from "src/lib/react-query";
+import { useAuth } from "src/context/AuthContext";
+import { AutoCompletePagMun2 } from "src/components/AutoCompletePag/AutoCompletePagMun2";
 
 type ValidationErrors = Partial<{
   USU_SPE: string;
@@ -34,12 +36,15 @@ type ValidationErrors = Partial<{
   USU_EMAIL: string;
   USU_DOCUMENTO: string;
   USU_FONE: string;
+  stateId: string;
 }>;
 
 export default function FormAddUsuario(props) {
   const [ModalShowConfirm, setModalShowConfirm] = useState(false);
   const [modalStatus, setModalStatus] = useState(true);
+  const [listPerfil, setListPerfil] = useState([])
   const [selectedPerfil, setSelectedPerfil] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
   const [selectedCounty, setSelectedCounty] = useState(null);
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [resetSchool, setResetSchool] = useState(false)
@@ -47,10 +52,28 @@ export default function FormAddUsuario(props) {
   const [createObjectURL, setCreateObjectURL] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [isDisabled, setIsDisabled] = useState(false);
+  const {user} = useAuth();
 
-  const { data: listPerfis, isLoading: isLoadingPerfis } = useGetAllPerfis();
+  const { data: listSubPerfis, isLoading: isLoadingSubPerfis } = useGetProfiles(null, 1, 999999, null, 'ASC', selectedPerfil, !!selectedPerfil);
 
-  const { data: listSubPerfis, isLoading: isLoadingSubPerfis } = useGetSubBase(selectedPerfil?.PER_ID, !!selectedPerfil);
+  
+  useEffect(() => {
+    if(user){
+      if(user?.USU_SPE?.role === 'SAEV'){
+        setListPerfil(Object.keys(RoleProfile))
+      } else if(user?.USU_SPE?.role === 'ESTADO'){
+        setListPerfil(['ESTADO', 'MUNICIPIO_ESTADUAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+        setListPerfil(['MUNICIPIO_ESTADUAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+        setListPerfil(['MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'ESCOLA'){
+        setListPerfil(['ESCOLA'])
+      }
+    }
+  },[user]);
+
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
 
   const { getRootProps, getInputProps, isFocused, isDragAccept, isDragReject } =
     useDropzone({
@@ -68,13 +91,18 @@ export default function FormAddUsuario(props) {
       errors.USU_SPE = "Campo obrigatório";
     }
 
-    if (selectedPerfil?.PER_NOME !== "SAEV") {
-      if (!values.USU_MUN) {
-        errors.USU_MUN = "Campo obrigatório";
+    if (selectedPerfil !== "SAEV") {
+      if (!values.stateId) {
+        errors.stateId = "Campo obrigatório";
       }
-      if(selectedPerfil?.PER_NOME !== "Município") {
-        if (!values.USU_ESC) {
-          errors.USU_ESC = "Campo obrigatório";
+      if(selectedPerfil !== "ESTADO") {
+        if (!values.USU_MUN) {
+          errors.USU_MUN = "Campo obrigatório";
+        }
+        if(selectedPerfil === "ESCOLA") {
+          if (!values.USU_ESC) {
+            errors.USU_ESC = "Campo obrigatório";
+          }
         }
       }
     }
@@ -116,6 +144,7 @@ export default function FormAddUsuario(props) {
       USU_AVATAR: "",
       USU_SPE: null,
       USU_SENHA: "123456",
+      stateId: null
     },
     validate,
     onSubmit: async (values) => {
@@ -127,16 +156,16 @@ export default function FormAddUsuario(props) {
       values.USU_DOCUMENTO = maskCPF(values.USU_DOCUMENTO.trim())
       values.USU_FONE = maskPhone(values.USU_FONE.trim())
 
-      const newValues = {
-        ...values,
-        USU_MUN: values?.USU_MUN === 'MUNICIPIO' ? null : values.USU_MUN,
-        USU_ESC: values?.USU_ESC === 'ESCOLA' ? null : values.USU_ESC,
-      }
+      // const newValues = {
+      //   ...values,
+      //   USU_MUN: values?.USU_MUN === 'MUNICIPIO' ? null : values.USU_MUN,
+      //   USU_ESC: values?.USU_ESC === 'ESCOLA' ? null : values.USU_ESC,
+      // }
 
       setIsDisabled(true)
       let response = null;
       try{
-        response = await createUser(newValues, file);
+        response = await createUser(values, file);
       }
       catch (err) {
         setIsDisabled(false)
@@ -146,6 +175,7 @@ export default function FormAddUsuario(props) {
       if (!response.data.message) {
         setModalStatus(true);
         setModalShowConfirm(true);
+        queryClient.invalidateQueries(['users'])
         RemoveImage();
       } else {
         setErrorMessage(response.data.message)
@@ -202,15 +232,15 @@ export default function FormAddUsuario(props) {
               <div className="my-2">
               <Autocomplete
                   className=""
-                  id="size-small-outlined"
+                  data-test='profile'
+                  id="profile"
                   size="small"
                   value={selectedPerfil}
                   noOptionsText="Perfil Base"
-                  options={listPerfis ? listPerfis : []}
-                  getOptionLabel={(option) =>  `${option?.PER_NOME}`}
+                  options={listPerfil}
+                  getOptionLabel={(option) =>  `${RoleProfile[option]}`}
                   onChange={(_event, newValue) => {
                     handleChangePerfil(newValue)}}
-                  loading={isLoadingPerfis} 
                   sx={{
                     "& .Mui-disabled": {
                       background: "#D3D3D3",
@@ -229,7 +259,7 @@ export default function FormAddUsuario(props) {
                 value={formik.values.USU_SPE}
                 className=""
               >
-                {listSubPerfis?.map((x) => {
+                {listSubPerfis?.items?.map((x) => {
                   return (
                     <FormCheck id={x.SPE_ID} key={x.SPE_ID} className="">
                       <Form.Check.Input
@@ -259,13 +289,40 @@ export default function FormAddUsuario(props) {
                 </Form.Label>
                 <InputGroup2 className="my-3">
                   <div>
-                    <AutoCompletePagMun county={selectedCounty} changeCounty={handleSelectCounty} />
+                    <Autocomplete
+                      className=""
+                      data-test='state'
+                      id="state"
+                      size="small"
+                      value={selectedState}
+                      noOptionsText="Estado"
+                      options={states}
+                      getOptionLabel={(option) =>  `${option?.name}`}
+                      onChange={(_event, newValue) => {
+                        setSelectedState(newValue)
+                        formik.setFieldValue('stateId', newValue?.id, true)
+                        setSelectedCounty(null)
+                        formik.setFieldValue('USU_MUN', null, true)
+                      }}
+                      sx={{
+                        "& .Mui-disabled": {
+                          background: "#D3D3D3",
+                        },
+                      }}
+                      renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+                    />
+                    {formik.errors.stateId ? (
+                      <ErrorText>{formik.errors.stateId}</ErrorText>
+                    ) : null}
+                  </div>
+                  <div>
+                    <AutoCompletePagMun2 county={selectedCounty} changeCounty={handleSelectCounty} stateId={selectedState?.id} disabled={!selectedState}/>
                     {formik.errors.USU_MUN ? (
                       <ErrorText>{formik.errors.USU_MUN}</ErrorText>
                     ) : null}
                   </div>
                   <div>
-                    <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCounty} resetSchools={resetSchool} />
+                    <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCounty} resetSchools={resetSchool} disabled={!selectedCounty} />
                     {formik.errors.USU_ESC ? (
                       <ErrorText>{formik.errors.USU_ESC}</ErrorText>
                     ) : null}
@@ -372,6 +429,7 @@ export default function FormAddUsuario(props) {
           <ButtonGroupEnd style={{ marginTop: "30px" }}>
             <div style={{ width: 160 }}>
               <ButtonWhite
+                dataTest='cancel'
                 onClick={(e) => {
                   e.preventDefault();
                   formik.resetForm();
@@ -382,6 +440,7 @@ export default function FormAddUsuario(props) {
             </div>
             <div className="ms-3" style={{ width: 160 }}>
               <ButtonPadrao
+                dataTest='save'
                 type="submit"
                 onClick={(e) => {
                   e.preventDefault();

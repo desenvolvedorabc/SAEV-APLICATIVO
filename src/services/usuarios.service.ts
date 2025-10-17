@@ -1,11 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { parseCookies } from "nookies";
 import { getBase64 } from "src/utils/get-base64";
 import { api } from "./api";
-
-const cookies = parseCookies();
-const token = cookies["__session"];
 
 export async function getUsers(
   search: string,
@@ -41,7 +37,7 @@ export function useGetUsers(
   order: string,
   county: string,
   school: string,
-  profileBase: string,
+  roleProfile: string,
   subProfile: string
 ) {
   const params = {
@@ -52,7 +48,7 @@ export function useGetUsers(
     column,
     county,
     school,
-    profileBase,
+    roleProfile,
     subProfile,
   };
 
@@ -73,11 +69,7 @@ export function useGetUsers(
 }
 
 export async function createUser(data: any, avatar: File) {
-  data = {
-    ...data,
-    token,
-  };
-  const response = await axios.post("/api/user/create", { data })
+  const response = await api.post("/users", data)
   .then((response) => {
     return response;
   })

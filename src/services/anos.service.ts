@@ -1,14 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { parseCookies } from "nookies";
-
-const cookies = parseCookies();
-const token = cookies["__session"];
+import { api } from "./api";
 
 export async function getAllYears() {
-  const params = { token };
-
-  return await axios.get("/api/year/all", { params });
+  return await api.get("/school-year/all")
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
 }
 
 export function useGetYears(
@@ -20,12 +26,24 @@ export function useGetYears(
   status: boolean,
   enabled = true as boolean
 ) {
-  const params = { token, search, page, limit, order, column, status };
+  const params = { search, page, limit, order, column, status };
 
   const { data, isLoading } = useQuery({
     queryKey: ["years", params],
     queryFn: async () => {
-      const response = await axios.get("/api/year", { params });
+      const response = await api.get("/school-year", { params })
+      .then((response) => {
+        return response;
+      })
+      .catch((error) => {
+        console.log("error: ", error);
+        return {
+          status: 400,
+          data: {
+            message: error.response.data.message,
+          },
+        };
+      });
 
       return response.data;
     },
@@ -40,22 +58,50 @@ export function useGetYears(
 }
 
 export async function createYear(data: any) {
-  data = {
-    ...data,
-    token,
-  };
-  const response = await axios.post("/api/year/create", { data });
+  const response = await api.post("/school-year", { data })
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
   return response;
 }
 
 export async function editYear(id: string, data: any) {
-  data = {
-    ...data,
-    token,
-  };
-  return await axios.put(`/api/year/edit/${id}`, { data });
+  return await api.put(`/school-year/${id}`, { data })
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
 }
 
 export async function getYear(id) {
-  return await axios.get(`/api/year/${id}?token=${token}`);
+  return await api.get(`/school-year/${id}`)
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
 }

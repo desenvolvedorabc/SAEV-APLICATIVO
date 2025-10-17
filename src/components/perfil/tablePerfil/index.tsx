@@ -9,7 +9,6 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import { visuallyHidden } from "@mui/utils";
-import { getSubPerfis } from "src/services/sub-perfis.service";
 import { Container, TopContainer } from "./styledComponents";
 import {
   InputSearch,
@@ -28,24 +27,26 @@ import { ButtonPadrao } from "src/components/buttons/buttonPadrao";
 import Router from "next/router";
 import Link from "next/link";
 import useDebounce from "src/utils/use-debounce";
+import { RoleProfile, useGetProfiles } from "src/services/perfis.service";
+import { Loading } from "src/components/Loading";
 
 interface Data {
   SPE_ID: string;
   SPE_NOME: string;
-  PER_NOME: string;
+  role: string;
   AREAS: string;
 }
 
 function createData(
   SPE_ID: string,
   SPE_NOME: string,
-  PER_NOME: string,
+  role: string,
   AREAS: string
 ): Data {
   return {
     SPE_ID,
     SPE_NOME,
-    PER_NOME,
+    role,
     AREAS,
   };
 }
@@ -58,7 +59,7 @@ interface HeadCell {
 
 const headCells: readonly HeadCell[] = [
   {
-    id: "PER_NOME",
+    id: "role",
     numeric: false,
     label: "PERFIL BASE",
   },
@@ -106,7 +107,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
             padding={"normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
-            {headCell.id === 'PER_NOME' ? (
+            {headCell.id === 'role' ? (
                <TableSortLabelStyled
                active={orderBy === headCell.id}
                direction={order === "asc" ? "desc" : "asc"}
@@ -133,7 +134,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 
 export default function TablePerfil() {
   const [order, setOrder] = useState("asc");
-  const [orderBy, setOrderBy] = useState("PER_NOME");
+  const [orderBy, setOrderBy] = useState("role");
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [page, setPage] = useState(1);
   const [qntPage, setQntPage] = useState(1);
@@ -144,6 +145,17 @@ export default function TablePerfil() {
   const [disableNext, setDisableNext] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  const { data, isLoading } = useGetProfiles(search, page, limit, selectedColumn, order.toUpperCase(), null);
+
+  useEffect(() => {
+    let list = [];
+    setQntPage(data?.meta?.totalPages);
+    data?.items?.map((x) => {
+      list.push(createData(x.SPE_ID, x.SPE_NOME, x?.role, x.AREAS));
+    });
+    setRows(list);
+  }, [data])
+
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
     property: keyof Data
@@ -152,7 +164,6 @@ export default function TablePerfil() {
     const formattedOrder = isAsc ? "desc" : "asc";
     setOrder(formattedOrder);
     setSelectedColumn(property);
-    loadSubPerfis(search, page, limit, property, formattedOrder);
   };
 
   useEffect(() => {
@@ -163,71 +174,33 @@ export default function TablePerfil() {
   const handleChangePage2 = (direction) => {
     if (direction === "prev") {
       setPage(page - 1);
-      loadSubPerfis(search, page - 1, limit, selectedColumn, order);
     } else {
       setPage(page + 1);
-      loadSubPerfis(search, page + 1, limit, selectedColumn, order);
     }
   };
   const handleChangeLimit = (event: React.ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(event.target.value));
     setPage(1);
-    loadSubPerfis(search, 1, Number(event.target.value), selectedColumn, order);
   };
 
-  useEffect(() => {
-    loadSubPerfis(search, page, limit, selectedColumn, order);
-  }, [search]);
-
   const [rows, setRows] = useState([]);
-
-  async function loadSubPerfis(
-    search: string,
-    page: number,
-    limit: number,
-    selectedColumn: string,
-    order: string
-  ) {
-    const respSubPerfis = await getSubPerfis(
-      search,
-      page,
-      limit,
-      selectedColumn,
-      order.toUpperCase()
-    );
-
-    // const inicio = respSubPerfis?.data.links?.last.search('=')
-    // const fim = respSubPerfis?.data.links?.last.search('&')
-    // setQntPage(parseInt(respSubPerfis.data.links?.last.substring(inicio + 1, fim)))
-
-    let list = [];
-    setQntPage(respSubPerfis.data.meta?.totalPages);
-    respSubPerfis.data.items?.map((x) => {
-      list.push(createData(x.SPE_ID, x.SPE_NOME, x.SPE_PER?.PER_NOME, x.AREAS));
-    });
-    setRows(list);
-  }
-
-  useEffect(() => {
-    loadSubPerfis(search, page, limit, selectedColumn, order);
-  }, []);
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * limit - rows.length) : 0;
 
-    useEffect(() => {
-      if (debouncedSearchTerm) {
-        setSearch(debouncedSearchTerm)
-      }
-      else
-        setSearch("")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[debouncedSearchTerm]);
-  
-    const handleChangeSearch = (e) => {
-      setSearchTerm(e.target.value);
-    };
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      setSearch(debouncedSearchTerm)
+    }
+    else
+      setSearch("")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[debouncedSearchTerm]);
+
+  const handleChangeSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
     <Container>
@@ -261,56 +234,60 @@ export default function TablePerfil() {
             borderBottomRightRadius: "10px",
           }}
         >
-          <TableContainer>
-            <Table
-              sx={{ minWidth: 750 }}
-              aria-labelledby="tableTitle"
-              size={"medium"}
-            >
-              <EnhancedTableHead
-                order={order}
-                orderBy={orderBy}
-                onRequestSort={handleRequestSort}
-                rowCount={rows.length}
-              />
+          {isLoading ? (
+          <Loading />
+          ) : (
+            <TableContainer>
+              <Table
+                sx={{ minWidth: 750 }}
+                aria-labelledby="tableTitle"
+                size={"medium"}
+              >
+                <EnhancedTableHead
+                  order={order}
+                  orderBy={orderBy}
+                  onRequestSort={handleRequestSort}
+                  rowCount={rows.length}
+                />
 
-              <TableBody>
-                {rows.map((row, index) => {
-                  const labelId = `enhanced-table-checkbox-${index}`;
+                <TableBody>
+                  {rows.map((row, index) => {
+                    const labelId = `enhanced-table-checkbox-${index}`;
 
-                  return (
-                    <Link
-                      href={`/perfil/editar/${row.SPE_ID}`}
-                      key={row.SPE_ID}
-                      passHref
-                    >
-                      <TableRowStyled role="checkbox" tabIndex={-1}>
-                        <TableCell
-                          component="th"
-                          id={labelId}
-                          scope="row"
-                          padding="normal"
-                        >
-                          {row.PER_NOME}
-                        </TableCell>
-                        <TableCellBorder>{row.SPE_NOME}</TableCellBorder>
-                        <TableCellBorder>{row.SPE_ID}</TableCellBorder>
-                        <TableCellBorder>
-                          {row.AREAS.map((x, index) =>
-                            index < row.AREAS.length - 1 ? (
-                              <span>{x.ARE_DESCRICAO}, </span>
-                            ) : (
-                              <span>{x.ARE_DESCRICAO}</span>
-                            )
-                          )}
-                        </TableCellBorder>
-                      </TableRowStyled>
-                    </Link>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                    return (
+                      <Link
+                        href={`/perfil/editar/${row.SPE_ID}`}
+                        key={row.SPE_ID}
+                        passHref
+                      >
+                        <TableRowStyled role="checkbox" tabIndex={-1}>
+                          <TableCell
+                            component="th"
+                            id={labelId}
+                            scope="row"
+                            padding="normal"
+                          >
+                            {RoleProfile[row.role]}
+                          </TableCell>
+                          <TableCellBorder>{row.SPE_NOME}</TableCellBorder>
+                          <TableCellBorder>{row.SPE_ID}</TableCellBorder>
+                          <TableCellBorder>
+                            {row.AREAS.map((x, index) =>
+                              index < row.AREAS.length - 1 ? (
+                                <span>{x.ARE_DESCRICAO}, </span>
+                              ) : (
+                                <span>{x.ARE_DESCRICAO}</span>
+                              )
+                            )}
+                          </TableCellBorder>
+                        </TableRowStyled>
+                      </Link>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
           <Pagination>
             Linhas por página:
             <FormSelectStyled value={limit} onChange={handleChangeLimit}>

@@ -45,43 +45,63 @@ export async function getReportAbsences(
   limit: number,
   order: string,
   column: string,
-  school: string,
-  schoolClass: string,
   year: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
-  serie: string
+  municipalityOrUniqueRegionalId: string,
+  school: string,
+  serie: string,
+  schoolClass: string
 ): Promise<IReportAbsenceProps> {
   const params = {
     page,
     limit,
     order,
     column,
-    school,
-    schoolClass,
     year,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
-    serie
+    municipalityOrUniqueRegionalId,
+    school,
+    serie,
+    schoolClass,
   }
 
-  const response = await api.get("/school-absences/report", { params });
+  const response = await api.get("reports/school-absences/", { params });
   const data: IReportAbsenceProps = response.data
 
   return data
 }
 
 export async function getExportReportAbsence(
-  school: string,
-  schoolClass: string,
   year: string,
+  isEpvPartner: 0 | 1,
+  typeSchool: string,
+  stateId: string,
+  stateRegionalId: string,
   county: string,
-  serie: string
+  municipalityOrUniqueRegionalId: string,
+  school: string,
+  serie: string,
+  schoolClass: string
 ) {
   const params = {
-    school,
-    schoolClass,
     year,
+    isEpvPartner,
+    typeSchool,
+    stateId,
+    stateRegionalId,
     county,
-    serie
+    municipalityOrUniqueRegionalId,
+    school,
+    serie,
+    schoolClass,
   };
 
   const resp = await api

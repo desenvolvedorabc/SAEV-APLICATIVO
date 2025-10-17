@@ -16,7 +16,7 @@ export function GraphNaoAvaliados(props: IGraphNaoAvaliadosProps) {
   let graph
   let total  
 
-  if (props.level === 'Estudantes') {
+  if (props.level === 'student') {
     graph = props.notEvaluatedStudents?.dataGraph
     total = graph?.total_enturmados
   } else {

@@ -19,15 +19,12 @@ import {
   Pesquisar,
 } from "./styledComponents";
 import { GridColDef, GridSelectionModel } from "@mui/x-data-grid";
-import { useState, useEffect, useRef } from "react";
-import { loadUf } from "src/utils/combos";
+import { useState, useEffect } from "react";
 import {
-  findAllDistricts,
-  findDistricts,
-  getAllCounties,
+  useGetCounties,
 } from "src/services/municipios.service";
 import { DatePicker, LocalizationProvider } from "@mui/lab";
-import { TextField } from "@mui/material";
+import { Autocomplete, TextField } from "@mui/material";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import brLocale from "date-fns/locale/pt-BR";
 import { isValidDate } from "src/utils/validate";
@@ -35,6 +32,12 @@ import ButtonWhite from "src/components/buttons/buttonWhite";
 import { format } from "date-fns";
 import ModalAlterarPeriodo from "../modalAlterarPeriodo";
 import useDebounce from "src/utils/use-debounce";
+import { useGetStates } from "src/services/estados.service";
+
+enum TypeAssessmentEnum {
+  MUNICIPAL = 'Municipal',
+  ESTADUAL = 'Estadual',
+}
 
 export default function MunPage({
   listMunAdd,
@@ -48,9 +51,7 @@ export default function MunPage({
   const [listMunAvailableFilter, setListMunAvailableFilter] = useState([]);
   const [mySelected, setMySelected] = useState([]);
   const [listUf, setListUf] = useState([]);
-  const [listAllUf, setListAllUf] = useState([]);
-  const [listMun, setListMun] = useState([]);
-  const [uf, setUf] = useState("");
+  const [uf, setUf] = useState(null);
   const [lancInicio, setLancInicio] = useState(null);
   const [errorLancInicio, setErrorLancInicio] = useState(true);
   const [errorLancInicioText, setErrorLancInicioText] = useState("");
@@ -60,9 +61,15 @@ export default function MunPage({
   const [disp, setDisp] = useState(null);
   const [errorDisp, setErrorDisp] = useState(true);
   const [errorDispText, setErrorDispText] = useState("");
+  const [selectedRede, setSelectedRede] = useState('MUNICIPAL');
   const [selectionTable, setSelectionTable] = useState<GridSelectionModel>([]);
   const [modalShow, setModalShow] = useState(false);
   const [filteredMunList, setFilteredMunList] = useState(listMunAdd)
+  const debouncedSearchTerm = useDebounce(search, 500);
+
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
+  const { data: listMun, isLoading } = useGetCounties({search: debouncedSearchTerm, page: 1, limit: 9999999, column: null, order: 'ASC', active: "1", verifyExistsRegional: null, stateId: uf?.id, enabled: !!uf});
+
 
   useEffect(() => {
     if(searchMunAdd){
@@ -77,6 +84,18 @@ export default function MunPage({
       field: "AVM_MUN_NOME",
       headerName: "MUNICÍPIO",
       headerClassName: "header",
+      flex: 1,
+    },
+    {
+      field: "AVM_TIPO",
+      headerName: "REDE",
+      renderCell: (cellValues) => {
+        return (
+          <div>
+            {TypeAssessmentEnum[cellValues?.row?.AVM_TIPO]}
+          </div>
+        );
+      },
       flex: 1,
     },
     {
@@ -137,13 +156,6 @@ export default function MunPage({
     },
   ];
 
-  useEffect(() => {
-    async function fetchAPI() {
-      setListAllUf(await loadUf());
-    }
-    fetchAPI();
-  }, []);
-
   const handleChangeSelect = (id) => {
     if (mySelected.some((x) => x == id)) {
       setMySelected([...mySelected.filter((x) => x !== id)]);
@@ -154,7 +166,7 @@ export default function MunPage({
 
   async function searchCharacters(search) {
     setListMunAvailableFilter(
-      listMunAvailable.filter((x) =>
+      listMunAvailable?.filter((x) =>
         x.MUN_NOME.toUpperCase().includes(search.toUpperCase())
       )
     );
@@ -199,58 +211,41 @@ export default function MunPage({
     });
   };
 
-  async function loadComboUfs() {
-    const respUfs = await findAllDistricts();
-
-    let list = [];
-    respUfs.data.map((obj) => {
-      listAllUf.map((obj2) => {
-        if (obj.MUN_UF === obj2.sigla) {
-          if (!list.includes(obj2)) {
-            list.push(obj2);
-          }
-        }
-      });
-    });
-    setListUf(list.sort((a, b) => a.sigla.localeCompare(b.sigla)));
-  }
-
   const handleAddList = () => {
     let listId = listMunAvailable.filter((x) => mySelected.includes(x.MUN_ID));
     let list = [];
     listId.map((x) => {
-      list.push({
-        id: x.MUN_ID,
-        AVM_MUN_ID: x.MUN_ID,
-        AVM_MUN_NOME: x.MUN_NOME,
-        AVM_DT_INICIO: lancInicio,
-        AVM_DT_FIM: lancFim,
-        AVM_DT_DISPONIVEL: disp,
-        AVM_ATIVO: 1,
-      });
+      if(!listMunAdd.find(add => add.id === x.MUN_ID + selectedRede)){
+        list.push({
+          id: x.MUN_ID + selectedRede,
+          AVM_MUN_ID: x.MUN_ID,
+          AVM_MUN_NOME: x.MUN_NOME,
+          AVM_DT_INICIO: lancInicio,
+          AVM_DT_FIM: lancFim,
+          AVM_DT_DISPONIVEL: disp,
+          AVM_ATIVO: 1,
+          AVM_TIPO: selectedRede,
+        });
+      }
     });
     list = listMunAdd.concat(list);
-    setListMunAvailable(
-      listMunAvailable.filter((x) => !mySelected.includes(x.MUN_ID))
-    );
-    setListMunAvailableFilter(
-      listMunAvailableFilter.filter((x) => !mySelected.includes(x.MUN_ID))
-    );
+    // setListMunAvailable(
+    //   listMunAvailable.filter((x) => !mySelected.includes(x.MUN_ID))
+    // );
+    // setListMunAvailableFilter(
+    //   listMunAvailableFilter.filter((x) => !mySelected.includes(x.MUN_ID))
+    // );
     changeListMunAdd(list);
     setMySelected([]);
   };
 
   const handleDelete = (event) => {
-    let list = listMun.filter((x) => selectionTable.includes(x.MUN_ID));
-    setListMunAvailable(listMunAvailable.concat(list));
-    let listFiltered = listMunAdd.filter(function (obj) {
-      return !list.some(function (obj2) {
-        return obj.AVM_MUN_ID === obj2.MUN_ID;
+    let listFiltered = listMunAdd?.filter(function (obj) {
+      return !selectionTable?.some(function (obj2) {
+        return obj.AVM_MUN_ID + obj.AVM_TIPO === obj2;
       });
     });
     changeListMunAdd(listFiltered);
-    setListMunAvailableFilter(listMunAvailableFilter.concat(list));
-    setListMunAvailable(listMunAvailable.concat(list));
   };
 
   const openModalPeriodo = () => {
@@ -260,7 +255,7 @@ export default function MunPage({
   const handleChangePeriodo = (selectedList, disp, lancInicio, lancFim) => {
     listMunAdd.map(function (obj) {
       selectedList.some(function (obj2) {
-        if (obj.AVM_MUN_ID === obj2.AVM_MUN_ID) {
+        if (obj.id === obj2.id) {
           obj2.AVM_DT_DISPONIVEL = disp;
           obj.AVM_DT_FIM = lancFim;
           obj.AVM_DT_INICIO = lancInicio;
@@ -269,38 +264,24 @@ export default function MunPage({
     });
   };
 
-  async function loadMun(uf: string) {
-    let respMunicipios;
-    if (uf === "") {
-      respMunicipios = await getAllCounties();
-    } else {
-      respMunicipios = await findDistricts(uf);
-    }
-
-    setListMun(respMunicipios.data);
-
-    if (listMunAdd && listMunAdd.length > 0) {
-      let listFiltered = respMunicipios.data.filter(function (obj) {
-        return !listMunAdd.some(function (obj2) {
-          return obj.MUN_ID === obj2.AVM_MUN_ID;
-        });
-      });
-      setListMunAvailable(listFiltered);
-      setListMunAvailableFilter(listFiltered);
-    } else {
-      setListMunAvailable(respMunicipios.data);
-      setListMunAvailableFilter(respMunicipios.data);
-    }
-  }
-
   useEffect(() => {
-    loadComboUfs();
-    loadMun("")
-  }, [listAllUf]);
+    // if (listMunAdd && listMunAdd.length > 0) {
+    //   let listFiltered = listMun?.items?.filter(function (obj) {
+    //     return !listMunAdd.some(function (obj2) {
+    //       return obj.MUN_ID === obj2.AVM_MUN_ID;
+    //     });
+    //   });
+    //   setListMunAvailable(listFiltered);
+    //   setListMunAvailableFilter(listFiltered);
+    // } else {
+      setListMunAvailable(listMun?.items);
+      setListMunAvailableFilter(listMun?.items);
+    // }
+  },[listMun])
 
-  const handleChangeUf = async (e) => {
-    setUf(e.target.value);
-    await loadMun(e.target.value);
+  const handleChangeUf = async (newValue) => {
+    setUf(newValue);
+    // await loadMun(newValue);
   };
 
   function onKeyDown(keyEvent) {
@@ -316,18 +297,23 @@ export default function MunPage({
           <div className="p-3">
             <Title>Municípios Disponíveis</Title>
             <div>
-              <Form.Select
-                name="uf"
+              <Autocomplete
+                style={{background: "#FFF"}}
+                fullWidth
+                className=""
+                data-test='state'
+                id="state"
+                size="small"
                 value={uf}
-                onChange={(e) => handleChangeUf(e)}
-              >
-                <option value="">Estado</option>
-                {listUf.map((item, index) => (
-                  <option key={index} value={item.sigla}>
-                    {item.sigla} - {item.nome}
-                  </option>
-                ))}
-              </Form.Select>
+                noOptionsText="Estado"
+                options={states}
+                loading={isLoadingStates}
+                getOptionLabel={option => option.name}
+                onChange={(_event, newValue) => {
+                  handleChangeUf(newValue)
+                }}
+                renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+              />
             </div>
             <div className="col mt-2">
               <TextField
@@ -348,13 +334,13 @@ export default function MunPage({
             </div>
           </div>
           <List>
-            {!!listMunAvailableFilter?.length && (
+            {uf && listMunAvailableFilter?.length > 0 && (
               <>
                 <FormCheck key={"all"} id={"all"} className="">
                   <Form.Check.Input
                     onChange={handleSelectAll}
                     value={"all"}
-                    name="AREAS"
+                    name="selectAll"
                     type={"checkbox"}
                     checked={selectAllActive}
                   />
@@ -365,25 +351,58 @@ export default function MunPage({
               </>
             )}
             <ListOverflow>
-              {listMunAvailableFilter.map((x) => {
-                return (
-                  <FormCheck key={x.MUN_ID} id={x.MUN_ID} className="">
-                    <Form.Check.Input
-                      onChange={() => handleChangeSelect(x.MUN_ID)}
-                      value={x.MUN_ID}
-                      name="mySelected"
-                      type={"checkbox"}
-                      checked={verifyMySelected(x.MUN_ID)}
-                    />
-                    <FormCheckLabel>
-                      <div>{x.MUN_NOME}</div>
-                    </FormCheckLabel>
-                  </FormCheck>
-                );
-              })}
+              {uf ? (listMunAvailableFilter?.length > 0 ?
+                listMunAvailableFilter?.map((x) => {
+                  return (
+                    <FormCheck key={x.MUN_ID} id={x.MUN_ID} className="">
+                      <Form.Check.Input
+                        onChange={() => handleChangeSelect(x.MUN_ID)}
+                        value={x.MUN_ID}
+                        name="mySelected"
+                        type={"checkbox"}
+                        checked={verifyMySelected(x.MUN_ID)}
+                      />
+                      <FormCheckLabel>
+                        <div>{x.MUN_NOME}</div>
+                      </FormCheckLabel>
+                    </FormCheck>
+                  );
+                })
+                :
+                <div style={{padding: '10px 20px'}}>
+                  Nenhum resultado encontrado
+                </div>
+              )
+            :
+              <div style={{padding: '10px 20px'}}>
+                Filtre por um estado
+              </div>
+            }
             </ListOverflow>
           </List>
           <div className="p-3">
+            <div>
+              <Autocomplete
+                className=""
+                id="AVM_TIPO"
+                size="small"
+                value={selectedRede}
+                noOptionsText="Rede"
+                disableClearable
+                options={Object.keys(TypeAssessmentEnum)}
+                getOptionLabel={(option) => TypeAssessmentEnum[option]}
+                onChange={(_event, newValue) => {
+                  setSelectedRede(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField size="small" {...params} label="Rede" />
+                )}
+                sx={{
+                  backgroundColor: "#FFF",
+                  marginBottom: '8px',
+                }}
+              />
+            </div>
             <div className="">
               <LocalizationProvider
                 dateAdapter={AdapterDateFns}
@@ -598,11 +617,14 @@ export default function MunPage({
         onHide={() => {
           setModalShow(false);
         }}
-        selected={listMunAdd.filter((x) =>
-          selectionTable.includes(x.AVM_MUN_ID)
-        )}
+        selected={
+          listMunAdd.filter((x) =>{
+            let find = false
+            selectionTable.forEach((selection) => {if(selection === x.id) find = true})
+            return find
+          })
+        }
         list={listMunAdd}
-        disp={disp}
         handlechangeperiodo={handleChangePeriodo}
       />
     </>

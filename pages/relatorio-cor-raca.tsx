@@ -1,4 +1,5 @@
 import { Box } from "@mui/material"
+import { useRouter } from "next/router"
 import { ReactElement, useCallback, useEffect, useState } from "react"
 import Layout from "src/components/layout"
 import { Loading } from "src/components/Loading"
@@ -14,24 +15,33 @@ import { useAuth } from "src/context/AuthContext"
 import { useBreadcrumbContext } from "src/context/breadcrumb.context"
 import { RootObject, SubjectProps, getReportRace } from "src/services/report-race.service"
 import { useGenearePdf } from "src/utils/generatePdf"
+import { withSSRAuth } from "src/utils/withSSRAuth"
 
 export default function RelatorioCorRaca() {
   const { user } = useAuth()
   const { handlePrint, componentRef } = useGenearePdf();
   const { mapBreadcrumb } = useBreadcrumbContext()
-
+  const router = useRouter();
   const [ isLoading, setIsLoading ] = useState<boolean>(false)
 
   const {
+    serie,
+    epv,
+    type,
+    state,
     county,
     school,
     edition,
-    serie,
     isUpdateData,
     setIsUpdateData,
     changeSerie,
     changeYear,
+    changeEpv,
+    changeType,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
     changeEdition,
@@ -53,18 +63,42 @@ export default function RelatorioCorRaca() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   async function loadData() {
     setIsLoading(true)
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )
+    // let newUrl = `${router.pathname}?`
+      
+    // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     const dataReports = await getReportRace({
       serie: serie?.SER_ID,
-      year: year?.id,
-      county: county?.AVM_MUN?.MUN_ID,
-      school: school?.ESC_ID,
-      schoolClass: schoolClass?.id
+      year: _year?.id,
+      isEpvPartner: epv === 'Exclusivo Epv' ? 1 : 0,
+      typeSchool: type === 'PUBLICA' ? null : type,
+      stateId: _state?.id,
+      stateRegionalId: _stateRegional?.id,
+      county: _county?.id,
+      municipalityOrUniqueRegionalId: _countyRegional?.id,
+      school: _school?.id,
+      schoolClass: _schoolClass?.id
     })
 
     if (dataReports.items.length > 0) {
@@ -96,9 +130,20 @@ export default function RelatorioCorRaca() {
     setReportRace(report)
   }
 
-  const handleChangeSerie = (e) => {
-    changeSerie(e ? e.target.value : null);
+  const handleChangeSerie = (newValue, add = false) => {
+    changeSerie(newValue);
     changeYear(null);
+    changeEpv(null);
+    changeType(null);
+    changeState(null);
+    changeStateRegional(null);
+    changeCountyRegional(null);
+
+    if(add){
+      const url = window.location.href.split('?serie=')
+      const newUrl = url[0].concat('?serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
 
     if (!disableCounty) {
       changeCounty(null);
@@ -142,13 +187,17 @@ export default function RelatorioCorRaca() {
   }, [examId, reportRaceData])
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!edition)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -167,6 +216,7 @@ export default function RelatorioCorRaca() {
         isDisable={onDisableReportFilter()}
         yearOrder="DESC"
         isEdition={false}
+        isSaev={user?.USU_SPE?.role === 'SAEV'}
       />
       {isLoading ? 
         <Loading />
@@ -253,3 +303,14 @@ RelatorioCorRaca.getLayout = function getLayout(page: ReactElement) {
     <Layout header={"Resultado: Cor/Raça"}>{page}</Layout>
   )
 }
+
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: {},
+    };
+  },
+  {
+    roles: [],
+  }
+);

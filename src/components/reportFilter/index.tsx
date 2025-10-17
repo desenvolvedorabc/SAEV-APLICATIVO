@@ -1,25 +1,28 @@
 import { Autocomplete, Checkbox, TextField, createFilterOptions } from "@mui/material";
 import { useState, useEffect } from "react";
 import {
-  getYearAssessment,
   getAllYearsAssessments,
+  useGetAssessments,
 } from "src/services/avaliaoces.service";
-import { getSchools } from "src/services/escolas.service";
 import { getSchoolClassSerie } from "src/services/turmas.service";
 import {
   ButtonBox,
   Container,
   ContainerFilters,
+  ContainerFiltersBelow,
   Filters,
   Series,
 } from "./styledComponents";
 import { ButtonPadrao } from "src/components/buttons/buttonPadrao";
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
-import { getCounties } from "src/services/municipios.service";
 import { getAllSeries, getSeries } from "src/services/series.service";
-import useDebounce from "src/utils/use-debounce";
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import { AutoCompletePagMun2 } from "../AutoCompletePag/AutoCompletePagMun2";
+import { useGetStates } from "src/services/estados.service";
+import { useGetRegionaisByFilter } from "src/services/regionais-estaduais.service";
+import { useRouter } from "next/router";
+import { useAuth } from "src/context/AuthContext";
 
 type FilterProps = {
   isEdition?: boolean;
@@ -31,11 +34,21 @@ type FilterProps = {
   isYear?: boolean;
   isMultipleSeries?: boolean;
   isSerieFirst?: boolean;
+  isEpvFirst?: boolean;
   isSchoolClass?: boolean;
   setTypeTable?: (value: string) => void;
   buttonText?: string
   yearOrder?: 'ASC' | 'DESC'
+  testActive?: '1' | '0' | null
+  isSaev?: boolean
+  isPublic?: boolean
 };
+
+enum enumType {
+  ESTADUAL = 'Estadual',
+  MUNICIPAL = 'Municipal',
+  PUBLICA = 'Publica'
+}
 
 export function ReportFilter({
   isYear = true,
@@ -47,32 +60,44 @@ export function ReportFilter({
   isDisableSchool = false,
   isMultipleSeries = false,
   isSerieFirst = false,
+  isEpvFirst = false,
   isSchoolClass = true,
   setTypeTable,
   buttonText = 'Atualizar',
-  yearOrder = 'ASC'
+  yearOrder = 'ASC',
+  testActive = null,
+  isSaev = null,
+  isPublic = true,
 }: FilterProps) {
   const [yearsList, setYearsList] = useState([]);
-  const [editionsList, setEditionsList] = useState([]);
-  const [countiesList, setCountiesList] = useState([]);
-  const [schoolsList, setSchoolsList] = useState([]);
   const [classList, setClassList] = useState([]);
   const [listSeries, setListSeries] = useState([]);
-  const [searchMun, setSearchMun] = useState(null);
-  const [pageMun, setPageMun] = useState(1);
-  const [limitMun, setLimitMun] = useState(false);
-  const [positionMun, setPositionMun] = useState(0);
-  const [listboxNodeMun, setListboxNodeMun] = useState(null);
-  const [searchSchool, setSearchSchool] = useState(null);
-  const [pageSchool, setPageSchool] = useState(1);
-  const [limitSchool, setLimitSchool] = useState(false);
-  const [positionSchool, setPositionSchool] = useState(0);
-  const [listboxNodeSchool, setListboxNodeSchool] = useState(null);
-  const [enabledSerie, setEnabledSerie] = useState(false);
+  const [typeList, setTypeList] = useState([]);
+  const router = useRouter();
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if(user){
+      if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL') setTypeList(['MUNICIPAL'])
+      else if(user?.USU_SPE?.role === 'ESCOLA' ){
+        setTypeList([user?.USU_ESC?.ESC_TIPO])
+      } else {
+        isPublic ? 
+          setTypeList(['ESTADUAL', 'MUNICIPAL', 'PUBLICA']) : 
+          setTypeList(['ESTADUAL', 'MUNICIPAL'])
+      }
+    }
+  },[user])
+
   const {
     changeYear,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeEdition,
+    changeEpv,
+    changeType,
     changeSchool,
     changeSchoolClass,
     setIsUpdateData,
@@ -80,7 +105,12 @@ export function ReportFilter({
     serieList,
     year,
     edition,
+    epv,
+    type,
+    state,
+    stateRegional,
     county,
+    countyRegional,
     school,
     changeSerie,
     changeSerieList,
@@ -88,8 +118,11 @@ export function ReportFilter({
     addBreadcrumbs,
     showBreadcrumbs,
     indexYear,
-    indexCounty,
     indexEdition,
+    indexState,
+    indexStateRegional,
+    indexCounty,
+    indexRegionalSchool,
     indexSchool,
     clickBreadcrumb,
     indexSerie,
@@ -97,170 +130,247 @@ export function ReportFilter({
     hideBreadcrumbs,
     handleClickBreadcrumb,
   } = useBreadcrumbContext();
-
+  
   useEffect(() => {
     if(isMultipleSeries || isSerieFirst){
       loadAllSeries()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultipleSeries, isSerieFirst]);
+  
+  useEffect(() => {
+    if(isSaev)
+      handleChangeEpv(null)
+    else
+      handleChangeEpv('Completo')
+  },[isSaev])
 
-  const handleChangeSerieList = (newValue) => {
+  const handleChangeSerieList = (newValue, add = false) => {
+    if(add){
+      const serieIds = newValue.map(serie => serie.SER_ID)
+      const url = window.location.href.split('?&serie=')
+      const newUrl = url[0].concat('?&serie=' + serieIds)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+
     changeSerieList(newValue);
-    setEditionsList([]);
-    setCountiesList([]);
-    setPageMun(1);
-    setSchoolsList([]);
-    setClassList([]);
-    changeYear(null);
-    changeEdition(null);
-    changeCounty(null);
-    changeSchool(null);
-    setSearchSchool(null);
-    changeSchoolClass(null);
+    handleChangeYear(null)
     handleClickBreadcrumb(null);
   };
 
-  const handleChangeSerieFirst = (newValue) => {
+  const handleChangeSerieFirst = (newValue, add = false) => {
     if (!isDisableCounty) {
-      setCountiesList([]);
       changeCounty(null);
     }
     if (!isDisableSchool) {
-      setSchoolsList([]);
       changeSchool(null);
     }
-    setEditionsList([]);
-    setPageMun(1);
-    setClassList([]);
-
+    if(add){
+      const url = window.location.href.split('&serie=')
+      const newUrl = url[0].concat('&serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    
     changeSerie(newValue);
-    changeYear(null);
-    changeEdition(null);
-    setSearchSchool(null);
-    changeSchoolClass(null);
+    handleChangeYear(null)
     handleClickBreadcrumb(null);
   };
 
-  const handleChangeYear = (newValue) => {
-    setEditionsList([]);
-    if(!isDisableCounty){
-      setCountiesList([]);
-      setPageMun(1);
-      changeCounty(null);
-    }
-    if(!isDisableSchool){
-      setSchoolsList([]);
-      changeSchool(null);
-    }
-
-    setClassList([]);
-    if (isSerie) {
-      setListSeries([]);
-    }
+  const handleChangeYear = (newValue, add = false) => {
     changeYear(newValue);
-    changeEdition(null);
-    setSearchSchool(null);
-    changeSchoolClass(null);
+    handleChangeEdition(null);
+    if(isSaev && isEpvFirst)
+      handleChangeEpv(null)
+
+    if(add){
+      let url
+      let newUrl
+      if(!serie){
+        url = window.location.href.split('?&year=')
+        newUrl = url[0].concat('?&year=' + newValue?.ANO)
+      } else {
+        url = window.location.href.split('&year=')
+        newUrl = url[0].concat('&year=' + newValue?.ANO)
+      }
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
     handleClickBreadcrumb(null);
     addBreadcrumbs(newValue?.ANO, newValue?.ANO, "year");
-    if (isSerie) {
-      changeSerie(null);
-    }
   };
 
-  const handleChangeEdition = (newValue) => {
-    if (!isDisableCounty) {
-      setCountiesList([]);
-      setSchoolsList([]);
-      changeCounty(null);
-    }
-    if (!isDisableSchool) {
-      setCountiesList([]);
-      setSchoolsList([]);
-      changeSchool(null);
-    }
-    setClassList([]);
-    if (isSerie) {
-      setListSeries([]);
-    }
+  const handleChangeEdition = (newValue, add = false) => {
     changeEdition(newValue);
-    addBreadcrumbs(newValue?.AVA_ID, newValue?.AVA_NOME, "edition");
-    setSearchSchool(null);
-    changeSchoolClass(null);
+    if(isSaev && !isEpvFirst){
+      handleChangeEpv(null)
+    }
+    handleChangeType(null)
+    if(add){
+      const url = window.location.href.split('&edition=')
+      const newUrl = url[0].concat('&edition=' + newValue?.Assessments_AVA_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    addBreadcrumbs(newValue?.Assessments_AVA_ID, newValue?.Assessments_AVA_NOME, "edition");
     handleUnClickBar();
     handleClickBreadcrumb(null);
-    if (isSerie) {
-      changeSerie(null);
+  };
+
+  const handleChangeEpv = (newValue, add = false) => {
+    changeEpv(newValue);
+    handleChangeType(null);
+    handleChangeCounty(null)
+
+    if(newValue === 'Exclusivo Epv'){
+      // console.log('router.query.countyId :', router.query.countyId);
+      // if(router.query.countyId && router.query.countyName){
+      //   handleChangeCounty({MUN_ID: router.query.countyId, MUN_NOME: router.query.countyName})
+      // } else {
+      //   handleChangeCounty(null)
+      // };
+    }
+
+    isEpvFirst && handleChangeEdition(null);
+    // addBreadcrumbs(
+    //   newValue,
+    //   newValue,
+    //   "epv",
+    // );
+    if(add){
+      const url = window.location.href.split('&epv=')
+      const newUrl = url[0].concat('&epv=' + newValue)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    handleUnClickBar();
+    handleClickBreadcrumb(null);
+    addBreadcrumbs(edition?.Assessments_AVA_ID, edition?.Assessments_AVA_NOME, "edition");
+  };
+
+  const handleChangeType = (newValue, add = false) => {
+    changeType(newValue);
+    handleChangeState(null)
+    
+    if(add){
+      let url
+      let newUrl
+      if(!isYear && !isEdition && !isSaev){
+        url = window.location.href.split('?&type=')
+        newUrl = url[0].concat('?&type=' + newValue)
+      } else {
+        url = window.location.href.split('&type=')
+        newUrl = url[0].concat('&type=' + newValue)
+      }
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    if(!isSaev){
+      handleUnClickBar();
+      handleClickBreadcrumb(null);
+      addBreadcrumbs(edition?.Assessments_AVA_ID, edition?.Assessments_AVA_NOME, "edition");
     }
   };
 
-  const handleChangeCounty = (newValue) => {
-    setClassList([]);
-    if (isSerie) {
-      setListSeries([]);
+  const handleChangeState = (newValue, add = false) => {
+    changeState(newValue);
+    handleChangeStateRegional(null)
+    if(add){
+      const url = window.location.href.split('&state=')
+      const newUrl = url[0].concat('&state=' + newValue?.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
-    changeCounty(newValue);
     addBreadcrumbs(
-      newValue?.AVM_MUN?.MUN_ID,
-      newValue?.AVM_MUN?.MUN_NOME,
+      newValue?.id,
+      newValue?.name,
+      "state"
+    );
+    handleUnClickBar();
+    handleClickBreadcrumb(null);
+  };
+
+  const handleChangeStateRegional = (newValue, add = false) => {
+    changeStateRegional(newValue);
+    handleChangeCounty(null)
+    if(add){
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + newValue?.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    addBreadcrumbs(
+      newValue?.id,
+      newValue?.name,
+      "regional"
+    );
+    handleUnClickBar();
+    handleClickBreadcrumb(null);
+  };
+  const handleChangeCounty = (newValue, add = false) => {
+  console.log('newValueCounty :', newValue);
+    changeCounty(newValue);
+    if (!isDisableSchool) {
+      handleChangeSchool(null)
+    }
+    handleChangeCountyRegional(null)
+    if(add){
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + newValue?.MUN_ID + '&countyName=' + newValue?.MUN_NOME)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+    addBreadcrumbs(
+      newValue?.MUN_ID,
+      newValue?.MUN_NOME,
       "county"
     );
-    if (!isDisableSchool) {
-      changeSchool(null);
-      setSearchSchool(null);
-      setSchoolsList([]);
-      setPageSchool(1);
-    }
-    if (!isDisableCounty) {
-      setSearchSchool(null);
-    }
-    changeSchoolClass(null);
     handleUnClickBar();
     handleClickBreadcrumb(null);
-    if (isSerie) {
-      changeSerie(null);
-    }
   };
 
-  const handleSelectYearWithoutEdition = async () => {
-    const resp = await getCounties(searchMun, pageMun, 25, null, "ASC", null);
-    if(resp.data.items){
-      setPageMun(pageMun + 1);
-  
-      if (resp?.data?.items?.length === 0) {
-        setLimitMun(true);
-        return;
-      }
-  
-      const formattedData = resp?.data?.items?.map((x) => {
-        return {
-          AVM_MUN: {
-            MUN_ID: x.MUN_ID,
-            MUN_NOME: x.MUN_NOME,
-          },
-        };
-      });
-  
-      setCountiesList([...countiesList, ...formattedData]);
+  const callHandleChangeCounty = (newValue) => {
+    handleChangeCounty(newValue, true);
+  }
 
+  const handleChangeCountyRegional = (newValue, add = false) => {
+    changeCountyRegional(newValue);
+    handleChangeSchool(null)
+    if(add){
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + newValue?.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
+
+    addBreadcrumbs(
+      newValue?.id,
+      newValue?.name,
+      "regionalSchool"
+    );
+    handleUnClickBar();
+    handleClickBreadcrumb(null);
   };
 
-  const handleChangeSchool = (newValue) => {
-    setClassList([]);
+  const handleChangeSchool = (newValue, add = false) => {
     changeSchool(newValue);
-    addBreadcrumbs(newValue?.ESC_ID, newValue?.ESC_NOME, "school");
-    changeSchoolClass(null);
-    handleUnClickBar();
-    handleClickBreadcrumb(null);
     if (isSerie) {
       changeSerie(null);
+      loadSeries();
     }
+    loadClass(newValue);
+    handleChangeClass(null);
+
+    if(add){
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + newValue?.ESC_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+
+    addBreadcrumbs(newValue?.ESC_ID, newValue?.ESC_NOME, "school");
+    handleUnClickBar();
+    handleClickBreadcrumb(null);
   };
 
-  const handleChangeClass = (newValue) => {
+  const handleChangeClass = (newValue, add = false) => {
     changeSchoolClass(newValue);
+    if(add){
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + newValue?.TUR_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+
     addBreadcrumbs(newValue?.TUR_ID, newValue?.TUR_NOME, "schoolClass");
     handleUnClickBar();
     hideBreadcrumbs();
@@ -268,73 +378,95 @@ export function ReportFilter({
   };
 
   const loadAllSeries = async () => {
-    const resp = await getAllSeries();
-    if (resp.data) setListSeries(resp.data);
+    const resp = await getAllSeries("1");
+    if (resp.data) {
+      setListSeries(resp.data)
+      if(router.query.serie){
+        if(isMultipleSeries){
+          const listIds = router.query.serie?.toString().split(",")
+          const list = resp.data.filter((serie) => 
+            listIds.find((_ser) => {
+              return _ser == serie.SER_ID
+            })
+          )
+          changeSerieList(list)
+        } else if(!isSerie){
+          handleChangeSerieFirst(resp.data.find(_serie => _serie.SER_ID == router.query.serie))          
+        }
+      }
+    };
   };
 
   const loadSeries = async () => {
-    const resp = await getSeries("", 1, 9999, "", "ASC", school?.ESC_ID);
-    if (resp.data?.items) setListSeries(resp.data?.items);
+    const resp = await getSeries("", 1, 9999, "", "ASC", school?.ESC_ID, "1");
+    if (resp.data?.items){
+      setListSeries(resp.data?.items)
+    };
   };
 
-  const handleChangeSerie = (newValue) => {
-    setClassList([]);
+  const handleChangeSerie = (newValue, add = false) => {
     changeSerie(newValue);
-    addBreadcrumbs(newValue?.SER_ID, newValue?.SER_NOME, "serie");
-    changeYear(year);
     changeSchoolClass(null);
+    if(add){
+      const url = window.location.href.split('&serie=')
+      const newUrl = url[0].concat('&serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+
+      addBreadcrumbs(newValue?.SER_ID, newValue?.SER_NOME, "serie");
+      handleUnClickBar();
+      handleClickBreadcrumb(null);
+      // changeYear(year);
+    }
   };
 
   useEffect(() => {
     if (clickBreadcrumb !== null) {
+      
+      if (isSerie && indexSerie !== -1) {
+        handleChangeClass(null);
+        return
+      }
+
       if (indexSchool !== -1) {
-        loadClass();
+        loadClass(school);
         if (isSerie) {
           changeSerie(null);
         }
-        changeSchoolClass(null);
+        handleChangeClass(null);
         return;
       }
 
-      if (isSerie && indexSerie) {
-        changeSchoolClass(null);
+
+      if (indexRegionalSchool !== -1) {     
+        handleChangeSchool(null);
+        return;
       }
 
-      if (indexCounty !== -1) {        
-        changeSchool(null);
-        setSearchSchool(null);
-        changeSchoolClass(null);
-        if (isSerie) {
-          changeSerie(null);
-        }
-        loadSchools();
+      if (indexCounty !== -1) {     
+        handleChangeCountyRegional(null);
+        return;
+      }
+
+      if (indexStateRegional !== -1) {     
+        handleChangeCounty(null);
+        return;
+      }
+
+      if (indexState !== -1) {     
+        handleChangeStateRegional(null);
         return;
       }
 
       if (indexEdition !== -1) {
-        changeCounty(null);
-        changeSchool(null);
-        setSearchSchool(null);
-        changeSchoolClass(null);
-        if (isEdition) {
-          let list = edition?.AVA_AVM?.sort((a, b) => a.AVM_MUN?.MUN_NOME.localeCompare(b.AVM_MUN?.MUN_NOME))
-            
-          setCountiesList(list);
-        } else {
-          handleSelectYearWithoutEdition();
-        }
+        handleChangeEpv(null);
         return;
       }
 
       if (indexYear !== -1) {
-        loadEditions();
-        changeEdition(null);
-        changeCounty(null);
-        changeSchool(null);
-        setSearchSchool(null);
-      if (isSerie) {
-          changeSerie(null);
-        }
+        handleChangeEdition(null);
+      // if (isSerie) {
+      //     changeSerie(null);
+      //   }
         changeSchoolClass(null);
 
         if (!isEdition) {
@@ -346,73 +478,8 @@ export function ReportFilter({
   }, [clickBreadcrumb]);
 
   useEffect(() => {
-    if (school) {
-      if (isSerie) {
-        loadSeries();
-      } else {
-        loadClass();
-      }
-      changeSchoolClass(null);
-
-      if (!isDisableSchool) return;
-    }
-
-    if (county) {
-      setSearchSchool(null);
-      changeSchoolClass(null);
-      loadSchools();
-      
-      if (!isDisableCounty) {
-        changeSchool(null);
-        return
-      }
-    }
-
-    if ((year && !isEdition) || (!isYear && !isEdition)) {
-      handleSelectYearWithoutEdition();
-    }
-
-    if (edition?.AVA_AVM) {
-
-      if (!isDisableSchool) {
-        changeSchool(null);
-        setSearchSchool(null);
-      }
-      if (!isDisableCounty) {
-        changeCounty(null);
-      }
-      changeSchoolClass(null);
-      let list = edition?.AVA_AVM?.sort((a, b) => a.AVM_MUN?.MUN_NOME?.toUpperCase().localeCompare(b.AVM_MUN?.MUN_NOME?.toUpperCase()))
-      setCountiesList(list);
-      return;
-    }
-    if (year || !isYear) {
-      loadEditions();
-      if (!isDisableSchool) {
-        changeSchool(null);
-        setSearchSchool(null);
-      }
-      if (!isDisableCounty) {
-        changeCounty(null);
-      }
-      // changeEdition(null);
-      changeSchoolClass(null);
-
-      if (!isEdition) {
-        changeEdition("fake");
-      }
-    }    
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, edition, county, school]);
-
-  useEffect(() => {    
-    if (isSerie && !serie) {
-      loadYears();
-      return;
-    }
-
     if (isSerie && serie) {
-      loadClass();
+      loadClass(school);
       return;
     }
     loadYears();
@@ -431,49 +498,173 @@ export function ReportFilter({
      setYearsList(list);
   };
 
-  const loadEditions = async () => {
-    if (year?.ANO) {
-      const resp = await getYearAssessment(year?.ANO);
-      if (resp.data.length > 0) setEditionsList(resp.data);
-    }
-  };
-  const loadSchools = async () => {
-    if (county) {
-      const resp = await getSchools(
-        searchSchool,
-        pageSchool,
-        25,
-        'ESC_NOME',
-        "ASC",
-        null,
-        county?.AVM_MUN?.MUN_ID
-      );
+  const { data: editionsList, isLoading: isLoadingEditions } = useGetAssessments(null, 1, 999999, null, 'ASC', null, null, serie?.SER_ID, null, year?.ANO, !!year);
 
-      const formattedSchools = resp.data.items.map((school) => {
-        return {
-          ESC_ID: school.ESC_ID,
-          ESC_NOME: school.ESC_NOME,
-        };
-      });
+  useEffect(() => {
+    if(router.query.year && router.query.year !== 'undefined' && (serie || serieList)
+    // && isFirstLoadYear
+    ){
+      handleChangeYear(yearsList.find(_year => _year.ANO === router.query.year))
+      // setIsFirstLoadYear(false);
 
-      setSchoolsList([...schoolsList, ...formattedSchools]);
-
-      if (resp.data.items.length === 0) {
-        setLimitSchool(true);
-        return;
+      if(!isEdition || isEpvFirst){
+        if(router.query.epv
+          //  && isFirstLoadEpv
+          ){
+          handleChangeEpv(router.query.epv)
+          // setIsFirstLoadEpv(false);
+        }
       }
     }
-  };
+  },[yearsList, router.query.year])
 
-  const loadClass = async () => {
-    if (school && school != " ") {
+  useEffect(() =>{
+    if(editionsList?.items?.length > 0 && router.query.edition !== 'undefined' && year
+      //  && isFirstLoadEdition
+      ){
+      // setIsFirstLoadEdition(false)
+      handleChangeEdition(editionsList?.items.find(_edition => _edition.Assessments_AVA_ID == router.query.edition))
+    }
+    if(isEpvFirst){
+      if(router.query.countyId && router.query.countyName && epv === 'Exclusivo Epv'
+        //  && isFirstLoadCounty
+        ){
+        // setIsFirstLoadCounty(false)
+        handleChangeCounty({MUN_ID: router.query.countyId, MUN_NOME: router.query.countyName})
+      }
+    }
+  }, [editionsList, router.query.edition])
+
+  useEffect(() =>{
+    if(router.query.epv && edition
+      //  && isFirstLoadEdition
+      ){
+      // setIsFirstLoadEdition(false)
+      if(!isEpvFirst){
+        handleChangeEpv(router.query.epv)
+      }
+    }
+    if(!isSaev && edition && router.query.type){
+      handleChangeType(router.query.type)
+    }
+  }, [edition, router.query.epv, router.query.type])
+
+  useEffect(() =>{
+    if(epv){
+      if(isEpvFirst){
+        if(editionsList?.items?.length > 0 && router.query.edition !== 'undefined' && year)
+        {
+          handleChangeEdition(editionsList?.items.find(_edition => _edition.Assessments_AVA_ID == router.query.edition))
+        }
+        if(epv === 'Exclusivo Epv'){
+          handleChangeEdition(null)
+          if(router.query.countyId && router.query.countyName){
+            handleChangeCounty({MUN_ID: router.query.countyId, MUN_NOME: router.query.countyName})
+          }
+        }
+      } else {
+        if(router.query.type && epv === 'Completo'){
+          handleChangeType(router.query.type)
+        }
+        if(router.query.countyId && router.query.countyName && epv === 'Exclusivo Epv'){
+          handleChangeCounty({MUN_ID: router.query.countyId, MUN_NOME: router.query.countyName})
+        }
+      }
+    }
+  }, [epv, router.query.edition, router.query.type, router.query.countyId])
+
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
+
+  useEffect(() =>{
+    if(states?.length > 0 && router.query.state !== 'undefined' && type)
+    {
+      handleChangeState(states.find(_state => _state.id == router.query.state))
+    }
+  }, [states, type, router.query.state])
+
+  const { data: stateRegionals, isLoading: isLoadingStateRegionals } = useGetRegionaisByFilter(null, 1, 9999999, null, 'ASC', null, state?.id, 'ESTADUAL', type === 'PUBLICA' ? null : type);
+  console.log('stateRegional', stateRegional)
+  useEffect(() =>{
+    if(stateRegionals?.items?.length > 0 && router.query.stateRegional && router.query.stateRegional !== 'undefined' && state)
+    {
+      const findStateRegional = stateRegionals?.items?.find(_stateRegional => _stateRegional.id == router.query.stateRegional)
+      handleChangeStateRegional(findStateRegional)
+
+    }
+  }, [stateRegionals, router.query.stateRegional])
+
+  useEffect(() =>{
+    changeStateRegional(stateRegionals?.items?.find(_stateRegional => _stateRegional.id == stateRegional?.id))
+    if(epv === 'Completo' && stateRegional
+      //  && isFirstLoadStateRegional
+      ){
+      // setIsFirstLoadStateRegional(false)
+      if(router.query.countyId && router.query.countyId !== 'undefined'
+        //  && isFirstLoadCounty
+        ){
+        // setIsFirstLoadCounty(false)
+        handleChangeCounty(stateRegional?.counties?.find(_county => _county?.MUN_ID == router.query.countyId))
+      }
+    }
+  },[stateRegional, router.query.countyId])
+  
+  const { data: countyRegionals, isLoading: isLoadingCountyRegionals } = useGetRegionaisByFilter(null, 1, 9999999, null, 'ASC', county?.MUN_ID, null, epv === 'Exclusivo Epv' ? 'MUNICIPAL' : type === 'PUBLICA' ? null : type === 'ESTADUAL' ? 'UNICA' : 'MUNICIPAL', type === 'PUBLICA' ? null : type, !!county);
+
+  useEffect(() =>{
+    if(countyRegionals?.items?.length > 0 && router.query.countyRegional !== 'undefined' && county && !countyRegional){
+      const findCountyRegional = countyRegionals?.items?.find(_countyRegional => _countyRegional.id == router.query.countyRegional)
+      handleChangeCountyRegional(findCountyRegional)
+    }
+  }, [countyRegionals, county, router.query.countyRegional])
+
+  console.log('countyRegional :', countyRegional);
+  useEffect(() =>{
+    changeCountyRegional(countyRegionals?.items?.find(_countyRegional => _countyRegional.id == countyRegional?.id))
+    if(countyRegional){
+      if(router.query.school && router.query.school !== 'undefined'){
+          console.log('router.query.school :', router.query.school)
+        handleChangeSchool(countyRegional?.schools?.find(_school => _school?.ESC_ID == router.query.school))
+      }
+    }
+  },[countyRegional, router.query.school])
+
+  useEffect(() =>{
+    if(router.query.schoolClass && router.query.schoolClass !== 'undefined' && school && !isSerie
+      //  && isFirstLoadSchoolClass
+      ){
+      // setIsFirstLoadSchoolClass(false)
+      handleChangeClass(classList?.find(_schoolClass => _schoolClass?.TUR_ID == router.query.schoolClass))
+    }
+  },[school, classList, router.query.schoolClass])
+
+  useEffect(() =>{
+    if(router.query.serie && router.query.serie !== 'undefined' && school && listSeries?.length > 0){
+      handleChangeSerie(listSeries.find(_serie => _serie.SER_ID == router.query.serie))
+    }
+  },[school, listSeries, router.query.serie])
+
+  useEffect(() => {
+    if(school){
+      loadClass(school)
+    }
+  },[school])
+
+  const loadClass = async (_school) => {
+    if(_school){
       let idSerie = serie?.SER_ID;
       if (isMultipleSeries) {
         idSerie = serieList?.map((serie) => serie.SER_ID);
       }
-      const resp = await getSchoolClassSerie(school?.ESC_ID, idSerie, year?.ANO, null);
+      const resp = await getSchoolClassSerie(_school?.ESC_ID, idSerie, year?.ANO, testActive);
       if (resp.data?.status != 401) {
         setClassList(resp.data);
+  
+        if(router.query.schoolClass && router.query.schoolClass !== 'undefined' && _school
+          //  && isFirstLoadSchoolClass
+          ){
+          // setIsFirstLoadSchoolClass(false)
+          handleChangeClass(resp.data.find(_schoolClass => _schoolClass?.TUR_ID == router.query.schoolClass))
+        }
       }
     }
   };
@@ -481,96 +672,6 @@ export function ReportFilter({
   const handleUpdate = () => {
     showBreadcrumbs();
     setIsUpdateData(true);
-  };
-
-  useEffect(() => {
-    if (listboxNodeMun !== null) {
-      listboxNodeMun.scrollTop = positionMun;
-    }
-  }, [positionMun, listboxNodeMun]);
-
-  const handleScrollMun = async (event) => {
-      setListboxNodeMun(event.currentTarget);
-
-      const x =
-        event.currentTarget.scrollTop + event.currentTarget.clientHeight;
-
-      if (event.currentTarget.scrollHeight - x <= 1 && !limitMun) {
-        await handleSelectYearWithoutEdition();
-        setPositionMun(x);
-      }
-  };
-
-  useEffect(() => {
-    if (listboxNodeSchool !== null) {
-      listboxNodeSchool.scrollTop = positionSchool;
-    }
-  }, [positionSchool, listboxNodeSchool]);
-
-  const handleScrollSchool = async (event) => {
-    setListboxNodeSchool(event.currentTarget);
-
-    const x = event.currentTarget.scrollTop + event.currentTarget.clientHeight;
-
-    if (event.currentTarget.scrollHeight - x <= 1 && !limitSchool) {
-      await loadSchools();
-      setPositionSchool(x);
-    }
-
-    const listboxNode = event.currentTarget;
-
-    const position = listboxNode.scrollTop + listboxNode.clientHeight;
-    if (listboxNode.scrollHeight - position <= 1) {
-      loadSchools();
-    }
-  };
-
-  const [searchTermMun, setSearchTermMun] = useState(null);
-  const debouncedSearchTermMun = useDebounce(searchTermMun, 500);
-
-  useEffect(() => {
-    setPageMun(1);
-    setCountiesList([])
-    if (debouncedSearchTermMun) {
-      setSearchMun(debouncedSearchTermMun)
-    }
-    else
-      setSearchMun("")
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[debouncedSearchTermMun]);
-
-  useEffect(() => {
-    handleSelectYearWithoutEdition();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchMun]);
-
-  const changeSearchMun = (newValue) => {
-    setSearchTermMun(newValue);
-  };
-
-  const [searchTermSchool, setSearchTermSchool] = useState(null);
-  const debouncedSearchTermSchool = useDebounce(searchTermSchool, 500);
-
-  useEffect(() => {
-    setPageSchool(1);
-    
-    setSchoolsList([])
-    if (debouncedSearchTermSchool) {
-      setSearchSchool(debouncedSearchTermSchool)
-    }
-    else
-      setSearchSchool("")  
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[debouncedSearchTermSchool]);
-
-  useEffect(() => {
-    loadSchools();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchSchool]);
-
-  const changeSearchSchool = (newValue) => {
-    setSearchTermSchool(newValue);
-    setLimitSchool(false)
   };
 
   const disableYear = () => {
@@ -582,13 +683,53 @@ export function ReportFilter({
     if (!isSerie) return serie ? serie === null : false;
   };
 
+  const disableCounty = () => {
+    if(isDisableCounty){
+      return true;
+    }
+    if(epv === 'Exclusivo Epv') {
+      if(isEpvFirst){
+        return !edition
+      } else {
+        return !epv
+      }
+    } else {
+      return !stateRegional
+    } 
+  }
+
   function disableSchoolPolicy(): boolean {
     if (!isEdition) {
-      return (isDisableSchool ? true : isDisableCounty ? year === null || year === " " : county === null || county === " ")
+      return (isDisableSchool ? true : isDisableCounty ? year === null || year === " " : countyRegional === null || countyRegional === undefined)
     } else {
-      return (isDisableSchool ? true : isDisableCounty ? edition === null || edition === " " : county === null || county === " ")
+      return (isDisableSchool ? true : isDisableCounty ? edition === null || edition === " " : countyRegional === null || countyRegional === undefined)
     }
   }
+
+  const disableRede = () => {
+    if(!isSaev){
+      if(isEdition && !edition){
+        return true
+      } else if(!isEdition && !isYear){
+        return false
+      } else if(!isEdition && !year) {
+        return true
+      }
+    } else {
+      if(isEpvFirst){
+        if(!edition || epv === 'Exclusivo Epv'){
+          return true
+        } 
+      } else {
+        if(!epv || epv === 'Exclusivo Epv'){
+          return true
+        } 
+      }
+    } 
+    
+    return false
+  }
+
   const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
   const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
@@ -609,9 +750,9 @@ export function ReportFilter({
               // onChange={(event, newValue) => { setValue(newValue); }} <<<--- OLD
               onChange={(event, newValue) => {
                 if (newValue.find(option => option.all))
-                  return handleChangeSerieList(serieList.length === listSeries.length ? [] : listSeries)
-          
-                  handleChangeSerieList(newValue)
+                  return handleChangeSerieList(serieList.length === listSeries.length ? [] : listSeries, true)
+
+                handleChangeSerieList(newValue, true)
               }}
               options={listSeries}
               disableCloseOnSelect
@@ -632,22 +773,6 @@ export function ReportFilter({
                 <TextField {...params} label="Séries" placeholder="Séries" />
               )}
             />
-            {/* <Autocomplete
-              multiple
-              className=""
-              id="size-small-outlined"
-              size="small"
-              value={serieList}
-              noOptionsText="Séries"
-              options={listSeries}
-              getOptionLabel={(option) => `${option.SER_NOME}`}
-              onChange={(_event, newValue) => {
-                handleChangeSerieList(newValue);
-              }}
-              renderInput={(params) => (
-                <TextField size="small" {...params} label="Séries" />
-              )}
-            /> */}
           </Series>
           )}
           {isSerieFirst && 
@@ -661,7 +786,7 @@ export function ReportFilter({
                 options={listSeries}
                 getOptionLabel={(option) => `${option?.SER_NOME}`}
                 onChange={(_event, newValue) => {
-                  handleChangeSerieFirst(newValue);
+                  handleChangeSerieFirst(newValue, true);
                 }}
                 renderInput={(params) => (
                   <TextField size="small" {...params} label="Série" />
@@ -674,11 +799,11 @@ export function ReportFilter({
             (!isEdition &&
               isSerie &&
               !isSerieFirst &&
-              !isSchoolClass &&
-              "not-class") ||
-            (!isEdition && !isSerie && !isSerieFirst && "not-edition") ||
-            (!isYear && "not-year") ||
-            (isSerieFirst && "serie-first")
+              !isSchoolClass && isYear
+              ) ? "not-class" :
+            (!isEdition && !isSerieFirst && isYear) ? "not-edition" :
+            (!isYear) ? "not-year" :
+            (isSerieFirst) ? "serie-first" : !isSaev && "not-edition"
           }
         >
           
@@ -692,7 +817,7 @@ export function ReportFilter({
               options={yearsList}
               getOptionLabel={(option) => `${option.ANO}`}
               onChange={(_event, newValue) => {
-                handleChangeYear(newValue);
+                handleChangeYear(newValue, true);
               }}
               disabled={disableYear() || isDisableYear}
               sx={{
@@ -705,7 +830,30 @@ export function ReportFilter({
               )}
             />
           )}
-          {isEdition ? (
+          {isSaev && isEpvFirst &&
+            <Autocomplete
+              className=""
+              id="size-small-outlined"
+              size="small"
+              value={epv}
+              disableClearable={true}
+              noOptionsText="EPV (SAEV)"
+              options={['Exclusivo Epv', 'Completo']}
+              onChange={(_event, newValue) => {
+                handleChangeEpv(newValue, true);
+              }}
+              disabled={!year}
+              sx={{
+                "& .Mui-disabled": {
+                  background: "#D3D3D3",
+                },
+              }}
+              renderInput={(params) => (
+                <TextField size="small" {...params} label="EPV (SAEV)" />
+              )}
+            />
+          }
+          {isEdition && (
             <>
               <Autocomplete
                 className=""
@@ -713,12 +861,12 @@ export function ReportFilter({
                 size="small"
                 value={edition}
                 noOptionsText="Edição"
-                options={editionsList}
-                getOptionLabel={(option) => `${option.AVA_NOME}`}
+                options={editionsList?.items || []}
+                getOptionLabel={(option) => `${option.Assessments_AVA_NOME}`}
                 onChange={(_event, newValue) => {
-                  handleChangeEdition(newValue);
+                  handleChangeEdition(newValue, true);
                 }}
-                disabled={year === null || year === " "}
+                disabled={isEpvFirst ? isSaev ? !epv : !year : !year}
                 sx={{
                   "& .Mui-disabled": {
                     background: "#D3D3D3",
@@ -728,91 +876,157 @@ export function ReportFilter({
                   <TextField size="small" {...params} label="Edição" />
                 )}
               />
-              <Autocomplete
-                className=""
-                id="size-small-outlined"
-                size="small"
-                value={county}
-                noOptionsText="Município"
-                options={countiesList}
-                getOptionLabel={(option) => `${option?.AVM_MUN?.MUN_NOME}`}
-                onChange={(_event, newValue) => {
-                  handleChangeCounty(newValue);
-                }}
-                disabled={isDisableCounty ? true : edition === null || edition === " "}
-                sx={{
-                  "& .Mui-disabled": {
-                    background: "#D3D3D3",
-                  },
-                }}
-                renderInput={(params) => (
-                  <TextField size="small" {...params} label="Município" />
-                )}
-                renderOption={(props, option) => (
-                  <li {...props} key={option?.AVM_ID}>
-                    {option?.AVM_MUN?.MUN_NOME}
-                  </li>
-                )}
-              />
-            </>)
-            : (
-              <Autocomplete
-                className=""
-                id="size-small-outlined"
-                size="small"
-                value={county}
-                noOptionsText="Município"
-                options={countiesList}
-                getOptionLabel={(option) => `${option?.AVM_MUN?.MUN_NOME}`}
-                onChange={(_event, newValue) => {
-                  handleChangeCounty(newValue);
-                }}
-                onInputChange={(_event, newValue) => {
-                    setPageMun(1);
-                    setCountiesList([]);
-                    setLimitMun(false);
-                    changeSearchMun(newValue);
-                }}
-                ListboxProps={{
-                  onScroll: handleScrollMun,
-                }}
-                disabled={isDisableCounty ? true : !isYear ? false : year == null || year == " "}
-                sx={{
-                  "& .Mui-disabled": {
-                    background: "#D3D3D3",
-                  },
-                }}
-                renderInput={(params) => (
-                  <TextField size="small" {...params} label="Município" />
-                )}
-              />
-          )}
+            </>
+            )
+          }
+          {isSaev && !isEpvFirst &&
+            <Autocomplete
+              className=""
+              id="size-small-outlined"
+              size="small"
+              value={epv}
+              noOptionsText="EPV (SAEV)"
+              disableClearable={true}
+              options={['Exclusivo Epv', 'Completo']}
+              onChange={(_event, newValue) => {
+                handleChangeEpv(newValue, true);
+              }}
+              disabled={!isYear ? false : isEdition ? !edition : !year}
+              sx={{
+                "& .Mui-disabled": {
+                  background: "#D3D3D3",
+                },
+              }}
+              renderInput={(params) => (
+                <TextField size="small" {...params} label="EPV (SAEV)" />
+              )}
+            />
+          }
           <Autocomplete
             className=""
-            id="size-small-outlined"
+            id="type"
+            size="small"
+            value={type}
+            noOptionsText="Rede"
+            options={typeList}
+            getOptionLabel={(option) => `${enumType[option]}`}
+            onChange={(_event, newValue) => {
+              handleChangeType(newValue, true);
+            }}
+            disabled={disableRede()}
+            sx={{
+              "& .Mui-disabled": {
+                background: "#D3D3D3",
+              },
+            }}
+            renderInput={(params) => (
+              <TextField size="small" {...params} label="Rede" />
+            )}
+          />
+          <Autocomplete
+            fullWidth
+            className=""
+            data-test='state'
+            id="state"
+            size="small"
+            value={state}
+            noOptionsText="Estado"
+            options={states}
+            loading={isLoadingStates}
+            getOptionLabel={option => option.name}
+            disabled={!type || epv === 'Exclusivo Epv'}
+            onChange={(_event, newValue) => {
+              handleChangeState(newValue, true)
+            }}
+            renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+            sx={{
+              "& .Mui-disabled": {
+                background: "#D3D3D3",
+              },
+            }}
+          />
+          <Autocomplete
+            fullWidth
+            className=""
+            data-test='stateRegional'
+            id="stateRegional"
+            size="small"
+            value={stateRegional}
+            noOptionsText="Regionais Estaduais"
+            options={stateRegionals?.items || []}
+            loading={isLoadingStateRegionals}
+            getOptionLabel={option => option.name}
+            disabled={!state || epv === 'Exclusivo Epv'}
+            onChange={(_event, newValue) => {
+              handleChangeStateRegional(newValue, true)
+            }}
+            renderInput={(params) => <TextField size="small" {...params} label="Regionais Estaduais" />}
+            sx={{
+              "& .Mui-disabled": {
+                background: "#D3D3D3",
+              },
+            }}
+          />
+        </ContainerFilters>
+        <ContainerFiltersBelow className={isSerie && 'is-serie'}>
+          {epv === 'Exclusivo Epv' ?
+            <AutoCompletePagMun2 county={county} changeCounty={callHandleChangeCounty} stateId={null} active={1} disabled={disableCounty()} isEpvPartner={1} countyBySearch={false} />
+          :
+            <Autocomplete
+              className=""
+              id="size-small-outlined"
+              size="small"
+              value={county}
+              noOptionsText="Município"
+              options={stateRegional?.counties || []}
+              getOptionLabel={(option) => `${option?.MUN_NOME}`}
+              onChange={(_event, newValue) => {
+                handleChangeCounty(newValue, true);
+              }}
+              disabled={disableCounty()}
+              sx={{
+                "& .Mui-disabled": {
+                  background: "#D3D3D3",
+                },
+              }}
+              renderInput={(params) => (
+                <TextField size="small" {...params} label="Município" />
+              )}
+            />
+          }
+          <Autocomplete
+            fullWidth
+            className=""
+            data-test='countyRegional'
+            id="countyRegional"
+            size="small"
+            value={countyRegional}
+            noOptionsText="Regionais Municipais / Únicas"
+            options={countyRegionals?.items || []}
+            loading={isLoadingCountyRegionals}
+            getOptionLabel={option => option.name}
+            disabled={!county}
+            onChange={(_event, newValue) => {
+              handleChangeCountyRegional(newValue, true)
+            }}
+            renderInput={(params) => <TextField size="small" {...params} label="Regionais Municipais / Únicas" />}
+            sx={{
+              "& .Mui-disabled": {
+                background: "#D3D3D3",
+              },
+            }}
+          />
+          {/*  */}
+          <Autocomplete
+            className=""
+            id="school"
             size="small"
             value={school}
             noOptionsText="Escola"
-            options={schoolsList}
+            options={countyRegional?.schools || []}
             getOptionLabel={(option) => `${option.ESC_NOME}`}
             onChange={(_event, newValue) => {
-              handleChangeSchool(newValue);
-            }}
-            onInputChange={(_event, newValue) => {
-              changeSearchSchool(newValue);
-            }}
-            ListboxProps={{
-              onScroll: async (event) => {
-                const listboxNode = event.currentTarget;
-                if (
-                  listboxNode.scrollTop + listboxNode.clientHeight ===
-                  listboxNode.scrollHeight
-                ) {
-                  const top = listboxNode.scrollTop;
-                  await handleScrollSchool;
-                  listboxNode.scrollTo({ top });
-                }
-              },
+              handleChangeSchool(newValue, true);
             }}
             disabled={disableSchoolPolicy()}
             sx={{
@@ -827,14 +1041,14 @@ export function ReportFilter({
           {isSerie && (
             <Autocomplete
               className=""
-              id="size-small-outlined"
+              id="serie"
               size="small"
               value={serie ? serie : null}
               noOptionsText="Série"
               options={listSeries}
               getOptionLabel={(option) => `${option?.SER_NOME}`}
               onChange={(_event, newValue) => {
-                handleChangeSerie(newValue);
+                handleChangeSerie(newValue, true);
               }}
               disabled={isDisableSchool ? year === null || year === " " : school === null || school === " "}
               sx={{
@@ -850,14 +1064,14 @@ export function ReportFilter({
           {isSchoolClass && (
             <Autocomplete
               className=""
-              id="size-small-outlined"
+              id="schoolClass"
               size="small"
               value={schoolClass}
               noOptionsText="Turma"
               options={classList}
               getOptionLabel={(option) => `${option?.TUR_ANO ? option?.TUR_ANO + '-' : ''} ${option?.TUR_NOME}`}
               onChange={(_event, newValue) => {
-                handleChangeClass(newValue);
+                handleChangeClass(newValue, true);
               }}
               disabled={
                 !isSerie ? school === null || school === " " : !serie?.SER_ID
@@ -872,11 +1086,15 @@ export function ReportFilter({
               )}
             />
           )}
-        </ContainerFilters>
+        </ContainerFiltersBelow>
       </Filters>
       <ButtonBox>
         <div style={{ width: 119 }}>
-          <ButtonPadrao disable={isDisable} onClick={() => handleUpdate()}>
+          <ButtonPadrao 
+            disable={isDisable} 
+            onClick={() => {
+              handleUpdate()
+            }}>
             {buttonText}
           </ButtonPadrao>
         </div>

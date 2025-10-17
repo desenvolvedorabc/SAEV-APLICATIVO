@@ -46,11 +46,25 @@ const TITLE_ITENS = {
       label: "EDIÇÕES",
     },
   ],
+  regional: [
+    {
+      id: "name",
+      status: false,
+      label: "REGIONAIS ESTADUAIS",
+    },
+  ],
   county: [
     {
       id: "name",
       status: false,
       label: "MUNICÍPIOS",
+    },
+  ],
+  regionalSchool: [
+    {
+      id: "name",
+      status: false,
+      label: "REGIONAIS MUNICIPAIS/ÚNICAS",
     },
   ],
   school: [
@@ -182,8 +196,10 @@ export function TableEditions({
     addBreadcrumbs,
     showBreadcrumbs,
     setIsUpdateData,
-    changeEdition,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
   } = useBreadcrumbContext();
@@ -292,23 +308,64 @@ export function TableEditions({
 
   const handleClickTable = (data) => {
     setTypeTable(types[item.type]);
-    if (item.type === "edition") {
-      changeEdition({ AVA_ID: data.id, AVA_NOME: data.name });
-    }
-    if (item.type === "county") {
-      changeCounty({
-        AVM_MUN: {
-          MUN_ID: data.id,
-          MUN_NOME: data.name,
-        },
+
+    if (item.type === "state") {
+      changeState({
+        id: data.id,
+        name: data.name,
       });
+      changeStateRegional(null);
+      const url = window.location.href.split('&state=')
+      const newUrl = url[0].concat('&state=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "regional") {
+      changeStateRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeCounty(null);
+      const url = window.location.href.split('&stateRegional=')
+      const newUrl = url[0].concat('&stateRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "county") {
+      changeCounty({
+        MUN_ID: data.id,
+        MUN_NOME: data.name,
+      });
+      changeCountyRegional(null);
+      const url = window.location.href.split('&countyId=')
+      const newUrl = url[0].concat('&countyId=' + data.id + '&countyName=' + data.name)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "regionalSchool") {
+      changeCountyRegional({
+        id: data.id,
+        name: data.name,
+      });
+      changeSchool(null);
+      const url = window.location.href.split('&countyRegional=')
+      const newUrl = url[0].concat('&countyRegional=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (item.type === "school") {
+      changeSchool({
+        ESC_ID: data.id,
+        ESC_NOME: data.name,
+      });
+      changeSchoolClass(null);
+      const url = window.location.href.split('&school=')
+      const newUrl = url[0].concat('&school=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } else if (
+      item.type === "schoolClass"
+    ) {
+      changeSchoolClass({
+        TUR_ID: data.id,
+        TUR_NOME: data.name,
+      });
+      const url = window.location.href.split('&schoolClass=')
+      const newUrl = url[0].concat('&schoolClass=' + data.id)
+      window.history.pushState({ path: newUrl }, '', newUrl);
     }
-    if (item.type === "school") {
-      changeSchool({ ESC_ID: data.id, ESC_NOME: data.name });
-    }
-    if (item.type === "schoolClass") {
-      changeSchoolClass({ TUR_ID: data.id, TUR_NOME: data.classe });
-    }
+
     addBreadcrumbs(data.id, data.name, item.type);
     setClick(true);
   };
@@ -374,7 +431,17 @@ export function TableEditions({
                     style={{ cursor: "pointer" }}
                   >
                     <TableCell component="th" scope="row" padding="normal">
-                      {data.name}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        {data.name} 
+                        {item.type === "school" ?
+                          <div style={{ backgroundColor: '#989898', minWidth: '26px', height: '21px', borderRadius: '16px', textAlign: 'center', marginRight: '8px', color: '#fff', fontSize: '14px' }}>
+                            {/* {data.type === 'MUNICIPAL' ? 'M' : 'E'} */}
+                            M
+                          </div>
+                          :
+                          <div></div>
+                        }
+                      </div>
                     </TableCell>
                     {item.type === "school" && (
                       <TableCellBorder>{data.inep}</TableCellBorder>
@@ -412,28 +479,6 @@ export function TableEditions({
                     <TableCellBorder>{data.general}%</TableCellBorder>
                   </TableRowStyled>
                 ))}
-
-                {/* <TableRowStyled className="total" role="checkbox" tabIndex={-1}>
-                  <TableCell component="th" scope="row" padding="normal">
-                    Total/Média
-                  </TableCell>
-                  {TITLE_ITENS[item.type]?.slice(1).map((data, index) =>
-                    {
-                      data.label === "INEP" || data.label === "TURMA" && 
-                        console.log('entrou')
-                        return <TableCellBorder key={index}>-</TableCellBorder>
-                    }
-                  )}
-                  <TableCellBorder>
-                    {totalReduce?.grouped?.toLocaleString("pt-BR")}
-                  </TableCellBorder>
-                  {subjects.map((cur, index) => (
-                    <>
-                      <TableCellBorder key={index}>{getMedia(cur.id).toFixed(0)}%</TableCellBorder>
-                    </>
-                  ))}
-                  <TableCellBorder>{totalReduce?.general}%</TableCellBorder>
-                </TableRowStyled> */}
               </TableBody>
             </Table>
           </TableContainer>

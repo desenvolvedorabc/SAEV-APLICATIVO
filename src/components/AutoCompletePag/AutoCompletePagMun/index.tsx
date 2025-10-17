@@ -6,9 +6,12 @@ import useDebounce from "src/utils/use-debounce";
 export function AutoCompletePagMun({
   county,
   changeCounty,
+  stateId = null,
   width = "100%",
   active = null,
-  label = 'Município'
+  label = 'Município',
+  showUf = false,
+  disabled = false,
 }) {
   const [pageMun, setPageMun] = useState(1);
   const [searchMun, setSearchMun] = useState(null);
@@ -30,6 +33,7 @@ export function AutoCompletePagMun({
       null,
       "ASC",
       null,
+      stateId,
       active
     );
 
@@ -78,12 +82,13 @@ export function AutoCompletePagMun({
       style={{ width: width, background: "#FFF" }}
       fullWidth
       className="col"
+      data-test='county'
       id="mun"
       size="small"
       value={county}
       noOptionsText={label}
       options={munList}
-      getOptionLabel={(option) => `${option?.MUN_NOME}`}
+      getOptionLabel={(option) => `${showUf ? option?.MUN_UF + ' - ' : ''}${option?.MUN_NOME}`}
       onChange={(_event, newValue) => {
         changeCounty(newValue);
       }}
@@ -102,6 +107,7 @@ export function AutoCompletePagMun({
           background: "#D3D3D3",
         },
       }}
+      disabled={disabled}
       renderInput={(params) => (
         <TextField size="small" {...params} label={label} />
       )}

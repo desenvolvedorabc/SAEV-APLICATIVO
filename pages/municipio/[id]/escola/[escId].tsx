@@ -8,6 +8,7 @@ import CardInfoEscolaRelatorio from "src/components/escola/cardInfoEscolaRelator
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
 import LoadingScreen from "src/components/loadingPage";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EscolaDetalhe({id, escId, url}) {
@@ -35,13 +36,18 @@ EscolaDetalhe.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id, escId} = context.params
-  return {
-    props: {
-      id,
-      escId,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const { id, escId } = ctx.params;
+    return {
+      props: {
+        id,
+        escId,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

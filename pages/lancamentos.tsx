@@ -20,6 +20,8 @@ import { CSVLink } from "react-csv";
 import getLastPage from "src/utils/calculate-last-page";
 import Top from "src/components/top";
 import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 interface DataEditions {
   LEVEL: string;
@@ -206,6 +208,7 @@ function createDataValores(
 
 export default function Lancamentos() {
   const {user} = useAuth()
+  const router = useRouter()
   const [typeTable, setTypeTable] = useState("editions");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -231,7 +234,13 @@ export default function Lancamentos() {
     hideBreadcrumbs,
     mapBreadcrumb,
     year,
+    state,
+    epv,
+    type,
+    stateRegional,
+    edition,
     county,
+    countyRegional,
     school,
     resetBreadcrumbs,
     handleUnClickBar,
@@ -260,20 +269,45 @@ export default function Lancamentos() {
   const loadInfos = useCallback(async () => {
     setIsLoading(true);
     setItensEditionTotal(null);
-    let year = mapBreadcrumb.find((x) => x.level === "year");
-    let edition = mapBreadcrumb.find((x) => x.level === "edition");
-    let county = mapBreadcrumb.find((x) => x.level === "county");
-    let school = mapBreadcrumb.find((x) => x.level === "school");
-    let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
     let seriesIds = serieList.map((serie) => serie.SER_ID);
+
+    // let newUrl = `${router.pathname}?`
+        
+    // if(seriesIds) newUrl = newUrl.concat('serie=' + seriesIds)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(_edition) newUrl = newUrl.concat('&edition=' + _edition?.id)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     const response = await getItens(
       seriesIds,
-      year?.id,
-      edition?.id,
-      county?.id,
-      school?.id,
-      schoolClass?.id
+      _year?.id,
+      _edition?.id,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id
     );
     setIsLoading(false);
     setPage(1);
@@ -316,8 +350,8 @@ export default function Lancamentos() {
       tempCsv.push([]);
       list = [];
       let level = "";
-      if (response?.type === "county") {
-        level = "Município";
+      if (response?.type === "regional" || response?.type === "county" || response?.type === "regionalSchool") {
+        level = response?.type === "regional" ? "Regionais Estaduais" : response?.type === "county" ? "Município" : "Regionais Municipais/Únicas"
         response?.itens?.map((x) => {
           list.push(
             createDataEditions(
@@ -342,32 +376,32 @@ export default function Lancamentos() {
           "ENTURMADO",
         ]);
       }
-      if (response?.type === "editions") {
-        level = "Edição";
-        response?.itens.map((x) => {
-          list.push(
-            createDataMun(
-              level,
-              x.name,
-              x.general,
-              x.subjects.find(subject => subject.name === 'Língua Portuguesa')?.percentageFinished ? x.subjects.find(subject => subject.name === 'Língua Portuguesa')?.percentageFinished.toString() : '-',
-              x.subjects.find(subject => subject.name === "Matemática")?.percentageFinished ? x.subjects.find(subject => subject.name === "Matemática")?.percentageFinished.toString() : '-',
-              x.subjects.find(subject => subject.name === "Leitura")?.percentageFinished ? x.subjects.find(subject => subject.name === "Leitura")?.percentageFinished.toString() : '-',
-              x.grouped
-            )
-          );
-        });
+      // if (response?.type === "editions") {
+      //   level = "Edição";
+      //   response?.itens.map((x) => {
+      //     list.push(
+      //       createDataMun(
+      //         level,
+      //         x.name,
+      //         x.general,
+      //         x.subjects.find(subject => subject.name === 'Língua Portuguesa')?.percentageFinished ? x.subjects.find(subject => subject.name === 'Língua Portuguesa')?.percentageFinished.toString() : '-',
+      //         x.subjects.find(subject => subject.name === "Matemática")?.percentageFinished ? x.subjects.find(subject => subject.name === "Matemática")?.percentageFinished.toString() : '-',
+      //         x.subjects.find(subject => subject.name === "Leitura")?.percentageFinished ? x.subjects.find(subject => subject.name === "Leitura")?.percentageFinished.toString() : '-',
+      //         x.grouped
+      //       )
+      //     );
+      //   });
 
-        tempCsv.push([
-          "LEVEL",
-          "NOME",
-          "GERAL",
-          "PORTUGUES",
-          "MATEMATICA",
-          "LEITURA",
-          "ENTURMADO",
-        ]);
-      }
+      //   tempCsv.push([
+      //     "LEVEL",
+      //     "NOME",
+      //     "GERAL",
+      //     "PORTUGUES",
+      //     "MATEMATICA",
+      //     "LEITURA",
+      //     "ENTURMADO",
+      //   ]);
+      // }
 
       if (response?.type === "school") {
         level = "Escola";
@@ -555,13 +589,17 @@ export default function Lancamentos() {
   }, [setIsUpdateData, isUpdateData, visibleBreadcrumbs, hideBreadcrumbs]);
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "MUNICIPIO_MUNICIPAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_ESTADUAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
+      case "ESTADO":
+        return !(!!state)
       case "SAEV":
-        return !(!!year)
+        return !(!!state)
       default:
         return false
     }
@@ -708,13 +746,13 @@ Lancamentos.getLayout = function getLayout(page: ReactElement) {
   return <Layout header={"Lançamentos"}>{page}</Layout>;
 };
 
-// export const getServerSideProps = withSSRAuth(
-//   async (ctx) => {
-//     return {
-//       props: {},
-//     };
-//   },
-//   {
-//     roles: ['REL', 'LANC'],
-//   }
-// );
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    return {
+      props: {},
+    };
+  },
+  {
+    roles: ['LANC'],
+  }
+);

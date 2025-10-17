@@ -31,9 +31,9 @@ export default function ModalConfirmacao(props) {
       </Modal.Body>
       <Modal.Footer className="d-flex justify-content-center border-0 px-5">
         {props.warning ?
-          <ButtonYellow onClick={props.onHide}>{'Fechar'}</ButtonYellow>
+          <ButtonYellow dataTest='close' onClick={props.onHide}>{'Fechar'}</ButtonYellow>
         :
-          <ButtonPadrao onClick={props.onHide}>{props.textConfirm ?? 'Entendi'}</ButtonPadrao>
+          <ButtonPadrao dataTest='confirm' onClick={props.onHide}>{props.textConfirm ?? 'Entendi'}</ButtonPadrao>
         }
       </Modal.Footer>
     </Modal>

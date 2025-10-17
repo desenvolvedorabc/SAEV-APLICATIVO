@@ -16,7 +16,7 @@ import CardRelatorio from "../../cardRelatorio";
 
 import { useMemo } from "react";
 import { useAuth } from "src/context/AuthContext";
-import { useGetSubPerfil } from "src/services/sub-perfis.service";
+import { useGetPerfil } from "src/services/perfis.service";
 
 type Area = {
   ARE_NOME: string;
@@ -26,7 +26,7 @@ type Area = {
 
 export default function RelatoriosEscolas({ escola, munId = "0" }) {
   const { user } = useAuth();
-  const { data  }= useGetSubPerfil(user?.USU_SPE?.SPE_ID, !!user?.USU_SPE?.SPE_ID)
+  const { data  }= useGetPerfil(user?.USU_SPE?.SPE_ID, !!user?.USU_SPE?.SPE_ID)
   const areas = data?.AREAS ?? []
 
   const formattedCards = useMemo(() => {

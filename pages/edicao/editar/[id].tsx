@@ -5,6 +5,7 @@ import FormEditAvaliacao from "src/components/avaliacao/formEditAvaliacao";
 import { getAssessment } from "src/services/avaliaoces.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarEdicao({id, url}) {
@@ -38,12 +39,17 @@ EditarEdicao.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id} = context.params
-  return {
-    props: {
-      id,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { 
+        id,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

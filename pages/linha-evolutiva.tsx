@@ -21,6 +21,7 @@ import {
 import { withSSRAuth } from "src/utils/withSSRAuth";
 import Top from "src/components/top";
 import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
 
 interface Data {
   EDICAO: string;
@@ -77,20 +78,21 @@ export default function LinhaEvolutiva() {
   const csvLink = useRef(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [listSubjects, setListSubjects] = useState([]);
+  const router = useRouter();
   const {
     serie,
-    changeSerie,
-    changeYear,
-    changeCounty,
-    changeSchool,
-    changeSchoolClass,
     resetBreadcrumbs,
     handleUnClickBar,
     handleClickBreadcrumb,
     clickBreadcrumb,
     mapBreadcrumb,
     year,
+    epv,
+    type,
+    state,
+    stateRegional,
     county,
+    countyRegional,
     school,
     visibleBreadcrumbs,
     isUpdateData,
@@ -106,10 +108,30 @@ export default function LinhaEvolutiva() {
 
   const loadInfos = useCallback(async () => {
     setIsLoading(true);
-    let year = mapBreadcrumb.find((x) => x.level === "year");
-    let county = mapBreadcrumb.find((x) => x.level === "county");
-    let school = mapBreadcrumb.find((x) => x.level === "school");
-    let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+
+    // let newUrl = `${router.pathname}?`
+        
+    // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     let list = [];
     const tempCsv = [];
@@ -120,10 +142,15 @@ export default function LinhaEvolutiva() {
         1,
         999999,
         serie?.SER_ID,
-        year?.id,
-        county?.id,
-        school?.id,
-        schoolClass?.id
+        _year?.id,
+        epv === 'Exclusivo Epv' ? 1 : 0,
+        type === 'PUBLICA' ? null : type,
+        _state?.id,
+        _stateRegional?.id,
+        _county?.id,
+        _countyRegional?.id,
+        _school?.id,
+        _schoolClass?.id
       );
 
       let _listSubjects = [];
@@ -152,8 +179,8 @@ export default function LinhaEvolutiva() {
             createData(
               x.name,
               subject.name,
-              subject.percentageFinished,
-              subject.percentageRightQuestions,
+              subject.percentageFinished.toFixed(0),
+              subject.percentageRightQuestions.toFixed(0),
               subject.totalStudents
             )
           );
@@ -162,7 +189,7 @@ export default function LinhaEvolutiva() {
     } else {
       resp = await getEvolutionaryLineStudent(
         serie,
-        yearStudent,
+        yearStudent?.ANO,
         student.ALU_ID
       );
 
@@ -233,13 +260,17 @@ export default function LinhaEvolutiva() {
   }
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!year)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -271,7 +302,7 @@ export default function LinhaEvolutiva() {
             display: selectTypeButton !== "general" ? "none" : "block",
           }}
         >
-          <ReportFilter isSerieFirst={true} isDisable={onDisableReportFilter()} isEdition={false} />
+          <ReportFilter isSerieFirst={true} isDisable={onDisableReportFilter()} isEdition={false} isSaev={user?.USU_SPE?.role === 'SAEV'} />
         </div>
         {selectTypeButton === "student" && (
           <SearchEvolutionaryLine
@@ -301,7 +332,7 @@ export default function LinhaEvolutiva() {
                   info={infoList}
                   subjects={listSubjects}
                   type={selectTypeButton}
-                  year={yearStudent}
+                  year={yearStudent?.ANO}
                   studentName={student?.ALU_NOME}
                 />
 

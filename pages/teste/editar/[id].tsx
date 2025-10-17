@@ -5,6 +5,7 @@ import FormEditTeste from "src/components/teste/formEditTeste";
 import { getTest } from "src/services/testes.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarTeste({id, url}) {
@@ -43,12 +44,17 @@ EditarTeste.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id} = context.params
-  return {
-    props: {
-      id,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { 
+        id,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

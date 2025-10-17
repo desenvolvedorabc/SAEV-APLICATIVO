@@ -44,6 +44,7 @@ import ButtonWhite from "src/components/buttons/buttonWhite";
 import { ModalEnturmar } from "src/components/enturmar/modalEnturmar";
 import { ButtonPadrao } from "src/components/buttons/buttonPadrao";
 import useDebounce from "src/utils/use-debounce";
+import { Loading } from "src/components/Loading";
 
 interface Data {
   ALU_ID: string;
@@ -168,7 +169,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   );
 }
 
-export function TableEnturmar({ mun, school, status }) {
+export function TableEnturmar({ county, school, status }) {
   const [listStudents, setListStudents] = useState([]);
   const [serie, setSerie] = useState(null);
   const [search, setSearch] = useState(null);
@@ -188,6 +189,7 @@ export function TableEnturmar({ mun, school, status }) {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [studentsNotGrouped, setStudentsNotGrouped] = useState(0);
   const [resetModal, setResetModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChangeSerie = (e: SelectChangeEvent<any>) => {
     setSerie(e.target.value);
@@ -216,7 +218,7 @@ export function TableEnturmar({ mun, school, status }) {
       limit,
       property,
       order,
-      mun?.MUN_ID,
+      county?.MUN_ID,
       school?.ESC_ID,
       status,
       serie?.SER_ID,
@@ -239,7 +241,7 @@ export function TableEnturmar({ mun, school, status }) {
         limit,
         orderBy,
         order,
-        mun?.MUN_ID,
+        county?.MUN_ID,
         school?.ESC_ID,
         status,
         serie?.SER_ID,
@@ -253,7 +255,7 @@ export function TableEnturmar({ mun, school, status }) {
         limit,
         orderBy,
         order,
-        mun?.MUN_ID,
+        county?.MUN_ID,
         school?.ESC_ID,
         status,
         serie?.SER_ID,
@@ -270,7 +272,7 @@ export function TableEnturmar({ mun, school, status }) {
       Number(event.target.value),
       orderBy,
       order,
-      mun?.MUN_ID,
+      county?.MUN_ID,
       school?.ESC_ID,
       status,
       serie?.SER_ID,
@@ -284,20 +286,21 @@ export function TableEnturmar({ mun, school, status }) {
     _limit: number,
     _orderBy: string,
     _order: string,
-    _mun: string,
+    _county: string,
     _school: string,
     _status: string,
     _serie: string,
     _active: boolean,
   ) => {
-    if (mun?.MUN_ID && school?.ESC_ID) {
+    if (county?.MUN_ID && school?.ESC_ID) {
+      setIsLoading(true);
       const resp = await getStudentsGrouping(
         _search,
         _page,
         _limit,
         _orderBy,
         _order.toUpperCase(),
-        _mun,
+        _county,
         _school,
         _status,
         _serie,
@@ -323,6 +326,7 @@ export function TableEnturmar({ mun, school, status }) {
         );
       });
       setRows(list);
+      setIsLoading(false);
     }
   };
 
@@ -333,20 +337,20 @@ export function TableEnturmar({ mun, school, status }) {
       limit,
       orderBy,
       order,
-      mun?.MUN_ID,
+      county?.MUN_ID,
       school?.ESC_ID,
       status,
       serie?.SER_ID,
       true,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, page, limit, orderBy, order, mun, school, status, serie, reload]);
+  }, [search, page, limit, orderBy, order, county, school, status, serie, reload]);
 
   useEffect(() => {
     setSelectedStudents([]);
     setAllSelected(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mun, school, status]);
+  }, [county, school, status]);
 
   useEffect(() => {
     if (debouncedSearchTerm) {
@@ -412,11 +416,11 @@ export function TableEnturmar({ mun, school, status }) {
   return (
     <Container>
       <TopContainer>
-        <Text>{`${mun ? mun?.MUN_NOME + "," : ""} ${
-          school ? school?.ESC_NOME + "," : ""
+        <Text>{`${county ? county?.MUN_NOME + ", " : ''} ${
+          school ? school?.ESC_NOME + (serie ? "," : "") : ''
         } ${
           serie ? serie?.SER_NOME + " " : ""
-        } (${studentsNotGrouped} Alunos Não Enturmados)`}</Text>
+          } (${studentsNotGrouped} Alunos Não Enturmados)`}</Text>
         <div className="d-flex justify-content-between mt-3 mb-3">
           <div className="d-flex ms-2">
             <div className="d-flex flex-row-reverse align-items-center ">
@@ -426,7 +430,7 @@ export function TableEnturmar({ mun, school, status }) {
                 placeholder="Pesquise"
                 name="searchTerm"
                 onChange={handleChangeSearch}
-              />
+                />
               <IconSearch color={"#7C7C7C"} />
             </div>
             <FormControl sx={{ width: 186, marginLeft: "20px" }} size="small">
@@ -438,7 +442,7 @@ export function TableEnturmar({ mun, school, status }) {
                 label="Série"
                 onChange={(e) => handleChangeSerie(e)}
                 disabled={!school}
-              >
+                >
                 <MenuItem value={null}>
                   <em>Série</em>
                 </MenuItem>
@@ -467,7 +471,7 @@ export function TableEnturmar({ mun, school, status }) {
                   setShowEnturmarModal(true);
                 }}
                 disable={selectedStudents.length === 0}
-              >
+                >
                 Enturmar Alunos
               </ButtonPadrao>
             </div>
@@ -482,13 +486,16 @@ export function TableEnturmar({ mun, school, status }) {
             borderBottomLeftRadius: "10px",
             borderBottomRightRadius: "10px",
           }}
-        >
+          >
+          {isLoading ? 
+            <Loading/>
+          :
           <TableContainer>
             <Table
               sx={{ minWidth: 750 }}
               aria-labelledby="tableTitle"
               size={"medium"}
-            >
+              >
               <EnhancedTableHead
                 order={order}
                 orderBy={orderBy}
@@ -496,7 +503,7 @@ export function TableEnturmar({ mun, school, status }) {
                 rowCount={rows.length}
                 handleSelectAll={handleSelectAll}
                 allSelected={allSelected}
-              />
+                />
 
               <TableBody>
                 {rows.length > 0 &&
@@ -508,24 +515,24 @@ export function TableEnturmar({ mun, school, status }) {
                           role="checkbox"
                           tabIndex={-1}
                           key={index}
-                        >
+                          >
                           <TableCell
                             component="th"
                             id={"select"}
                             scope="row"
                             padding="normal"
-                          >
+                            >
                             <Checkbox
                               checked={getIsSelected(row)}
                               onChange={() => handleSelectStudent(row)}
-                            />
+                              />
                           </TableCell>
                           <TableCellBorder
                             component="th"
                             id={labelId}
                             scope="row"
                             padding="normal"
-                          >
+                            >
                             {row.ALU_ID}
                           </TableCellBorder>
                           <TableCellBorder>{row.ALU_INEP}</TableCellBorder>
@@ -554,6 +561,7 @@ export function TableEnturmar({ mun, school, status }) {
               </TableBody>
             </Table>
           </TableContainer>
+          }
           <Pagination>
             Linhas por página:
             <FormSelectStyled value={limit} onChange={handleChangeLimit}>
@@ -564,13 +572,13 @@ export function TableEnturmar({ mun, school, status }) {
             <ButtonPage
               onClick={() => handleChangePage2("prev")}
               disabled={disablePrev}
-            >
+              >
               <MdNavigateBefore size={24} />
             </ButtonPage>
             <ButtonPage
               onClick={() => handleChangePage2("next")}
               disabled={disableNext}
-            >
+              >
               <MdNavigateNext size={24} />
             </ButtonPage>
           </Pagination>
@@ -593,3 +601,4 @@ export function TableEnturmar({ mun, school, status }) {
     </Container>
   );
 }
+    

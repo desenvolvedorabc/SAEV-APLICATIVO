@@ -9,6 +9,7 @@ import decode from "jwt-decode";
 import { AuthTokenError } from "../services/errors/AuthTokenError";
 import { validateUserPermissions } from "./validateUserPermissions";
 import { IUser } from "src/context/AuthContext";
+import { RoleProfile } from "src/services/perfis.service";
 
 type WithSSRAuthOptions = {
   roles: string[];
@@ -49,24 +50,31 @@ export function withSSRAuth<P>(
 
     if (options) {
       const { user } = decode<{ user: IUser }>(token);
+      
       const { roles, profiles } = options;
 
       const userHasValidPermissions = validateUserPermissions({
         user,
         areas: [],
         roles: [],
-        profiles,
+        profiles: Object.keys(RoleProfile),
       });
 
       if (!userHasValidPermissions) {
         let destination = "/";
 
-        switch (user?.USU_SPE.SPE_PER.PER_NOME) {
-          case "Escola":
+        switch (user?.USU_SPE?.role) {
+          case "ESCOLA":
             destination = `/municipio/${user?.USU_MUN.MUN_ID}/escola/${user?.USU_ESC.ESC_ID}`;
             break;
-          case "Município":
+          case "MUNICIPIO_ESTADUAL":
             destination = `/municipio/${user?.USU_MUN.MUN_ID}`;
+            break;
+          case "MUNICIPIO_MUNICIPAL":
+            destination = `/municipio/${user?.USU_MUN.MUN_ID}`;
+            break;
+          case "ESTADO":
+            destination = `/municipios`;
             break;
           default:
             break;

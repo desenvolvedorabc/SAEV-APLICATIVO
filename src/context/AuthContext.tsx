@@ -16,6 +16,7 @@ export type IUser = {
   USU_ESC: {
     ESC_ID: string;
     ESC_NOME: string;
+    ESC_TIPO: string;
   };
   USU_SPE: {
     SPE_ID: string;
@@ -24,7 +25,10 @@ export type IUser = {
       PER_ID: string;
       PER_NOME: string;
     };
+    role: string;
   };
+  state: any;
+  stateId: number; 
   isChangePasswordWelcome: boolean;
 };
 
@@ -54,9 +58,6 @@ export function signOut() {
   destroyCookie(null, "USU_EMAIL", {
     path: "/",
   });
-  // destroyCookie(null, "USU_CARGO", {
-  //   path: '/',
-  // });
   destroyCookie(null, "USU_AVATAR", {
     path: "/",
   });
@@ -75,7 +76,7 @@ export function signOut() {
   destroyCookie(null, "USU_RETRY", {
     path: "/",
   });
-  destroyCookie(null, "PER_NOME", {
+  destroyCookie(null, "role", {
     path: "/",
   });
   destroyCookie(null, "USU_SPE_ID", {
@@ -155,10 +156,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setCookie(null, "USU_SPE", decodeToken["user"]["USU_SPE"]?.SPE_NOME || "", {
       path: "/",
     });
-    setCookie(null, "PER_NOME", decodeToken["user"]["USU_SPE"]["SPE_PER"]?.PER_NOME || "", {
+    setCookie(null, "role", decodeToken["user"]["USU_SPE"]?.role || "", {
       path: "/",
     });
-    window.localStorage.setItem("PER_NOME", decodeToken["user"]["USU_SPE"]["SPE_PER"]?.PER_NOME || "")
+    window.localStorage.setItem("role", decodeToken["user"]["USU_SPE"]?.role || "")
     setCookie(null, "USU_EMAIL", decodeToken["user"]["USU_EMAIL"], {
       path: "/",
     });
@@ -177,15 +178,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     api.defaults.headers["Authorization"] = `Bearer ${token}`;
-
-    switch (userDecodeToken?.USU_SPE.SPE_PER.PER_NOME) {
-      case "Escola":
+    
+    switch (userDecodeToken?.USU_SPE.role) {
+      case "ESCOLA":
         Router.push(
           `/municipio/${userDecodeToken?.USU_MUN.MUN_ID}/escola/${userDecodeToken?.USU_ESC.ESC_ID}`
         );
         break;
-      case "Município":
+      case "MUNICIPIO_MUNICIPAL":
         Router.push(`/municipio/${userDecodeToken?.USU_MUN.MUN_ID}`);
+        break;
+      case "MUNICIPIO_ESTADUAL":
+        Router.push(`/municipio/${userDecodeToken?.USU_MUN.MUN_ID}`);
+        break;
+      case "ESTADO":
+        Router.push(`/municipios`);
         break;
       default:
         Router.push("/");

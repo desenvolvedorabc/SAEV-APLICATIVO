@@ -72,3 +72,28 @@ export async function ImportUser(data: FormData) {
     }
   );
 }
+
+export async function ImportReleaseResult(data: FormData) {
+  // return await api.post(
+  //   `/files/release-result-students`,
+  //   data,
+  //   {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //       Accept: "application/json",
+  //       "Content-Type": "multipart/form-data",
+  //     },
+  //   }
+  // );
+  return await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL_IMPORT}/files/release-result-students`,
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+}

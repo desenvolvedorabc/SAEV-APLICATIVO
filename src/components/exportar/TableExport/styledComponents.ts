@@ -21,3 +21,12 @@ export const TableCellBorderWidth = styled(TableCell)`
   border-left: 1px solid #d4d4d4;
   min-width: 150px;
 `;
+
+export const Status = styled.div`
+  background-color: ${(props) => props.status === "ERROR" ? "#FF6868" : "#E8E01D"};
+  color: #000;
+  border-radius: 10px;
+  text-align: center;
+  padding-top: 2px;
+  padding-bottom: 2px;
+`;

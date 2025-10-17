@@ -5,7 +5,7 @@ import { EditorStyled } from './styledComponents'
 
 const QuillNoSSRWrapper = dynamic(import('react-quill'), {
   ssr: false,
-  loading: () => <p>Loading ...</p>,
+  loading: () => <p>Carregando ...</p>,
 })
 
 const modules = {
@@ -51,7 +51,42 @@ const formats = [
   'video',
 ]
 
-export function Editor({changeText, initialValue = "", minHeight}) {
+const modulesTutores = {
+  toolbar: [
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [
+      { list: 'ordered' },
+      { list: 'bullet' },
+      { indent: '-1' },
+      { indent: '+1' },
+    ],
+    ['clean'],
+  ],
+  clipboard: {
+    // toggle to add extra line breaks when pasting HTML:
+    matchVisual: false,
+  },
+}
+/*
+ * Quill editor formats
+ * See https://quilljs.com/docs/formats/
+ */
+const formatsTutores = [
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'blockquote',
+  'color',
+  'background',
+  'list',
+  'bullet',
+  'indent',
+]
+
+export function Editor({changeText, initialValue = "", minHeight, tutor = false}) {
   const [value, setValue] = useState(initialValue)
 
   const handleChangeValue = (changed) => {
@@ -60,12 +95,11 @@ export function Editor({changeText, initialValue = "", minHeight}) {
   }
   useEffect(() => {
     handleChangeValue(initialValue)
-    console.log('initialValue :', initialValue);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValue])
 
   return <EditorStyled minHeight={minHeight}>
           <QuillNoSSRWrapper 
-            modules={modules} formats={formats} preserveWhitespace theme="snow" onChange={handleChangeValue} value={value} />
+            modules={tutor ? modulesTutores : modules} formats={tutor ? formatsTutores : formats} preserveWhitespace theme="snow" onChange={handleChangeValue} value={value} />
           </EditorStyled>
 }

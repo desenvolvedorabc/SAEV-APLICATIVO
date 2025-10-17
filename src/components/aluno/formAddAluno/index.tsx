@@ -26,7 +26,7 @@ import { loadCity, loadUf, completeCEP } from 'src/utils/combos';
 import ErrorText from "src/components/ErrorText";
 import ModalConfirmacao from "src/components/modalConfirmacao";
 import { useEffect, useRef, useState } from "react";
-import { maskCEP, maskCPF, maskPhone } from "src/utils/masks";
+import { maskCEP, maskCPF, maskPhone, maskPhoneCountry } from "src/utils/masks";
 import { useDropzone } from "react-dropzone";
 import Router, { useRouter } from "next/router";
 import * as yup from "yup";
@@ -131,6 +131,13 @@ export function FormAddStudent({ munId }) {
       .min(14, "Deve ter no mínimo 14 caracteres")
       .max(14, "Deve ter no máximo 14 caracteres")
       .nullable(),
+    ALU_WHATSAPP: yup
+      .string()
+      .test("is-valid-phone", "Número de telefone inválido", (value) => {
+        if (!value) return true;              // campo vazio é válido (caso seja opcional)
+        if (value === "+55") return true;     // só +55 é válido
+        return /^\+55\s\(\d{2}\)\s\d{4,5}-\d{4}$/.test(value); // formato BR
+      }),
     ALU_EMAIL: yup
       .string()
       .email("Email inválido")
@@ -227,6 +234,7 @@ export function FormAddStudent({ munId }) {
       ALU_NOME_RESP: "",
       ALU_TEL1: "",
       ALU_TEL2: "",
+      ALU_WHATSAPP: "+55",
       ALU_EMAIL: "",
       ALU_DEFICIENCIAS: null,
       ALU_PEL: null,
@@ -258,6 +266,7 @@ export function FormAddStudent({ munId }) {
       values.ALU_NOME_MAE = values.ALU_NOME_MAE.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
       values.ALU_NOME_PAI = values.ALU_NOME_PAI.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
       values.ALU_NOME_RESP = values.ALU_NOME_RESP.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ')
+      values.ALU_WHATSAPP = values.ALU_WHATSAPP === '+55' ? null : values.ALU_WHATSAPP
 
       if(selectedPcds.length > 0){
         values.ALU_DEFICIENCIAS = selectedPcds.map(pcd => {return {PCD_ID: pcd?.PCD_ID}})
@@ -303,27 +312,9 @@ export function FormAddStudent({ munId }) {
     setCreateObjectURL(null);
   };
 
-  function hideConfirm() {
-    setModalShowConfirm(false);
-    if (!errorMessage) {
-      formik.resetForm();
-      return true;
-    }
-    Router.reload();
-  }
-
   useEffect(() => {
     loadSchoolClass(school?.ESC_ID, formik.values.ALU_SER);
   }, [formik.values.ALU_SER]);
-
-  const handleClickStudent = (
-    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
-    idStudent: string
-  ) => {
-    e.preventDefault();
-    handleRespOpen();
-    window.open(`/municipio/${query.id}/escola/${query.escId}/aluno/${idStudent}`);
-  };
 
   useEffect(() => {
     async function fetchAPI() {
@@ -371,7 +362,7 @@ export function FormAddStudent({ munId }) {
             </div>
             <InputGroup3Dashed className="" controlId="formBasic">
               <div>
-                <AutoCompletePagEscMun changeSchool={handleChangeSchool} school={school} mun={mun} active={"1"}/>
+                <AutoCompletePagEscMun changeSchool={handleChangeSchool} school={school} mun={mun} active={"1"} disabled={!mun} />
                 {formik.touched.ALU_ESC && formik.errors.ALU_ESC ? (
                   <ErrorText>{formik.errors.ALU_ESC}</ErrorText>
                 ) : null}
@@ -381,6 +372,7 @@ export function FormAddStudent({ munId }) {
               <InputGroup2>
                 <div>
                   <TextField
+                    data-test='ESC_UF'
                     fullWidth
                     label="UF"
                     id="ESC_UF"
@@ -394,6 +386,7 @@ export function FormAddStudent({ munId }) {
                 </div>
                 <div>
                   <TextField
+                    data-test='ESC_CIDADE'
                     fullWidth
                     label="Municipio"
                     id="ESC_CIDADE"
@@ -408,6 +401,7 @@ export function FormAddStudent({ munId }) {
               </InputGroup2>
               <div>
                 <TextField
+                  data-test='ESC_ENDERECO'
                   fullWidth
                   label="Escola"
                   id="ESC_ENDERECO"
@@ -421,6 +415,7 @@ export function FormAddStudent({ munId }) {
               </div>
               <div>
                 <TextField
+                  data-test='ESC_INEP'
                   fullWidth
                   label="Código INEP"
                   id="ESC_INEP"
@@ -445,6 +440,7 @@ export function FormAddStudent({ munId }) {
                 <FormControl fullWidth size="small">
                   <InputLabel id="ALU_SER">Série</InputLabel>
                   <Select
+                    data-test='ALU_SER'
                     labelId="ALU_SER"
                     id="ALU_SER"
                     name="ALU_SER"
@@ -468,6 +464,7 @@ export function FormAddStudent({ munId }) {
                 <FormControl fullWidth size="small">
                   <InputLabel id="ALU_TUR">Turma</InputLabel>
                   <Select
+                    data-test='ALU_TUR'
                     labelId="ALU_TUR"
                     id="ALU_TUR"
                     name="ALU_TUR"
@@ -527,7 +524,7 @@ export function FormAddStudent({ munId }) {
               <div>
                 <TextField
                   fullWidth
-                  label="Número do INEP"
+                  label="Número do INEP do aluno"
                   name="ALU_INEP"
                   id="ALU_INEP"
                   value={formik.values.ALU_INEP}
@@ -572,7 +569,7 @@ export function FormAddStudent({ munId }) {
                 <div className="">
                   <TextField
                     fullWidth
-                    label="CPF"
+                    label="CPF do aluno"
                     name="ALU_CPF"
                     id="ALU_CPF"
                     value={maskCPF(formik.values.ALU_CPF)}
@@ -674,6 +671,22 @@ export function FormAddStudent({ munId }) {
               <div>
                 <TextField
                   fullWidth
+                  label="WhatsApp"
+                  name="ALU_WHATSAPP"
+                  id="ALU_WHATSAPP"
+                  placeholder="+00 (00) 00000-0000"
+                  inputProps={{ maxLength: 19 }}
+                  value={maskPhoneCountry(formik.values.ALU_WHATSAPP)}
+                  onChange={(e) => {e.target.value = maskPhoneCountry(e.target.value); formik.handleChange(e)}}
+                  size="small"
+                />
+                {formik.touched.ALU_WHATSAPP && formik.errors.ALU_WHATSAPP ? (
+                  <ErrorText>{formik.errors.ALU_WHATSAPP}</ErrorText>
+                ) : null}
+              </div>
+              <div>
+                <TextField
+                  fullWidth
                   label="Email"
                   name="ALU_EMAIL"
                   id="ALU_EMAIL"
@@ -694,6 +707,7 @@ export function FormAddStudent({ munId }) {
                   locale={brLocale}
                 >
                   <DatePicker
+                    data-test='dataNasc'
                     openTo="year"
                     views={["year", "month", "day"]}
                     label="Data de Nascimento"
@@ -712,6 +726,8 @@ export function FormAddStudent({ munId }) {
                       <TextField
                         fullWidth
                         size="small"
+                        id='dataNasc'
+                        data-test="dataNasc"
                         {...params}
                         sx={{ backgroundColor: "#FFF" }}
                       />
@@ -974,6 +990,7 @@ export function FormAddStudent({ munId }) {
             <ButtonGroupEnd>
               <div style={{ width: 160 }}>
                 <ButtonWhite
+                  dataTest='cancel'
                   onClick={(e) => {
                     e.preventDefault();
                     setModalShowWarning(true);
@@ -984,6 +1001,7 @@ export function FormAddStudent({ munId }) {
               </div>
               <div className="ms-3" style={{ width: 160 }}>
                 <ButtonPadrao
+                  dataTest='save'
                   type="submit"
                   disable={isDisabled}
                   onClick={(e) => {

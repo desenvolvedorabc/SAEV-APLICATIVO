@@ -10,20 +10,20 @@ import {
 } from './styledComponents';
 import { Card, ButtonGroupBetween } from 'src/shared/styledForms'
 import ButtonWhite from 'src/components/buttons/buttonWhite';
-import { editSubPerfil } from 'src/services/sub-perfis.service';
 import ErrorText from 'src/components/ErrorText';
 import ModalConfirmacao from 'src/components/modalConfirmacao';
 import { useEffect, useState, useMemo } from 'react';
 import Router from 'next/router'
 import ModalPergunta from "src/components/modalPergunta";
-import {getAllPerfis} from 'src/services/perfis.service'
-import { getAllAreas } from "src/services/areas.service";
+import {RoleProfile, editPerfil, getAllPerfis} from 'src/services/perfis.service'
 import ButtonVermelho from "src/components/buttons/buttonVermelho";
 import { getAreasByPerfil } from "src/services/areas.service";
 import { FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import { ADMINLINKS } from "src/utils/menu";
+import { queryClient } from "src/lib/react-query";
+import { useAuth } from "src/context/AuthContext";
 
-type ValidationErrors = Partial<{ SPE_PER: string, SPE_NOME: string, AREAS: string }>
+type ValidationErrors = Partial<{ role: string, SPE_NOME: string, AREAS: string }>
 
 export default function FormEditPerfil({subPerfil}) {
   const [ModalShowConfirm, setModalShowConfirm] = useState(false)
@@ -31,9 +31,28 @@ export default function FormEditPerfil({subPerfil}) {
   const [modalShowQuestion, setModalShowQuestion] = useState(false)
   const [modalShowConfirmQuestion, setModalShowConfirmQuestion] = useState(false)
   const [active, setActive] = useState(subPerfil.SPE_ATIVO)
-  const [listPerfis, setListPerfis] = useState([])
   const [listAreas, setListAreas] = useState([])
   const [isDisabled, setIsDisabled] = useState(false);
+  const [listProfiles, setListProfiles] = useState([]);
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if(user?.USU_SPE?.role === 'ESCOLA'){
+      setListProfiles(['ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+      setListProfiles(['MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+      setListProfiles(['MUNICIPIO_ESTADUAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'ESTADO'){
+      setListProfiles(['ESTADO', 'MUNICIPIO_ESTADUAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'SAEV'){
+      setListProfiles(['SAEV', 'ESTADO', 'MUNICIPIO_ESTADUAL', 'MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+    }
+  },[user])
 
   const getAreasName = () => {
     let list = []
@@ -47,8 +66,8 @@ export default function FormEditPerfil({subPerfil}) {
 
   const validate = values => {
     const errors: ValidationErrors = {};
-    if (!values.SPE_PER) {
-      errors.SPE_PER = 'Campo obrigatório';
+    if (!values.role) {
+      errors.role = 'Campo obrigatório';
     }
     if (!values.SPE_NOME) {
       errors.SPE_NOME = 'Campo obrigatório';
@@ -64,7 +83,7 @@ export default function FormEditPerfil({subPerfil}) {
   const formik = useFormik({
     initialValues: {
       SPE_NOME: subPerfil.SPE_NOME,
-      SPE_PER: subPerfil.SPE_PER.PER_ID,
+      role: subPerfil.role,
       AREAS: getAreasName(),
       SPE_ATIVO: subPerfil.SPE_ATIVO,
     },
@@ -78,21 +97,21 @@ export default function FormEditPerfil({subPerfil}) {
         }
       )});
       values.AREAS = list;
-
       
       setIsDisabled(true)
       let response = null;
       try{
-        response = await editSubPerfil(subPerfil.SPE_ID, values)
+        response = await editPerfil(subPerfil.SPE_ID, values)
       }
       catch (err) {
         setIsDisabled(false)
       } finally {
         setIsDisabled(false)
       }
-      if (response.status === 200 && response.data.SPE_NOME === values.SPE_NOME) {
+      if (!response?.data?.message) {
         setModalStatus(true)
         setModalShowConfirm(true)
+        queryClient.invalidateQueries(['profiles'])
       }
       else {
         setModalStatus(false)
@@ -108,38 +127,32 @@ export default function FormEditPerfil({subPerfil}) {
       SPE_ATIVO: !subPerfil.SPE_ATIVO
     }
 
-    const response = await editSubPerfil(subPerfil.SPE_ID, subPerfil)
+    const response = await editPerfil(subPerfil.SPE_ID, subPerfil)
     if (response.status === 200 && response.data.SPE_NOME === subPerfil.SPE_NOME) {
       setActive(subPerfil.SPE_ATIVO)
       setModalShowConfirmQuestion(true)
       setModalStatus(true);
+      queryClient.invalidateQueries(['profiles'])
     }
     else {
       setModalStatus(false)
       setModalShowConfirmQuestion(true)
     }
   }
-
   
-  const loadPerfisBase = async () => {
-    const resp = await getAllPerfis()
-    setListPerfis(resp.data)
-  }
-  
-  const loadAreas = async (idPerfil: string) => {
-    const perfil = listPerfis.find((data) => data.PER_ID === idPerfil);
+  const loadAreas = async (perfil: string) => {
 
     if(perfil){
-      const resp = await getAreasByPerfil(perfil.PER_NOME);
+      const resp = await getAreasByPerfil(perfil);
       if(resp.data.length > 0)
         setListAreas(resp.data);
     }
   }
 
   useEffect(() => {
-    loadAreas(formik.values.SPE_PER);
+    loadAreas(formik.values.role);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formik.values.SPE_PER, listPerfis]);
+  }, [formik.values.role]);
 
   const filterLinks = useMemo(() => {
     const filter = ADMINLINKS.map((data) => {
@@ -153,11 +166,11 @@ export default function FormEditPerfil({subPerfil}) {
       // if (isVerify) {
       //   return data;
       // } else {
-        const options = data.items.filter((item) => {
+        const options = data.items.filter((item: any) => {
           let verifyItem = false;
 
           listAreas.forEach((area) => {
-            if (item.validate || area.ARE_NOME === item.ARE_NOME) {
+            if (item?.validate || area.ARE_NOME === item.ARE_NOME) {
               verifyItem = true;
             }
           });
@@ -176,10 +189,6 @@ export default function FormEditPerfil({subPerfil}) {
 
     return filter;
   }, [listAreas]);
-
-  useEffect(() => {
-    loadPerfisBase()
-  }, [])
 
   const verifyCheckAreas = (ARE_NOME) => {
     const check = oldAreas.find(x => ARE_NOME === x.ARE_NOME)
@@ -219,13 +228,13 @@ export default function FormEditPerfil({subPerfil}) {
               </div>
               <div className="me-2 border-end border-white">
                 <FormControl sx={{ width: 150 }} size="small">
-                  <InputLabel id="SPE_PER">Perfil Base</InputLabel>
+                  <InputLabel id="role">Perfil Base</InputLabel>
                   <Select
-                    labelId="SPE_PER"
-                    id="SPE_PER"
-                    value={formik.values.SPE_PER}
+                    labelId="role"
+                    id="role"
+                    value={formik.values.role}
                     label="Perfil Base"
-                    name="SPE_PER"
+                    name="role"
                     onChange={formik.handleChange}
                     sx={{
                       "& .Mui-disabled": {
@@ -233,12 +242,11 @@ export default function FormEditPerfil({subPerfil}) {
                       },
                     }}
                   >
-                    {listPerfis &&
-                      listPerfis?.map((x) => (
-                        <MenuItem key={x.PER_ID} value={x.PER_ID}>
-                          {x.PER_NOME}
-                        </MenuItem>
-                      ))}
+                    {listProfiles?.map((x) => (
+                      <MenuItem key={x} value={x}>
+                        {RoleProfile[x]}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </div>
@@ -263,7 +271,7 @@ export default function FormEditPerfil({subPerfil}) {
           </div>
           <div>
             <div className="mt-5 mb-3">Permissões:</div>
-            {formik.values.SPE_PER && filterLinks.map((link) => (
+            {formik.values.role && filterLinks.map((link) => (
               <>
               {link && 
                 <CardBloco key={link?.grupo}>

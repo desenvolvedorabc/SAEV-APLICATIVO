@@ -10,16 +10,16 @@ export const Container = styled.div`
 
 export const ContainerFilters = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr 2fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
   grid-gap: 10px;
   width: 100%;
 
   &.not-edition {
-    grid-template-columns: 1fr 2fr 2fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   }
 
   &.not-year {
-    grid-template-columns: 2fr 2fr 2fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
   }
 
   &.not-class {
@@ -27,7 +27,19 @@ export const ContainerFilters = styled.div`
   }
 
   &.serie-first {
-    grid-template-columns: 1fr 2fr 2fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  }
+`;
+
+export const ContainerFiltersBelow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+
+  &.is-serie {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   }
 `;
 

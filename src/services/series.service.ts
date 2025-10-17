@@ -1,12 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { parseCookies } from "nookies";
-import CacheControl from "src/utils/cache-request";
 import { api } from "./api";
-
-const cookies = parseCookies();
-const token = cookies["__session"];
-const HALF_HOUR = 30;
 
 export async function getAllSeries(active?: "0" | "1") {
   const params = { active };
@@ -27,7 +20,11 @@ export async function getSeries(
   school?: string,
   active?: "0" | "1"
 ) {
-  const params = { token, search, page, limit, order, column, school, active };
+  const params: any = { search, page, limit, order, column, school };
+  
+  if (active !== undefined) {
+    params.active = active;
+  }
 
   // const cache = new CacheControl(HALF_HOUR, "get_api_serie");
 
@@ -44,12 +41,16 @@ export function useGetSeries(
   active?: "0" | "1",
   enabled = true as boolean
 ) {
-  const params = { search, page, limit, order, column, school, active };
+  const params: any = { search, page, limit, order, column, school };
+  
+  if (active !== undefined) {
+    params.active = active;
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ["series", params],
     queryFn: async () => {
-      const response = await axios.get("/api/serie", { params });
+      const response = await api.get("/serie", { params });
 
       return response.data;
     },
@@ -64,36 +65,52 @@ export function useGetSeries(
 }
 
 export async function createSerie(data: any) {
-  data = {
-    ...data,
-    token,
-  };
-  const response = await axios.post("/api/serie/create", { data });
+  const response = await api.post("/serie",  data)
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
   return response;
 }
 
 export async function editSerie(id: string, data: any) {
-  data = {
-    ...data,
-    token,
-  };
-  return await axios.put(`/api/serie/edit/${id}`, { data });
+  return await api.put(`/serie/${id}`, data)
+  .then((response) => {
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 400,
+      data: {
+        message: error.response.data.message,
+      },
+    };
+  });
 }
 
 export async function getSerie(id) {
-  return await axios.get(`/api/serie/${id}?token=${token}`);
+  return await api.get(`/serie/${id}`);
 }
 
 export async function getSerieReport(id) {
-  return await axios.get(`/api/serie/report/${id}?token=${token}`);
+  return await api.get(`/serie/reports/${id}`);
 }
 
 export function useGetSerieReport(id) {
   const { data, isLoading } = useQuery({
     queryKey: ["serie_report", id],
     queryFn: async () => {
-      const response = await axios.get(
-        `/api/serie/report/${id}?token=${token}`
+      const response = await api.get(
+        `/serie/reports/${id}`
       );
 
       return response.data;

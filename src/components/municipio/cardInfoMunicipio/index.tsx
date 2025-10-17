@@ -22,7 +22,7 @@ export default function CardInfoMunicipio({municipio}) {
       <div className="d-flex align-items-center">
         <ButtonWhite onClick={() => {}} >Exportar Dados do Município</ButtonWhite>
         <div className="ms-2">
-          <ButtonWhite onClick={() => {Router.push(`/municipio/editar/${municipio?.MUN_ID}`)}} >Editar</ButtonWhite>
+          <ButtonWhite dataTest='edit' onClick={() => {Router.push(`/municipio/editar/${municipio?.MUN_ID}`)}} >Editar</ButtonWhite>
         </div>
         
       </div>

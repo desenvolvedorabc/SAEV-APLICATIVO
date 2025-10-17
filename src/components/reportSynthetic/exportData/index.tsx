@@ -7,15 +7,6 @@ import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 import { z } from "zod";
 import { getExportReportSynthetic } from "src/services/report-synthetic";
 
-const paramsSchema = z.object({
-  serie: z.number(),
-  year: z.string(),
-  edition: z.number().nullable().optional(),
-  county: z.number().nullable().optional(),
-  school: z.number().nullable().optional(),
-  schoolClass: z.number().nullable().optional()
-})
-
 export function ExportReportSynthetic({ handlePrint }) {
   const [isDisabled, setIsDisabled] = useState<'csv' | 'pdf' | ''>('');
   const [anchorEl, setAnchorEl] = useState(null);
@@ -30,6 +21,8 @@ export function ExportReportSynthetic({ handlePrint }) {
 
   const {
     serie,
+    epv,
+    type,
     mapBreadcrumb,
   } = useBreadcrumbContext()
 
@@ -45,24 +38,28 @@ export function ExportReportSynthetic({ handlePrint }) {
   const downloadCsv = async () => {
     setIsDisabled('csv')
     
-    const year = mapBreadcrumb.find((data) => data.level === "year")
-    const edition = mapBreadcrumb.find((data) => data.level === "edition")
-    const county = mapBreadcrumb.find((data) => data.level === "county")
-    const school = mapBreadcrumb.find((data) => data.level === "school")
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    )    
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
 
-    const params = paramsSchema.parse({
-      year: year?.id,
-      edition: edition?.id,
-      county: county?.id,
-      school: school?.id,
-      schoolClass: schoolClass?.id,
-      serie: serie.SER_ID
-    })
-
-    const resp = await getExportReportSynthetic(params);
+    const resp = await getExportReportSynthetic({
+      serie: serie?.SER_ID,
+      year: _year?.id,
+      edition: _edition?.id,
+      isEpvPartner: epv === 'Exclusivo Epv' ? 1 : 0,
+      typeSchool: type === 'PUBLICA' ? null : type,
+      stateId: _state?.id,
+      stateRegionalId: _stateRegional?.id,
+      county: _county?.id,
+      municipalityOrUniqueRegionalId: _countyRegional?.id,
+      school: _school?.id,
+      schoolClass: _schoolClass?.id
+    });
     if(!resp.data.message) {
       saveAs(resp?.data, 'Relatório_Sintético_de_Testes.csv');
     } else {

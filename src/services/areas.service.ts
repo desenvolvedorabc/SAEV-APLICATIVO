@@ -1,5 +1,6 @@
 import axios from "axios";
 import { parseCookies } from "nookies";
+import { api } from "./api";
 
 const cookies = parseCookies();
 const token = cookies["__session"];
@@ -10,9 +11,20 @@ export async function getAllAreas() {
 }
 
 export async function getAreasByPerfil(perfil: string) {
-  const formattedPerfil = perfil === "Município" ? "Municipio" : perfil;
-  const params = { perfil: formattedPerfil };
-  return await axios.get("/api/area/perfil", { params });
+  return await api.get(`/area/all/${perfil}`)
+  .then((response) => {
+    console.log("response: ", response);
+    return response;
+  })
+  .catch((error) => {
+    console.log("error: ", error);
+    return {
+      status: 401,
+      data: {
+        message: error.response?.data?.message,
+      },
+    };
+  });
 }
 
 export async function createArea(data: any) {

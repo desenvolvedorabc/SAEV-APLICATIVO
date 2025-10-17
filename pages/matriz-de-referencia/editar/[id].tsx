@@ -6,6 +6,7 @@ import FormEditMatriz from "src/components/referencia/formEditMatriz";
 import { getReference } from "src/services/referencias.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function EditarMatriz({id, url}) {
@@ -40,12 +41,17 @@ EditarMatriz.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id} = context.params
-  return {
-    props: {
-      id,
-      url: process.env.NEXT_PUBLIC_API_URL
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const {id} = ctx.params
+    return {
+      props: { 
+        id,
+        url: process.env.NEXT_PUBLIC_API_URL
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

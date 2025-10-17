@@ -29,6 +29,7 @@ import {
 } from "react-icons/md";
 
 import Link from "next/link";
+import { Loading } from "src/components/Loading";
 
 interface Data {
   ALU_ID: string;
@@ -175,6 +176,7 @@ export function TableAlunosTransfer({ escola, busca }) {
   const [limit, setLimit] = useState(25);
   const [disablePrev, setDisablePrev] = useState(true);
   const [disableNext, setDisableNext] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -231,6 +233,7 @@ export function TableAlunosTransfer({ escola, busca }) {
     _selectedColumn: string,
     _order: string,
   ) {
+    setIsLoading(true);
     const respAlunos = await getStudentsTransfer(
       busca,
       _page,
@@ -238,7 +241,7 @@ export function TableAlunosTransfer({ escola, busca }) {
       _selectedColumn,
       _order.toUpperCase(),
       escola ? escola : null,
-      "1"
+      null
     );
     const inicio = respAlunos?.data.links?.last.search("=");
     const fim = respAlunos?.data.links?.last.search("&");
@@ -264,11 +267,11 @@ export function TableAlunosTransfer({ escola, busca }) {
       );
     });
 
+    setIsLoading(false);
     setRows(list);
   }
 
   useEffect(() => {
-    console.log('alterou2');
     setPage(1)
     loadStudentsTable(
       1,
@@ -302,71 +305,74 @@ export function TableAlunosTransfer({ escola, busca }) {
   };
 
   return (
-    <Container>
-      {/*<TopContainer>
-         <div className="d-flex mb-2">
-          <div className="d-flex flex-row-reverse align-items-center ms-3">
-            <InputSearch
-              size={16}
-              type="text"
-              placeholder="Pesquise"
-              name="searchTerm"
-              onChange={handleChangeSearch}
-            />
-            <IconSearch color={"#7C7C7C"} />
-          </div>
-        </div> 
-      </TopContainer>*/}
-      <Box sx={{ width: "100%" }}>
-        <Paper
-          sx={{
-            width: "100%",
-            mb: 2,
-            borderBottomLeftRadius: "10px",
-            borderBottomRightRadius: "10px",
-          }}
-        >
-          <TableContainer>
-            <Table
-              sx={{ minWidth: 750 }}
-              aria-labelledby="tableTitle"
-              size={"medium"}
-            >
-              <EnhancedTableHead
-                order={order}
-                orderBy={orderBy}
-                onRequestSort={handleRequestSort}
-                rowCount={rows.length}
+    isLoading ?
+      <Loading/>
+    :
+      <Container>
+        {/*<TopContainer>
+          <div className="d-flex mb-2">
+            <div className="d-flex flex-row-reverse align-items-center ms-3">
+              <InputSearch
+                size={16}
+                type="text"
+                placeholder="Pesquise"
+                name="searchTerm"
+                onChange={handleChangeSearch}
               />
-              <TableBody id="tableBody" ref={tableBody}>
-                {rows.map((row, index) => {
-                  return setRow(row, index);
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Pagination>
-            Linhas por página:
-            <FormSelectStyled value={limit} onChange={handleChangeLimit}>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </FormSelectStyled>
-            <ButtonPage
-              onClick={() => handleChangePage2("prev")}
-              disabled={disablePrev}
-            >
-              <MdNavigateBefore size={24} />
-            </ButtonPage>
-            <ButtonPage
-              onClick={() => handleChangePage2("next")}
-              disabled={disableNext}
-            >
-              <MdNavigateNext size={24} />
-            </ButtonPage>
-          </Pagination>
-        </Paper>
-      </Box>
-    </Container>
+              <IconSearch color={"#7C7C7C"} />
+            </div>
+          </div> 
+        </TopContainer>*/}
+        <Box sx={{ width: "100%" }}>
+          <Paper
+            sx={{
+              width: "100%",
+              mb: 2,
+              borderBottomLeftRadius: "10px",
+              borderBottomRightRadius: "10px",
+            }}
+          >
+            <TableContainer>
+              <Table
+                sx={{ minWidth: 750 }}
+                aria-labelledby="tableTitle"
+                size={"medium"}
+              >
+                <EnhancedTableHead
+                  order={order}
+                  orderBy={orderBy}
+                  onRequestSort={handleRequestSort}
+                  rowCount={rows.length}
+                />
+                <TableBody id="tableBody" ref={tableBody}>
+                  {rows.map((row, index) => {
+                    return setRow(row, index);
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Pagination>
+              Linhas por página:
+              <FormSelectStyled value={limit} onChange={handleChangeLimit}>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </FormSelectStyled>
+              <ButtonPage
+                onClick={() => handleChangePage2("prev")}
+                disabled={disablePrev}
+              >
+                <MdNavigateBefore size={24} />
+              </ButtonPage>
+              <ButtonPage
+                onClick={() => handleChangePage2("next")}
+                disabled={disableNext}
+              >
+                <MdNavigateNext size={24} />
+              </ButtonPage>
+            </Pagination>
+          </Paper>
+        </Box>
+      </Container>
   );
 }

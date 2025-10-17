@@ -1,8 +1,8 @@
 import { PageTitleStyled } from "./styledComponents";
 
-export default function PageTitle({children}) {
+export default function PageTitle({children, dataTest = ""}) {
   return (
-    <PageTitleStyled>
+    <PageTitleStyled data-test={dataTest}>
       {children}
     </PageTitleStyled>
   );

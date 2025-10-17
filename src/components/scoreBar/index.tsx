@@ -5,6 +5,7 @@ interface Item {
   name: string;
   id: string;
   value: number;
+  type?: string;
 }
 
 interface ScorebarProps {
@@ -18,21 +19,42 @@ export default function ScoreBar({
   level,
   haveClick = true,
 }: ScorebarProps) {
+  
   const {
     addBreadcrumbs,
+    handleClickBar,
+    changeState,
+    changeStateRegional,
+    changeCounty,
+    changeCountyRegional,
     changeSchool,
     changeSchoolClass,
-    handleClickBar,
-    changeCounty,
   } = useBreadcrumbContext();
 
   const handleClick = async (_id, _name, _level) => {
-    if (_level === "county") {
+    
+    if (_level === "state") {
+      changeState({
+        id: _id,
+        name: _name,
+      });
+      changeStateRegional(null);
+    } else if (_level === "regional") {
+      changeStateRegional({
+        id: _id,
+        name: _name,
+      });
+      changeCounty(null);
+    } else if (_level === "county") {
       changeCounty({
-        AVM_MUN: {
-          MUN_ID: _id,
-          MUN_NOME: _name,
-        },
+        MUN_ID: _id,
+        MUN_NOME: _name,
+      });
+      changeCountyRegional(null);
+    } else if (_level === "regionalSchool") {
+      changeCountyRegional({
+        id: _id,
+        name: _name,
       });
       changeSchool(null);
     } else if (_level === "school") {
@@ -41,7 +63,9 @@ export default function ScoreBar({
         ESC_NOME: _name,
       });
       changeSchoolClass(null);
-    } else if (_level === "school-class" || _level === "schoolClass") {
+    } else if (
+      _level === "schoolClass"
+    ) {
       changeSchoolClass({
         TUR_ID: _id,
         TUR_NOME: _name,
@@ -62,7 +86,15 @@ export default function ScoreBar({
       }}
     >
       <Nome>
-        <span> {item.name}</span>
+        <span>{item.name}</span>
+        {
+          level === 'school' ?
+          <div style={{ backgroundColor: '#989898', minWidth: '26px', height: '21px', borderRadius: '16px', textAlign: 'center', marginRight: '8px', color: '#fff', fontSize: '14px' }}>
+            {item?.type === 'MUNICIPAL' ? 'M' : 'E'}
+          </div>
+          :
+          <div></div>
+        }
       </Nome>
       <BarBox>
         <Bar width={item.value}></Bar>

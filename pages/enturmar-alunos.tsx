@@ -9,15 +9,16 @@ import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function Enturmar() {
-  const [mun, setMun] = useState(null)
+  const [county, setCounty] = useState(null)
+  const [type, setType] = useState(null);
   const [school, setSchool] = useState(null)
   const [status, setStatus] = useState(null)
 
   return (
     <PageContainer>
       <Top title={"Enturmar Alunos"}/>
-      <FilterEnturmar changeMun={setMun} changeSchool={setSchool} changeStatus={setStatus} />
-      <TableEnturmar mun={mun} school={school} status={status} />
+      <FilterEnturmar changeCounty={setCounty} changeSchool={setSchool} changeStatus={setStatus} />
+      <TableEnturmar county={county} school={school} status={status} />
     </PageContainer>
   );
 }

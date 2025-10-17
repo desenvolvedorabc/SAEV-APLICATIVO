@@ -23,12 +23,14 @@ import ModalPergunta from "src/components/modalPergunta";
 import ButtonVermelho from "src/components/buttons/buttonVermelho";
 import Router from "next/router";
 import { setCookie, parseCookies } from "nookies";
-import { useGetAllPerfis } from "src/services/perfis.service";
-import { useGetSubBase } from "src/services/sub-perfis.service";
+import { RoleProfile, useGetProfiles } from "src/services/perfis.service";
 import { isValidCPF } from "src/utils/validate";
 import { Autocomplete, TextField } from "@mui/material";
-import { AutoCompletePagMun } from "src/components/AutoCompletePag/AutoCompletePagMun";
 import { AutoCompletePagEscMun } from "src/components/AutoCompletePag/AutoCompletePagEscMun";
+import { useGetStates } from "src/services/estados.service";
+import { queryClient } from "src/lib/react-query";
+import { useAuth } from "src/context/AuthContext";
+import { AutoCompletePagMun2 } from "src/components/AutoCompletePag/AutoCompletePagMun2";
 
 type ValidationErrors = Partial<{
   USU_SPE: string;
@@ -38,6 +40,7 @@ type ValidationErrors = Partial<{
   USU_EMAIL: string;
   USU_DOCUMENTO: string;
   USU_FONE: string;
+  stateId: string;
 }>;
 
 export default function FormEditUsuario({ usuario }) {
@@ -47,9 +50,11 @@ export default function FormEditUsuario({ usuario }) {
     useState(false);
   const [active, setActive] = useState(usuario.USU_ATIVO);
   const [modalStatus, setModalStatus] = useState(true);
+  const [listPerfil, setListPerfil] = useState([])
   const [selectedPerfil, setSelectedPerfil] = useState(
-    usuario.USU_SPE?.SPE_PER
+    usuario.USU_SPE?.role
   );
+  const [selectedState, setSelectedState] = useState(null);
   const [selectedCounty, setSelectedCounty] = useState(usuario?.USU_MUN);
   const [selectedSchool, setSelectedSchool] = useState(usuario?.USU_ESC);
   const [resetSchool, setResetSchool] = useState(false)
@@ -59,10 +64,33 @@ export default function FormEditUsuario({ usuario }) {
   );
   const [errorMessage, setErrorMessage] = useState(true);
   const [isDisabled, setIsDisabled] = useState(false);
+  const { user } = useAuth()
 
-  const { data: listPerfis, isLoading: isLoadingPerfis } = useGetAllPerfis();
+  const { data: listSubPerfis, isLoading: isLoadingSubPerfis } = useGetProfiles(null, 1, 999999, null, 'ASC', selectedPerfil, !!selectedPerfil);
 
-  const { data: listSubPerfis, isLoading: isLoadingSubPerfis } = useGetSubBase(selectedPerfil?.PER_ID, !!selectedPerfil);
+  const { data: states, isLoading: isLoadingStates } = useGetStates();
+
+  useEffect(() => {
+    if(user){
+      if(user?.USU_SPE?.role === 'SAEV'){
+        setListPerfil(Object.keys(RoleProfile))
+      } else if(user?.USU_SPE?.role === 'ESTADO'){
+        setListPerfil(['ESTADO', 'MUNICIPIO_ESTADUAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+        setListPerfil(['MUNICIPIO_ESTADUAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+        setListPerfil(['MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+      } else if(user?.USU_SPE?.role === 'ESCOLA'){
+        setListPerfil(['ESCOLA'])
+      }
+    }
+  },[user]);
+
+  useEffect(() => {
+    if(states?.length > 0 ){
+      setSelectedState(states.find(state => state.id === usuario?.stateId))
+    }
+  },[usuario, states]);
 
   const { getRootProps, getInputProps, isFocused, isDragAccept, isDragReject } =
     useDropzone({
@@ -75,18 +103,24 @@ export default function FormEditUsuario({ usuario }) {
     });
 
   const validate = (values) => {
+    console.log('values :', values);
     const errors: ValidationErrors = {};
     if (!values.USU_SPE) {
       errors.USU_SPE = "Campo obrigatório";
     }
 
-    if (selectedPerfil?.PER_NOME !== "SAEV") {
-      if (!values.USU_MUN) {
-        errors.USU_MUN = "Campo obrigatório";
+    if (selectedPerfil !== "SAEV") {
+      if (!values.stateId) {
+        errors.stateId = "Campo obrigatório";
       }
-      if (selectedPerfil?.PER_NOME !== "Município") {
-        if (!values.USU_ESC) {
-          errors.USU_ESC = "Campo obrigatório";
+      if(selectedPerfil !== "ESTADO") {
+        if (!values.USU_MUN) {
+          errors.USU_MUN = "Campo obrigatório";
+        }
+        if(selectedPerfil === "ESCOLA") {
+          if (!values.USU_ESC) {
+            errors.USU_ESC = "Campo obrigatório";
+          }
         }
       }
     }
@@ -129,6 +163,7 @@ export default function FormEditUsuario({ usuario }) {
       USU_AVATAR: usuario.USU_AVATAR,
       USU_SPE: usuario.USU_SPE?.SPE_ID ?? null,
       USU_SENHA: usuario.USU_SENHA,
+      stateId: usuario.stateId,
     },
     validate,
     onSubmit: async (values) => {
@@ -143,16 +178,16 @@ export default function FormEditUsuario({ usuario }) {
       values.USU_ESC = values.USU_ESC ? parseInt(values.USU_ESC) : null
       values.USU_SPE = values.USU_SPE ? parseInt(values.USU_SPE) : null
 
-      const newValues = {
-        ...values,
-        USU_MUN: values?.USU_MUN === 'MUNICIPIO' ? null : values.USU_MUN,
-        USU_ESC: values?.USU_ESC === 'ESCOLA' ? null : values.USU_ESC,
-      }
+      // const newValues = {
+      //   ...values,
+      //   USU_MUN: values?.USU_MUN === 'MUNICIPIO' ? null : values.USU_MUN,
+      //   USU_ESC: values?.USU_ESC === 'ESCOLA' ? null : values.USU_ESC,
+      // }
 
       setIsDisabled(true)
       let response = null;
       try{
-        response = await editUser(usuario.USU_ID, newValues, file);
+        response = await editUser(usuario.USU_ID, values, file);
       }
       catch (err) {
         setIsDisabled(false)
@@ -177,9 +212,9 @@ export default function FormEditUsuario({ usuario }) {
             path: "/",
           });
 
-          setCookie(null, "PER_NOME", usuSubPer.SPE_PER?.PER_NOME, {
-            path: "/",
-          });
+          // setCookie(null, "PER_NOME", usuSubPer.SPE_PER?.PER_NOME, {
+          //   path: "/",
+          // });
 
           setCookie(null, "USU_SPE_ID", usuSubPer?.SPE_ID, {
             path: "/",
@@ -196,6 +231,7 @@ export default function FormEditUsuario({ usuario }) {
         }
         setModalStatus(true);
         setModalShowConfirm(true);
+        queryClient.invalidateQueries(['users'])
       } else {
         setModalStatus(false);
         setModalShowConfirm(true);
@@ -221,7 +257,7 @@ export default function FormEditUsuario({ usuario }) {
     ) {
       setModalStatus(false);
       setModalShowConfirmQuestion(true);
-      setErrorMessage(response.data.message || "Erro ao alterar turma");
+      setErrorMessage(response.data.message || "Erro ao alterar usuário");
     } else {
       setModalStatus(true);
       setModalShowConfirmQuestion(true);
@@ -286,17 +322,17 @@ export default function FormEditUsuario({ usuario }) {
             <BoxLeft className="d-flex flex-column col-4">
               <Form.Label>Escolha um Perfil:</Form.Label>
               <div className="my-2">
-                <Autocomplete
+              <Autocomplete
                   className=""
-                  id="size-small-outlined"
+                  data-test='profile'
+                  id="profile"
                   size="small"
                   value={selectedPerfil}
                   noOptionsText="Perfil Base"
-                  options={listPerfis ? listPerfis : []}
-                  getOptionLabel={(option) =>  `${option?.PER_NOME}`}
+                  options={listPerfil}
+                  getOptionLabel={(option) =>  `${RoleProfile[option]}`}
                   onChange={(_event, newValue) => {
                     handleChangePerfil(newValue)}}
-                  loading={isLoadingPerfis}
                   sx={{
                     "& .Mui-disabled": {
                       background: "#D3D3D3",
@@ -315,7 +351,7 @@ export default function FormEditUsuario({ usuario }) {
                 value={formik.values.USU_SPE}
                 className=""
               >
-                {listSubPerfis?.map((x) => {
+                {listSubPerfis?.items?.map((x) => {
                   return (
                     <FormCheck id={x.SPE_ID} key={x.SPE_ID} className="">
                       <Form.Check.Input
@@ -346,13 +382,39 @@ export default function FormEditUsuario({ usuario }) {
                 </Form.Label>
                 <InputGroup2 className="my-3">
                   <div>
-                    <AutoCompletePagMun county={selectedCounty} changeCounty={handleSelectCounty} />
+                    <Autocomplete
+                      className=""
+                      data-test='state'
+                      id="state"
+                      size="small"
+                      value={selectedState}
+                      noOptionsText="Estado"
+                      options={states}
+                      getOptionLabel={(option) =>  `${option?.name}`}
+                      onChange={(_event, newValue) => {
+                        setSelectedState(newValue)
+                        formik.setFieldValue('stateId', newValue?.id, true)
+                        handleSelectCounty(null)
+                      }}
+                      sx={{
+                        "& .Mui-disabled": {
+                          background: "#D3D3D3",
+                        },
+                      }}
+                      renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+                    />
+                    {formik.errors.stateId ? (
+                      <ErrorText>{formik.errors.stateId}</ErrorText>
+                    ) : null}
+                  </div>
+                  <div>
+                    <AutoCompletePagMun2 county={selectedCounty} changeCounty={handleSelectCounty} stateId={selectedState?.id} disabled={!selectedState}/>
                     {formik.errors.USU_MUN ? (
                       <ErrorText>{formik.errors.USU_MUN}</ErrorText>
                     ) : null}
                   </div>
                   <div>
-                    <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCounty} resetSchools={resetSchool} />
+                    <AutoCompletePagEscMun school={selectedSchool} changeSchool={handleSelectSchool} mun={selectedCounty} resetSchools={resetSchool} disabled={!selectedCounty} />
                     {formik.errors.USU_ESC ? (
                       <ErrorText>{formik.errors.USU_ESC}</ErrorText>
                     ) : null}
@@ -460,6 +522,7 @@ export default function FormEditUsuario({ usuario }) {
             <div>
               {formik.values.USU_ATIVO ? (
                 <ButtonVermelho
+                  dataTest='cancel'
                   onClick={(e) => {
                     e.preventDefault();
                     setModalShowQuestion(true);
@@ -469,6 +532,7 @@ export default function FormEditUsuario({ usuario }) {
                 </ButtonVermelho>
               ) : (
                 <ButtonPadrao
+                  dataTest='active'
                   onClick={(e) => {
                     e.preventDefault();
                     setModalShowQuestion(true);
@@ -481,6 +545,7 @@ export default function FormEditUsuario({ usuario }) {
             <div className="d-flex">
               <div style={{ width: 160 }}>
                 <ButtonWhite
+                  dataTest='cancel'
                   onClick={(e) => {
                     e.preventDefault();
                     formik.resetForm();
@@ -491,6 +556,7 @@ export default function FormEditUsuario({ usuario }) {
               </div>
               <div className="ms-3" style={{ width: 160 }}>
                 <ButtonPadrao
+                  dataTest='save'
                   type="submit"
                   onClick={(e) => {
                     e.preventDefault();

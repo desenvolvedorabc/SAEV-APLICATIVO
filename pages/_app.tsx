@@ -52,7 +52,7 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);
 
   return (
-    < QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Head>
           <link rel="shortcut icon" href="/assets/images/Icone_Navegador_SAEV2.png" />
@@ -65,13 +65,13 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
                 <Component {...pageProps} />
               </BreadcrumbProvider>
             ) : (
-               <LoadingScreen />
-             )}
+              <LoadingScreen />
+            )}
           </>
         )}
       </AuthProvider>
-        <ToastContainer />
-      </QueryClientProvider>
+      <ToastContainer />
+    </QueryClientProvider>
   );
 }
 

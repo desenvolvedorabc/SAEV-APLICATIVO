@@ -35,6 +35,13 @@ import ModalAviso from "src/components/modalAviso";
 import { TextField } from "@mui/material";
 import Router from 'next/router'
 import useDebounce from "src/utils/use-debounce";
+import { Loading } from "src/components/Loading";
+
+enum enumType {
+  ESTADUAL = 'Estadual',
+  MUNICIPAL = 'Municipal',
+  PUBLICA = 'Publica'
+}
 
 interface Data {
   ALU_ID: string;
@@ -133,7 +140,9 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 }
 
 type TableProps = {
+  state: any;
   county: any;
+  type: any;
   serie: any;
   school: any;
   schoolClass: any;
@@ -142,7 +151,9 @@ type TableProps = {
 };
 
 export function TableInfrequencia({
+  state,
   county,
+  type,
   school,
   schoolClass,
   serie,
@@ -164,10 +175,10 @@ export function TableInfrequencia({
   const [searchTerm, setSearchTerm] = useState(null);
   const [disablePrev, setDisablePrev] = useState(true);
   const [disableNext, setDisableNext] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
   const [qntAlunos, setQntAlunos] = useState(0)
   const [listInfrequencia, setListInfrequencia] = useState([])
   const [isDisabled, setIsDisabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   let changeFilter = false;
 
@@ -247,6 +258,7 @@ export function TableInfrequencia({
     _year: string,
     _month: number
   ) {
+    setIsLoading(true);
     const respAlunos = await getAbsences(
       _search,
       _page,
@@ -271,7 +283,7 @@ export function TableInfrequencia({
       list.push(
         createData(x.ALU_ID, x.ALU_INEP, x.ALU_NOME, x.MUN_NOME)
       );
-      let find = listInfr.find(alu => alu.IFR_ALU_ID === x.ALU_ID)
+      let find = listInfr?.find(alu => alu.IFR_ALU_ID === x.ALU_ID)
       if(!find){
         listInfr.push({
           IFR_MES: month,
@@ -288,26 +300,10 @@ export function TableInfrequencia({
     setListInfrequencia(listInfr)
 
     setRows(list);
+    setIsLoading(false);
 
     changeFilter = false
   }
-
-  useEffect(() => {
-    if (isLoadingData) {
-      loadAbsence(
-        search,
-        page,
-        limit,
-        selectedColumn,
-        order,
-        schoolClass?.TURMA_TUR_ID,
-        year,
-        month.MES_ID
-      );
-      setIsLoadingData(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingData]);
 
   useEffect(() => {
     changeFilter = true;
@@ -346,7 +342,7 @@ export function TableInfrequencia({
     let find = false
 
     if(e.target.value <= 30 && e.target.value >= 0){
-      listInfrequencia.map(x => {
+      listInfrequencia?.map(x => {
         if(x.IFR_ALU_ID === idAluno){
           x.IFR_FALTA = e.target.value
           setListInfrequencia([...listInfrequencia])
@@ -369,13 +365,11 @@ export function TableInfrequencia({
 
   const getInfrequencia = (idAluno) => {
     let aluno
-    aluno = listInfrequencia.find(x => x.IFR_ALU_ID === idAluno)
+    aluno = listInfrequencia?.find(x => x.IFR_ALU_ID === idAluno)
     return aluno?.IFR_FALTA
   }
 
   const handleSubmit = async () => {
-
-    
     setIsDisabled(true)
     let response = null;
     try{
@@ -420,8 +414,9 @@ export function TableInfrequencia({
               fullWidth={false}
               type="number"
               label=" "
-              name="ALU_INEP"
-              id="ALU_INEP"
+              data-test={'ALU_FALTAS' + row.ALU_ID}
+              name="ALU_FALTAS"
+              id={'ALU_FALTAS' + row.ALU_ID}
               value={getInfrequencia(row.ALU_ID)}
               size="small"
               InputProps={{ inputProps: { min: 0, max: 30 } }}
@@ -436,31 +431,35 @@ export function TableInfrequencia({
 
   return (
     <>
-      {!isLoadingData ? (
-        <Container>
-          <TopContainer>
-            {!!serie && (
-              <h3>
-                {county?.MUN_CIDADE}, {school?.ESC_NOME}, {serie?.SER_NOME} -{" "}
-                {schoolClass?.TURMA_TUR_NOME} - {schoolClass?.TURMA_TUR_PERIODO} - {year} - {month.MES_NOME} ({qntAlunos}{" "}
-                Alunos)
-              </h3>
-            )}
-            <div className="d-flex m-2">
-              <div className="d-flex flex-row-reverse align-items-center ">
-                <InputSearch
-                  size={16}
-                  type="text"
-                  placeholder="Pesquise"
-                  name="searchTerm"
-                  onChange={handleChangeSearch}
-                />
-                <IconSearch color={"#7C7C7C"} />
-              </div>
+      <Container>
+        <TopContainer>
+          {!!serie && (
+            <h3>
+              {state?.name}, {county?.MUN_CIDADE}, {enumType[type]}, {school?.ESC_NOME}, {serie?.SER_NOME} -{" "}
+              {schoolClass?.TURMA_TUR_NOME} - {schoolClass?.TURMA_TUR_PERIODO} - {year} - {month.MES_NOME} ({qntAlunos}{" "}
+              Alunos)
+            </h3>
+          )}
+          <div className="d-flex m-2">
+            <div className="d-flex flex-row-reverse align-items-center ">
+              <InputSearch
+                size={16}
+                type="text"
+                id='search'
+                data-test='search'
+                placeholder="Pesquise"
+                name="searchTerm"
+                onChange={handleChangeSearch}
+              />
+              <IconSearch color={"#7C7C7C"} />
             </div>
-          </TopContainer>
+          </div>
+        </TopContainer>
 
-          <Box sx={{ width: "100%" }}>
+        <Box sx={{ width: "100%" }}>
+          {isLoading ? 
+            <Loading />
+            :
             <Paper
               sx={{
                 width: "100%",
@@ -480,9 +479,9 @@ export function TableInfrequencia({
                     orderBy={orderBy}
                     onRequestSort={handleRequestSort}
                     rowCount={rows.length}
-                  />
+                    />
                   <TableBody id="tableBody" ref={tableBody}>
-                    {rows.map((row, index) => {
+                    {rows?.map((row, index) => {
                       return setRow(row, index);
                     })}
                   </TableBody>
@@ -490,63 +489,61 @@ export function TableInfrequencia({
               </TableContainer>
               <Pagination>
                 Linhas por página:
-                <FormSelectStyled value={limit} onChange={handleChangeLimit}>
+                <FormSelectStyled data-test="limit" value={limit} onChange={handleChangeLimit}>
                   <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                 </FormSelectStyled>
                 <ButtonPage
+                  data-test="previous"
                   onClick={() => handleChangePage2("prev")}
                   disabled={disablePrev}
-                >
+                  >
                   <MdNavigateBefore size={24} />
                 </ButtonPage>
                 <ButtonPage
+                  data-test="next"
                   onClick={() => handleChangePage2("next")}
                   disabled={disableNext}
-                >
+                  >
                   <MdNavigateNext size={24} />
                 </ButtonPage>
               </Pagination>
             </Paper>
-          </Box>
+          }
+        </Box>
 
-          <footer>
-            <div style={{ width: 160 }}>
-              <ButtonWhite
-                type="button"
-                onClick={() => setModalShowWarning(true)}
-              >
-                Descartar
-              </ButtonWhite>
-            </div>
-            <div className="ms-3" style={{ width: 160 }}>
-              <ButtonPadrao
-                type="submit"
-                disable={isDisabled}
-                onClick={() => {
-                  handleSubmit()
-                }}
-              >
-                Salvar Infrequencia
-              </ButtonPadrao>
-            </div>
-          </footer>
-        </Container>
-      ) : (
-        <h1>...</h1>
-      )}
+        <footer>
+          <div style={{ width: 160 }}>
+            <ButtonWhite
+              type="button"
+              dataTest="cancel"
+              onClick={() => setModalShowWarning(true)}
+            >
+              Descartar
+            </ButtonWhite>
+          </div>
+          <div className="ms-3" style={{ width: 160 }}>
+            <ButtonPadrao
+              dataTest="save"
+              disable={isDisabled}
+              onClick={() => {
+                handleSubmit()
+              }}
+            >
+              Salvar Infrequencia
+            </ButtonPadrao>
+          </div>
+        </footer>
+      </Container>
 
       <ModalAviso
         show={modalShowWarning}
         onConfirm={() => {
-          setModalShowWarning(false), setIsLoadingData(true), Router.reload();
+          setModalShowWarning(false), Router.reload();
         }}
         onHide={() => {
-          // setModalShowConfirm(true);
-          //Router.reload();
           setModalShowWarning(false);
-          // setModalTextConfirm("Dados de infrequência descartados.");
         }}
         newModalFormat
         buttonNo={"Manter Apontamento"}

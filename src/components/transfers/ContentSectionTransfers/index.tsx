@@ -1,3 +1,4 @@
+import { useAuth } from "src/context/AuthContext";
 import { Transference } from "./Transference";
 
 import * as S from "./styles";
@@ -10,21 +11,34 @@ type Props = {
   handleApprov;
   handleUnapprov;
   handleInfo;
-  user;
 };
 
-export function ContentSectionTranfers({ transfers, url, school, handleCancel, handleApprov, handleUnapprov, handleInfo, user }: Props) {
+export function ContentSectionTranfers({ transfers, url, school, handleCancel, handleApprov, handleUnapprov, handleInfo }: Props) {
+  const { user } = useAuth()
   
   const verifyApprove = (data) => {
-    if(user?.USU_SPE?.SPE_PER?.PER_NOME === "SAEV"){
+  console.log('data :', data);
+    if(user?.USU_SPE?.role === "SAEV"){
       return true;
     }
-    if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Município" && user?.USU_MUN?.MUN_ID === data?.MUN_ID_DESTINO){
+    if(user?.USU_SPE?.role === "ESTADO" && user?.stateId === data?.ESTADO_ORIGEM_ID && data?.ESC_TIPO_ORIGEM === 'ESTADUAL'){
       return true;
     }
-    // if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Escola" && user?.USU_ESC?.ESC_ID === data?.ESC_ID_DESTINO){
-    //   return true;
-    // }
+    if(user?.USU_SPE?.role === "ESTADO" && user?.stateId === data?.ESTADO_ORIGEM_ID && data?.ESC_TIPO_ORIGEM === 'MUNICIPAL' && data?.MUN_ORIGEM_COMPARTILHA_DADOS === 1){
+      return true;
+    }
+    if(
+      user?.USU_SPE?.role === "MUNICIPIO_ESTADUAL" && (data?.ESC_TIPO_ORIGEM === 'ESTADUAL'
+      || data?.ESC_TIPO_DESTINO === 'ESTADUAL')
+    ){
+      return true;
+    }
+    if(
+      user?.USU_SPE?.role === "MUNICIPIO_MUNICIPAL" && (data?.ESC_TIPO_ORIGEM === 'MUNICIPAL'
+      || data?.ESC_TIPO_DESTINO === 'MUNICIPAL')
+    ){
+      return true;
+    }
     return false;
   }
 

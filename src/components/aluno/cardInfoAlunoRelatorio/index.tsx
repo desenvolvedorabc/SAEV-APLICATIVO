@@ -86,18 +86,19 @@ export function CardInfoAlunoRelatorio({ aluno }) {
     aluno?.ALU_DEFICIENCIAS?.forEach((pcd, index) => 
       { 
         pcdString = pcdString.concat(pcd.PCD_NOME)
-        if(index < aluno?.ALU_DEFICIENCIAS.length - 1){
+        if(index < aluno?.ALU_DEFICIENCIAS?.length - 1){
           pcdString = pcdString.concat(', ')
         }
       }
     )
 
-    if(aluno?.ALU_DEFICIENCIAS.length > 0 && aluno?.ALU_DEFICIENCIA_BY_IMPORT){
+    if(aluno?.ALU_DEFICIENCIAS?.length > 0 && aluno?.ALU_DEFICIENCIA_BY_IMPORT){
       pcdString = pcdString.concat(', ')
     }
-    pcdString = pcdString.concat(aluno?.ALU_DEFICIENCIA_BY_IMPORT)
+    if(aluno?.ALU_DEFICIENCIA_BY_IMPORT)
+      pcdString = pcdString.concat(aluno?.ALU_DEFICIENCIA_BY_IMPORT)
 
-    return pcdString
+    return pcdString || ''
   }
 
   return (

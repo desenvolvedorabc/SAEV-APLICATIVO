@@ -17,6 +17,7 @@ import { CSVLink } from "react-csv";
 import { useBreadcrumbContext } from "src/context/breadcrumb.context";
 import { withSSRAuth } from "src/utils/withSSRAuth";
 import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
 
 interface Data {
   DESCRITOR: string;
@@ -49,18 +50,28 @@ export default function ResultadosDescritores() {
   const [csv, setCsv] = useState([]);
   const csvLink = useRef(undefined);
   const [expandAll, setExpandAll] = useState(false);
+  const router = useRouter();
 
   const {
     changeSerie,
     changeYear,
+    changeEpv,
+    changeType,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeEdition,
     changeSchool,
     changeSchoolClass,
     serie,
     year,
-    edition,
+    epv,
+    type,
+    state,
+    stateRegional,
     county,
+    countyRegional,
     school,
     hideBreadcrumbs,
     setIsUpdateData,
@@ -77,21 +88,45 @@ export default function ResultadosDescritores() {
 
   const loadInfos = async () => {
     setIsLoading(true);
-    const year = mapBreadcrumb.find((data) => data.level === "year");
-    const edition = mapBreadcrumb.find((data) => data.level === "edition");
-    const county = mapBreadcrumb.find((data) => data.level === "county");
-    const school = mapBreadcrumb.find((data) => data.level === "school");
-    const schoolClass = mapBreadcrumb.find(
-      (data) => data.level === "schoolClass"
-    );
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
+    // let newUrl = `${router.pathname}?`
+        
+    // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(_edition) newUrl = newUrl.concat('&edition=' + _edition?.id)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
+    
     const resp: SubjectDescriptor[] = await getDescriptorReport(
       serie?.SER_ID,
-      year?.id,
-      edition?.id,
-      county?.id,
-      school?.id,
-      schoolClass?.id
+      _year?.id,
+      _edition?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id
     );
     setIsLoading(false);
     setItems(resp ?? []);
@@ -140,13 +175,24 @@ export default function ResultadosDescritores() {
     }
   }, [subject, items]);
 
-  const handleChangeSerie = (e) => {
-    changeSerie(e ? e.target.value : null);
+  const handleChangeSerie = (newValue, add = false) => {
+    changeSerie(newValue);
     changeYear(null);
     changeEdition(null);
+    changeEpv(null);
+    changeType(null);
+    changeState(null);
+    changeStateRegional(null);
     changeCounty(null);
+    changeCountyRegional(null);
     changeSchool(null);
     changeSchoolClass(null);
+
+    if(add){
+      const url = window.location.href.split('?serie=')
+      const newUrl = url[0].concat('?serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
     resetBreadcrumbs();
     handleUnClickBar();
     handleClickBreadcrumb(null);
@@ -164,12 +210,12 @@ export default function ResultadosDescritores() {
       hideBreadcrumbs();
       setIsUpdateData(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     visibleBreadcrumbs,
     isUpdateData,
     hideBreadcrumbs,
     setIsUpdateData,
-    loadInfos,
   ]);
 
   useEffect(() => {
@@ -210,13 +256,17 @@ export default function ResultadosDescritores() {
   }
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!edition)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -230,7 +280,7 @@ export default function ResultadosDescritores() {
           serie={serie}
           changeSerie={handleChangeSerie}
         />
-        <ReportFilter isDisableYear={!serie} isDisable={onDisableReportFilter()} />
+        <ReportFilter isDisableYear={!serie} isDisable={onDisableReportFilter()} isSaev={user?.USU_SPE?.role === 'SAEV'} />
         {isLoading ? (
           <div className="d-flex align-items-center flex-column mt-5">
             <div className="spinner-border" role="status"></div>

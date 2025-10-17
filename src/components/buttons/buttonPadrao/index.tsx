@@ -1,8 +1,8 @@
 import { ButtonStyled } from "./styledComponents";
 
-export function ButtonPadrao({children, onClick, disable = false, type="button"}) {
+export function ButtonPadrao({children, onClick, disable = false, type="button", dataTest = ''}) {
   return (
-    <ButtonStyled type={type} onClick={onClick} disabled={disable}>
+    <ButtonStyled data-test={dataTest} type={type} onClick={onClick} disabled={disable}>
       {children}
     </ButtonStyled>
   );

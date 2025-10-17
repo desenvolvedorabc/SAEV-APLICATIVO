@@ -1,18 +1,19 @@
 import PageContainer from "src/components/pageContainer";
 import Top from "src/components/top";
-import FormAddEscola from "src/components/escola/formAddEscola";
 import { useGetCounty } from "src/services/municipios.service";
 import Layout from "src/components/layout";
 import type { ReactElement } from 'react'
+import FormEditEscola from "src/components/escola/formEditEscola";
+import { withSSRAuth } from "src/utils/withSSRAuth";
 
 
 export default function AdicionarEscola({id}) {
-  const { data: city } = useGetCounty(id);
+  const { data: county, isLoading } = useGetCounty(id);
   return (
-    <PageContainer>
-      <Top link={`/municipio/${id}/escolas`}  title={`Municípios > ${city?.MUN_NOME} > Escola > Adicionar`}/>
-      <FormAddEscola munId={id}/>
-    </PageContainer>
+      <PageContainer>
+        <Top link={`/municipio/${id}/escolas`}  title={`Municípios > ${county?.MUN_NOME} > Escola > Adicionar`}/>
+        <FormEditEscola escola={null} county={county}/>
+      </PageContainer>
   );
 }
 
@@ -22,12 +23,16 @@ AdicionarEscola.getLayout = function getLayout(page: ReactElement) {
   )
 }
 
-export async function getServerSideProps(context){
-  const {id} = context.params
-
-  return {
-    props: {
-      id,
-    }
+export const getServerSideProps = withSSRAuth(
+  async (ctx) => {
+    const { id } = ctx.params;
+    return {
+      props: {
+        id,
+      },
+    };
+  },
+  {
+    roles: [],
   }
-}
+);

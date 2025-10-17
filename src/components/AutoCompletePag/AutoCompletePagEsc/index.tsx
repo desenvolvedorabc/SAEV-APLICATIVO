@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { getSchools } from "src/services/escolas.service";
 import useDebounce from "src/utils/use-debounce";
 
-export function AutoCompletePagEsc({ school, changeSchool, width = "100%" }) {
+export function AutoCompletePagEsc({ school, changeSchool, width = "100%", active = null }) {
   const [pageEsc, setPageEsc] = useState(1);
   const [searchEsc, setSearchEsc] = useState(null);
   const [limitEsc, setLimitEsc] = useState(false);
@@ -20,7 +20,7 @@ export function AutoCompletePagEsc({ school, changeSchool, width = "100%" }) {
   }, [position, listboxNode])
 
   const loadEscolas = async () => {
-      const resp = await getSchools(debouncedSearchTerm, pageEsc, 10, null, "ASC", null, null);
+      const resp = await getSchools(debouncedSearchTerm, pageEsc, 10, null, "ASC", null, null, active);
       
       setPageEsc(pageEsc + 1)
   

@@ -24,6 +24,7 @@ import { withSSRAuth } from "src/utils/withSSRAuth";
 import { ContentOptionsExams } from "../src/components/contentOptionsExams/index";
 import { FooterTable } from "src/components/tables/TableAnswers/FooterTable";
 import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
 
 interface DataLeitura {
   NOME: string;
@@ -82,23 +83,35 @@ export default function SinteseGeral() {
   const [csv, setCsv] = useState([]);
   const csvLink = useRef(undefined);
   const [level, setLevel] = useState(null);
+  const router = useRouter();
 
   const { handlePrint, componentRef } = useGenearePdf();
 
   const {
     changeSerie,
     changeYear,
+    changeEpv,
+    changeType,
+    changeState,
+    changeStateRegional,
     changeCounty,
+    changeCountyRegional,
     changeEdition,
     changeSchool,
     changeSchoolClass,
-    serie,
+    breadcrumb,
     mapBreadcrumb,
-    schoolClass,
+    serie,
     year,
+    state,
+    epv,
+    type,
+    stateRegional,
     edition,
     county,
+    countyRegional,
     school,
+    schoolClass,
     resetBreadcrumbs,
     isUpdateData,
     setIsUpdateData,
@@ -114,7 +127,12 @@ export default function SinteseGeral() {
     serieLoad,
     yearLoad,
     editionLoad,
+    isEpvPartner,
+    type,
+    stateId,
+    stateRegionalId,
     countyLoad,
+    municipalityOrUniqueRegionalId,
     schoolLoad,
     schoolClassLoad
   ) => {
@@ -123,7 +141,12 @@ export default function SinteseGeral() {
       serieLoad,
       yearLoad,
       editionLoad,
+      isEpvPartner,
+      type,
+      stateId,
+      stateRegionalId,
       countyLoad,
+      municipalityOrUniqueRegionalId,
       schoolLoad,
       schoolClassLoad
     );
@@ -132,28 +155,26 @@ export default function SinteseGeral() {
 
     setItems(resp?.items ?? []);
 
-    let level = "";
-
     if(!resp?.items)
       return
 
-    if (resp?.items[0]?.level === "school") level = "Escola";
-    if (resp?.items[0]?.level === "schoolClass") level = "Turma";
-    setLevel(level);
 
-    if (resp?.items[0]?.level === "county") setLevel("county");
+    if (resp?.items[0]?.level) setLevel(resp?.items[0]?.level);
+    else setLevel(null)
+  };
 
-    let list = [];
-    let tempCsv = [];
-    let listCSV = [];
-
-    if (!level) {
-      resp?.items?.forEach((x) => {
+  useEffect(() => {
+    if(!level){
+      let list = [];
+      let tempCsv = [];
+      let listCSV = [];
+  
+      items?.forEach((x) => {
         if (x.subject === "Leitura") {
           x.students?.forEach((student) => {
             list.push(createDataLeitura(student.name, x.subject, student.type));
           });
-
+  
           tempCsv.push(["NOME_ALUNO", "MATÉRIA", "NIVEL"]);
           listCSV = JSON.parse(JSON.stringify(list));
           listCSV.forEach((item) => {
@@ -163,24 +184,47 @@ export default function SinteseGeral() {
           tempCsv.push([]);
           tempCsv.push([]);
         } else {
-          x.students?.forEach((student) => {
-            student?.quests?.forEach((item, index) => {
-              let descritor = x.quests.descriptors[index];
-              let type = item.type === "right" ? "certo" : "errado";
+          const descriptors = x?.quests?.descriptors.sort((a, b) => a.TEG_ORDEM - b.TEG_ORDEM)
+          let orderedStudents = []
+          if (orderBy === "menorMedia") {
+            orderedStudents = x.students?.sort((a, b) => {
+              return a.avg - b.avg;
+            });
+          } else if (orderBy === "maiorMedia") {
+            orderedStudents = x.students?.sort((a, b) => {
+              return b.avg - a.avg;
+            });
+          } else if (orderBy === "porNome") {
+            orderedStudents = x.students?.sort((a, b) => {
+              return ("" + a.name).localeCompare(b.name);
+            });
+          } else if (orderBy === "menorNivel") {
+            orderedStudents = x.students?.sort((a, b) => {
+              return a.level - b.level;
+            });
+          } else if (orderBy === "maiorNivel") {
+            orderedStudents = x.students?.sort((a, b) => {
+              return b.level - a.level;
+            });
+          }
+          orderedStudents?.forEach((student) => {
+            descriptors?.forEach((descriptor, index) => {
+              let question = student?.quests?.find((quest) => quest.questionId === descriptor.id)
+              let type = question?.type === "right" ? "certo" : "errado";
               list.push(
                 createDataTable(
-                  student.name,
-                  x.subject,
-                  student.avg,
+                  student?.name,
+                  x?.subject,
+                  student?.avg,
                   index,
-                  item.letter,
-                  type,
-                  descritor?.description
+                  question?.letter || '-',
+                  type || '-',
+                  descriptor?.description
                 )
               );
-            });
+            })
           });
-
+  
           tempCsv.push([
             "NOME_ALUNO",
             "MATÉRIA",
@@ -198,28 +242,36 @@ export default function SinteseGeral() {
           tempCsv.push([]);
           tempCsv.push([]);
         }
-
+  
         listCSV = [];
         list = [];
       });
+            
+      setCsv(tempCsv);
     }
-
-    setCsv(tempCsv);
-  };
+  },[items, orderBy])
 
   const downloadCsv = async () => {
     if (level) {
-      const _school = mapBreadcrumb.find((data) => data.level === "school");
-      const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
-      const _mun = mapBreadcrumb.find((data) => data.level === "county");
       const _year = mapBreadcrumb.find((data) => data.level === "year");
       const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+      const _state = mapBreadcrumb.find((data) => data.level === "state");
+      const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+      const _county = mapBreadcrumb.find((data) => data.level === "county");
+      const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+      const _school = mapBreadcrumb.find((data) => data.level === "school");
+      const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
       const resp = await getGeneralSynthesisCSV(
         serie?.SER_ID,
         _year?.id,
         _edition?.id,
-        _mun?.id,
+        epv === 'Exclusivo Epv' ? 1 : 0,
+        type === 'PUBLICA' ? null : type,
+        _state?.id,
+        _stateRegional?.id,
+        _county?.id,
+        _countyRegional?.id,
         _school?.id,
         _schoolClass?.id
       );
@@ -250,16 +302,44 @@ export default function SinteseGeral() {
     if (isUpdateData || clickBar || visibleBreadcrumbs) {
       const _school = mapBreadcrumb.find((data) => data.level === "school");
       const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
-      const _mun = mapBreadcrumb.find((data) => data.level === "county");
+      const _county = mapBreadcrumb.find((data) => data.level === "county");
       const _year = mapBreadcrumb.find((data) => data.level === "year");
       const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+      const _state = mapBreadcrumb.find((data) => data.level === "state");
+      const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+      const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+
+      console.log('mapBreadcrumb :', mapBreadcrumb);
+      console.log('breadcrumb :', breadcrumb);
+      // let newUrl = `${router.pathname}?`
+        
+      // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+      // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+      // if(_edition) newUrl = newUrl.concat('&edition=' + _edition?.id)
+      // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+      // if(type) newUrl = newUrl.concat('&type=' + type)
+      // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+      // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+      // if(_county) {
+      //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+      // }
+      // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+      // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+      // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+       
+      // window.history.pushState({ path: newUrl }, '', newUrl);
 
       if (!!_year?.id) {
         loadGeneralSynthesis(
           serie?.SER_ID,
           _year?.id,
           _edition?.id,
-          _mun?.id,
+          epv === 'Exclusivo Epv' ? 1 : 0,
+          type === 'PUBLICA' ? null : type,
+          _state?.id,
+          _stateRegional?.id,
+          _county?.id,
+          _countyRegional?.id,
           _school?.id,
           _schoolClass?.id
         );
@@ -272,31 +352,40 @@ export default function SinteseGeral() {
       hideBreadcrumbs();
       setIsUpdateData(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    year,
-    edition,
-    handleUnClickBar,
-    county,
-    setIsUpdateData,
-    hideBreadcrumbs,
     mapBreadcrumb,
-    clickBar,
-    visibleBreadcrumbs,
-    isUpdateData,
-    serie,
+    // handleUnClickBar,
+    // setIsUpdateData,
+    // hideBreadcrumbs,
+    // clickBar,
+    // visibleBreadcrumbs,
+    // isUpdateData,
   ]);
 
   useEffect(() => {
     setExamId((value: number) => (!!value ? value : items[0]?.id));
   }, [items]);
 
-  const handleChangeSerie = (e) => {
-    changeSerie(e ? e.target.value : null);
+  const handleChangeSerie = (newValue, add = false) => {
+    changeSerie(newValue);
     changeYear(null);
     changeEdition(null);
+    changeEpv(null);
+    changeType(null);
+    changeState(null);
+    changeStateRegional(null);
     changeCounty(null);
+    changeCountyRegional(null);
     changeSchool(null);
     changeSchoolClass(null);
+
+    if(add){
+      const url = window.location.href.split('?serie=')
+      const newUrl = url[0].concat('?serie=' + newValue?.SER_ID)
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+
     resetBreadcrumbs();
     handleUnClickBar();
     handleClickBreadcrumb(null);
@@ -315,13 +404,17 @@ export default function SinteseGeral() {
   };
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!edition)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -331,7 +424,7 @@ export default function SinteseGeral() {
     <>
       <PageContainer>
         <TopFilterSerie title={"Síntese Geral >"} serie={serie} changeSerie={handleChangeSerie} />
-        <ReportFilter isDisableYear={!serie} isDisable={onDisableReportFilter()} />
+        <ReportFilter isDisableYear={!serie} isDisable={onDisableReportFilter()} isSaev={user?.USU_SPE?.role === 'SAEV'} />
 
         {isLoading ? (
           <div className="d-flex align-items-center flex-column mt-5">
@@ -412,10 +505,11 @@ function GeneratePdfPage({
   orderBy,
   serie,
 }) {
+
   return (
     <div className="pdf">
       <div ref={componentRef} className="print-container">
-        <PageContainer>
+        <PageContainer isPdf>
           <div className="d-flex justify-content-center mt-3">
             <strong>Serie: {serie?.SER_NOME}</strong>
           </div>
@@ -460,12 +554,14 @@ function GeneratePdfPage({
                     <>
                       <h3 className="pdf--title">{item.subject}</h3>
                       <FooterTable />
+                      <div>
+                        <TableAnswers order={orderBy} classe={item} leitura={leituraItem} isPdf={true} />
+                        {
+                          Array.from({ length: Math.floor((item?.students?.length / 10) -1) }).map((_, index) => <div key={index} className="page-break" />)                          
+                        }
+                      </div>
+                      {/* {index < items?.length && <div className="page-break" />} */}
 
-                      <TableAnswers order={orderBy} classe={item} leitura={leituraItem} isPdf={true} />
-                      <div className="page-break" />
-                      {index !== items.length - 1 &&
-                        <div className="page-break" />
-                      }
                     </>
                   ) : (
                     <>

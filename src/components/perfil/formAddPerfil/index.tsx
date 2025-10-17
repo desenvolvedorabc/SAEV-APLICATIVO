@@ -14,26 +14,46 @@ import ErrorText from "src/components/ErrorText";
 import ModalConfirmacao from "src/components/modalConfirmacao";
 import { useEffect, useState, useMemo } from "react";
 import Router from "next/router";
-import { getAllPerfis } from "src/services/perfis.service";
-import { createSubPerfil } from "src/services/sub-perfis.service";
+import { RoleProfile, createPerfil, getAllPerfis } from "src/services/perfis.service";
 import { getAreasByPerfil } from "src/services/areas.service";
 import { FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import { ADMINLINKS } from "src/utils/menu";
+import { queryClient } from "src/lib/react-query";
+import { useAuth } from "src/context/AuthContext";
 
-type ValidationErrors = Partial<{ SPE_PER: string; SPE_NOME: string }>;
+type ValidationErrors = Partial<{ role: string; SPE_NOME: string }>;
 
-export default function FormAddUsuario(props) {
+export default function FormAddPerfil(props) {
   const [ModalShowConfirm, setModalShowConfirm] = useState(false);
   const [modalStatus, setModalStatus] = useState(true);
-  const [listPerfis, setListPerfis] = useState([]);
   const [listAreas, setListAreas] = useState([]);
   const [isDisabled, setIsDisabled] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(false);
+  const [listProfiles, setListProfiles] = useState([]);
+  const { user } = useAuth()
 
+  useEffect(() => {
+    if(user?.USU_SPE?.role === 'ESCOLA'){
+      setListProfiles(['ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
+      setListProfiles(['MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+      setListProfiles(['MUNICIPIO_ESTADUAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'ESTADO'){
+      setListProfiles(['ESTADO', 'MUNICIPIO_ESTADUAL', 'ESCOLA'])
+    }
+    if(user?.USU_SPE?.role === 'SAEV'){
+      setListProfiles(['SAEV', 'ESTADO', 'MUNICIPIO_ESTADUAL', 'MUNICIPIO_MUNICIPAL', 'ESCOLA'])
+    }
+  },[user])
 
   const validate = (values) => {
     const errors: ValidationErrors = {};
-    if (!values.SPE_PER) {
-      errors.SPE_PER = "Campo obrigatório";
+    if (!values.role) {
+      errors.role = "Campo obrigatório";
     }
     if (!values.SPE_NOME) {
       errors.SPE_NOME = "Campo obrigatório";
@@ -46,10 +66,8 @@ export default function FormAddUsuario(props) {
   const formik = useFormik({
     initialValues: {
       SPE_NOME: "",
-      SPE_DESCRICAO: "",
-      SPE_PER: "",
+      role: "",
       AREAS: [],
-      SPE_ATIVO: true,
     },
     validate,
     onSubmit: async (values) => {
@@ -61,12 +79,13 @@ export default function FormAddUsuario(props) {
         }
       )});
       values.AREAS = list;
+      console.log('values :', values);
 
       
       setIsDisabled(true)
       let response = null;
       try{
-        response = await createSubPerfil(values);
+        response = await createPerfil(values);
       }
       catch (err) {
         setIsDisabled(false)
@@ -74,40 +93,29 @@ export default function FormAddUsuario(props) {
         setIsDisabled(false)
       }
       if (
-        response.status === 200 &&
-        response.data.SPE_NOME === values.SPE_NOME
+        !response?.data?.message
       ) {
         setModalStatus(true);
         setModalShowConfirm(true);
+        queryClient.invalidateQueries(['profiles'])
       } else {
+        setErrorMessage(response?.data?.message);
         setModalStatus(false);
         setModalShowConfirm(true);
       }
     },
   });
 
-  const loadPerfisBase = async () => {
-    const resp = await getAllPerfis();
-    setListPerfis(resp.data);
-  };
-
-  const loadAreas = async (idPerfil: string) => {
-    const perfil = listPerfis.find((data) => data.PER_ID === idPerfil);
-    if(perfil){
-      const resp = await getAreasByPerfil(perfil.PER_NOME);
-      if(resp.data.length > 0)
+  const loadAreas = async (perfil: string) => {
+      const resp = await getAreasByPerfil(perfil);
+      // if(resp.data.length > 0)
         setListAreas(resp.data);
-      }
   };
 
   useEffect(() => {
-    loadPerfisBase();
-  }, []);
-
-  useEffect(() => {
-    loadAreas(formik.values.SPE_PER);
+    loadAreas(formik.values.role);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formik.values.SPE_PER]);
+  }, [formik.values.role]);
 
   const filterLinks = useMemo(() => {
     const filter = ADMINLINKS.map((data) => {
@@ -122,11 +130,11 @@ export default function FormAddUsuario(props) {
       // if (isVerify) {
       //   return data;
       // } else {
-        const options = data?.items.filter((item) => {
+        const options = data?.items.filter((item: any) => {
           let verifyItem = false;
           
           listAreas.forEach((area) => {
-            if (item.validate || area.ARE_NOME === item.ARE_NOME) {
+            if (item?.validate || area.ARE_NOME === item.ARE_NOME) {
               verifyItem = true;
             }
           });
@@ -175,13 +183,13 @@ export default function FormAddUsuario(props) {
               </div>
               <div className="me-2 border-end border-white">
                 <FormControl sx={{ width: 150 }} size="small">
-                  <InputLabel id="SPE_PER">Perfil Base</InputLabel>
+                  <InputLabel id="role">Perfil Base</InputLabel>
                   <Select
-                    labelId="SPE_PER"
-                    id="SPE_PER"
-                    value={formik.values.SPE_PER}
+                    labelId="role"
+                    id="role"
+                    value={formik.values.role}
                     label="Perfil Base"
-                    name="SPE_PER"
+                    name="role"
                     onChange={formik.handleChange}
                     sx={{
                       "& .Mui-disabled": {
@@ -189,10 +197,9 @@ export default function FormAddUsuario(props) {
                       },
                     }}
                   >
-                    {listPerfis &&
-                      listPerfis?.map((x) => (
-                        <MenuItem key={x.PER_ID} value={x.PER_ID}>
-                          {x.PER_NOME}
+                    {listProfiles?.map((x) => (
+                        <MenuItem key={x} value={x}>
+                          {RoleProfile[x]}
                         </MenuItem>
                       ))}
                   </Select>
@@ -219,7 +226,7 @@ export default function FormAddUsuario(props) {
           </div>
           <div>
             <div className="mt-5 mb-3">Permissões:</div>
-            {formik.values.SPE_PER && filterLinks.map((link) => (
+            {formik.values.role && filterLinks.map((link) => (
               <>
               {link && 
                 <CardBloco key={link?.grupo}>
@@ -297,7 +304,7 @@ export default function FormAddUsuario(props) {
         text={
           modalStatus
             ? `Perfil ${formik.values.SPE_NOME} adicionado com sucesso!`
-            : `Erro ao criar perfil`
+            : errorMessage || `Erro ao criar perfil`
         }
         status={modalStatus}
       />

@@ -16,6 +16,7 @@ import { GraphEvolutionaryLineReading } from "src/components/evolucaoLeitura/Gra
 import { TableEvolutionaryLineReading } from "src/components/evolucaoLeitura/TableEvolutionaryLineReading";
 import { saveAs } from 'file-saver';
 import { useAuth } from "src/context/AuthContext";
+import { useRouter } from "next/router";
 
 export default function EvolucaoLeitura() {
   const {user} = useAuth()
@@ -23,8 +24,8 @@ export default function EvolucaoLeitura() {
   const [infoList, setInfoList] = useState(null);
   const csvLink = useRef(undefined);
   const [isLoading, setIsLoading] = useState(false);
-  // const [selectedYear, setSelectedYear] = useState(null);
   const [selectedSerie, setSelectedSerie] = useState(null);
+  const router = useRouter()
   const {
     serie,
     resetBreadcrumbs,
@@ -33,7 +34,13 @@ export default function EvolucaoLeitura() {
     clickBreadcrumb,
     mapBreadcrumb,
     year,
+    epv,
+    type,
+    state,
+    stateRegional,
+    edition,
     county,
+    countyRegional,
     school,
     visibleBreadcrumbs,
     isUpdateData,
@@ -49,12 +56,33 @@ export default function EvolucaoLeitura() {
 
   const loadInfos = useCallback(async () => {
     setIsLoading(true);
-    let year = mapBreadcrumb.find((x) => x.level === "year");
+    // let year = mapBreadcrumb.find((x) => x.level === "year");
     // setSelectedYear(year?.id);
     setSelectedSerie(serie)
-    let county = mapBreadcrumb.find((x) => x.level === "county");
-    let school = mapBreadcrumb.find((x) => x.level === "school");
-    let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+
+    // let newUrl = `${router.pathname}?`
+      
+    // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
+    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
+    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
+    // if(type) newUrl = newUrl.concat('&type=' + type)
+    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
+    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
+    // if(_county) {
+    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
+    // }
+    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
+    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
+    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
+     
+    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     let resp = null;
     
@@ -62,10 +90,15 @@ export default function EvolucaoLeitura() {
       1,
       999999,
       serie?.SER_ID,
-      year?.id,
-      county?.id,
-      school?.id,
-      schoolClass?.id
+      _year?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id
     );
 
     setIsLoading(false);
@@ -97,37 +130,46 @@ export default function EvolucaoLeitura() {
 
   const downloadCsv = async () => {
     setIsLoading(true);
-    let year = mapBreadcrumb.find((x) => x.level === "year");
-    let county = mapBreadcrumb.find((x) => x.level === "county");
-    let school = mapBreadcrumb.find((x) => x.level === "school");
-    let schoolClass = mapBreadcrumb.find((x) => x.level === "schoolClass");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
 
     const resp = await getExportEvolutionaryLineReading(
       1,
       999999,
       serie?.SER_ID,
-      year?.id,
-      county?.id,
-      school?.id,
-      schoolClass?.id
+      _year?.id,
+      epv === 'Exclusivo Epv' ? 1 : 0,
+      type === 'PUBLICA' ? null : type,
+      _state?.id,
+      _stateRegional?.id,
+      _county?.id,
+      _countyRegional?.id,
+      _school?.id,
+      _schoolClass?.id
     )
-      console.log('resp :', resp);
       
     setIsLoading(false);
 
     saveAs(resp.data, 'Evolução de Leitura');
-
-    // csvLink.current.link.click();
   };
 
   function onDisableReportFilter(): boolean {
-    switch (user?.USU_SPE?.SPE_PER?.PER_NOME) {
-      case "Município":
+    switch (user?.USU_SPE?.role) {
+      case "ESTADO":
+        return !(!!state)
+      case "MUNICIPIO_ESTADUAL":
         return !(!!county)
-      case "Escola":
+      case "MUNICIPIO_MUNICIPAL":
+        return !(!!county)
+      case "ESCOLA":
         return !(!!school)
       case "SAEV":
-        return !(!!year)
+        return epv === 'Completo' ? !(!!state) : !(!!epv)
       default:
         return false
     }
@@ -139,7 +181,7 @@ export default function EvolucaoLeitura() {
         <Top
           title="Evolução de Leitura"
         />
-        <ReportFilter isSerieFirst={true} isDisable={onDisableReportFilter()} isEdition={false} />
+        <ReportFilter isSerieFirst={true} isDisable={onDisableReportFilter()} isEdition={false} isSaev={user?.USU_SPE?.role === 'SAEV'} />
         {isLoading ? (
           <div className="d-flex align-items-center flex-column mt-5">
             <div className="spinner-border" role="status"></div>

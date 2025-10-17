@@ -12,6 +12,7 @@ import Paper from "@mui/material/Paper";
 import { visuallyHidden } from "@mui/utils";
 import {
   Container,
+  Status,
   TableCellBorderWidth,
   TopContainer,
 } from "./styledComponents";
@@ -36,8 +37,10 @@ interface Data {
   type: string;
   date: string;
   user: string;
+  state: string;
   city: string;
   link: string;
+  status: string;
 }
 
 function createData(
@@ -45,16 +48,20 @@ function createData(
   type: string,
   date: string,
   user: string,
+  state: string,
   city: string,
   link: string,
+  status: string
 ): Data {
   return {
     id,
     type,
     date,
     user,
+    state,
     city,
     link,
+    status,
   };
 }
 
@@ -81,6 +88,11 @@ const headCells: readonly HeadCell[] = [
     label: "USUÁRIO",
   },
   {
+    id: "state",
+    numeric: false,
+    label: "ESTADO",
+  },
+  {
     id: "city",
     numeric: false,
     label: "MUNICÍPIO",
@@ -91,6 +103,14 @@ const headCells: readonly HeadCell[] = [
     label: "LINK",
   },
 ];
+
+const mapperTypes = {
+  AVALIACAO: "Avaliação",
+  AVALIACAO_NORMALIZADA: "Avaliação Normalizada",
+  ALUNOS: "Alunos",
+  INFREQUENCIA: "Infrequência",
+  TEMPLATE_AVALIACAO: "Template Avaliação",
+}
 
 function EnhancedTableHead() {
   return (
@@ -138,8 +158,10 @@ export function TableExport({url}) {
           x.type,
           x.createdAt,
           x.user?.USU_NOME,
+          x.state?.name,
           x.county?.MUN_NOME,
           x.file,
+          x.status,
         )
       );
     });
@@ -176,12 +198,13 @@ export function TableExport({url}) {
     return (
       <TableRowStyled role="checkbox" tabIndex={-1} key={index}>
         <TableCell component="th" id={labelId} scope="row" padding="normal">
-          {row.type}
+          {mapperTypes[row.type]}
         </TableCell>
         <TableCellBorderWidth>{row.date ? format(new Date(row.date),"dd/MM/yyyy - HH'h'mm") : null}</TableCellBorderWidth>
         <TableCellBorder>{row.user}</TableCellBorder>
+        <TableCellBorder>{row.state}</TableCellBorder>
         <TableCellBorder>{row.city}</TableCellBorder>
-        <TableCellBorder><a style={{fontSize: 12}} href={`${url}/microdata/file/${row.link}`} target="_blank" download rel="noreferrer">{row.link}</a></TableCellBorder>
+        <TableCellBorder>{row.status === 'ERROR' ? <Status status="ERROR">Erro</Status> :row.status === 'IN_PROGRESS' ? <Status>Em Andamento</Status> : <a style={{fontSize: 12}} href={`${url}/microdata/file/${row.link}`} target="_blank" download rel="noreferrer">{row.link}</a>}</TableCellBorder>
       </TableRowStyled>
     );
   };

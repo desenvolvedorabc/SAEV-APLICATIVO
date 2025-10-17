@@ -38,11 +38,16 @@ export interface Race {
 }
 
 interface IGetReporRaceParamsProps {
+  serie?: number
+  year?: string
+  isEpvPartner?: 0 | 1
+  typeSchool?: string
+  stateId?: string,
+  stateRegionalId?: string
+  county?: number
+  municipalityOrUniqueRegionalId?: string
   school?: number
   schoolClass?: number
-  year?: string
-  county?: number
-  serie?: number
 }
 
 export async function getReportRace(params: IGetReporRaceParamsProps) {

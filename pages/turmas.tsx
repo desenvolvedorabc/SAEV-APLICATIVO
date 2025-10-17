@@ -27,6 +27,6 @@ export const getServerSideProps = withSSRAuth(
     };
   },
   {
-    roles: ["JOR_PED", "TUR"],
+    roles: ["TUR"],
   }
 );
