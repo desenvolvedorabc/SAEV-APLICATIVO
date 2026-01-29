@@ -121,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let response;
     try {
       response = await axios
-      .post(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+      .post(`${process.env.NEXT_PUBLIC_API_URL}/v1/login`, {
         USU_EMAIL: values?.email,
         USU_SENHA: values?.password,
       })
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       path: "/",
     });
     const avatar = decodeToken["user"]["USU_AVATAR"];
-    setCookie(null, "USU_AVATAR_URL", `${process.env.NEXT_PUBLIC_API_URL}/users/avatar/${avatar}`, {
+    setCookie(null, "USU_AVATAR_URL", `${process.env.NEXT_PUBLIC_API_URL}/v1/users/avatar/${avatar}`, {
       path: "/",
     });
     setCookie(null, "USU_RETRY", "0", {

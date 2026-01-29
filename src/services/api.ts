@@ -8,7 +8,7 @@ export function setupAPIClient(): {
   api: AxiosInstance;
 } {
   const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    baseURL: `${process.env.NEXT_PUBLIC_API_URL}/v1`,
     headers: {
       Authorization: `Bearer ${cookies["__session"]}`,
     },
