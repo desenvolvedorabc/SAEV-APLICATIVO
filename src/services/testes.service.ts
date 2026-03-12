@@ -114,20 +114,21 @@ export async function editTest(
     token,
   };
 
-  const responseUpdate = await api.put(`/tests/${id}`, data )
-  .then((response) => {
-    console.log("response: ", response);
-    return response;
-  })
-  .catch((error) => {
-    console.log("error: ", error);
-    return {
-      status: 401,
-      data: {
-        message: error.response?.data?.message,
-      },
-    };
-  });
+  const responseUpdate = await api
+    .put(`/tests/${id}`, data)
+    .then((response) => {
+      console.log("response: ", response);
+      return response;
+    })
+    .catch((error) => {
+      console.log("error: ", error);
+      return {
+        status: 401,
+        data: {
+          message: error.response?.data?.message,
+        },
+      };
+    });
   return responseUpdate;
 }
 
@@ -183,48 +184,39 @@ export async function deleteQuestionTest(id: number) {
   return resp?.data;
 }
 
-export async function getTestHerby(id, idCounty, idSchool) {
-  const params = { id, idCounty, idSchool };
-  const response = await axios.get(`/api/test/herby/infos`, { params });
+export async function getTestCard(
+  id: number,
+  countyId: number,
+  schoolId: number
+) {
+  const params = { id, countyId, schoolId };
+  const response = await api.get(`/tests/${id}/generate-data-card`, { params });
 
   const data = response.data;
 
-  return await axios.post(
-    "https://hby.app/api/v1/cartaoDeResposta2",
-    data,
-    {
+  console.log(data);
+
+  if (data?.provider === "herby") {
+    return await axios.post("https://hby.app/api/v1/cartaoDeResposta2", data, {
       responseType: "arraybuffer",
       headers: {
         Accept: "application/pdf",
       },
-    }
-  );
-}
-
-export async function getTestEdler(id, idCounty, idSchool) {
-  const params = { id, idCounty, idSchool };
-  const response = await axios.get(`/api/test/edeler/infos`, { params });
-
-  const data = response.data;
-
-
-  return await axios
-    .post("https://edler-backend.onrender.com/student", data, {
-      responseType: "arraybuffer",
-      headers: {
-        Accept: "application/pdf",
-      },
-    })
-    .then((response) => {
-      return response;
-    })
-    .catch((error) => {
-      console.log("error: ", error);
-      return {
-        status: 400,
-        data: {
-          message: "Erro ao baixar cartão",
-        },
-      };
     });
+  }
+
+  if (data?.provider === "edler") {
+    const response = await axios.post(
+      "https://edler-backend.onrender.com/student",
+      data,
+      {
+        responseType: "arraybuffer",
+        headers: {
+          Accept: "application/pdf",
+        },
+      }
+    );
+
+    return response;
+  }
 }

@@ -23,7 +23,7 @@ export function AutoCompletePagMun2({
 
   const { flatData: listCounties, query: { isLoading, fetchNextPage } } = useGetCountiesPag({
     search: debouncedSearchTerm,
-    limit: 10,
+    limit: 999,
     column: null,
     order: 'ASC',
     stateId,

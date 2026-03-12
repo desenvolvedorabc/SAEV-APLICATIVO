@@ -111,8 +111,8 @@ export const TableRowStyled = styled(TableRow)`
 `;
 
 export const Status = styled.div`
-  background-color: ${(props) => (props.enviado === 'send' ? "#CDFFCD" : props.enviado === 'pending' ? "#f2f2e6ff" : "#F2EAE6")};
-  color: ${(props) => (props.enviado === 'send' ? "#007F00" : props.enviado === 'pending' ? "#e0b20cff" : "#FF7A4A")};
+  background-color: ${(props) => (props.enviado === 'ENVIADO' ? "#CDFFCD" : props.enviado === 'PENDENTE' ? "#f2f2e6ff" : props.enviado === 'PARCIALMENTE_ENVIADO' ? "#F2EAE6" : "#efe2deff")};
+  color: ${(props) => (props.enviado === 'ENVIADO' ? "#007F00" : props.enviado === 'PENDENTE' ? "#e0b20cff" :  props.enviado === 'PARCIALMENTE_ENVIADO' ? "#FF7A4A" :  "#f60606ff")};
   border-radius: 10px;
   text-align: center;
   padding: 2px 24px; 

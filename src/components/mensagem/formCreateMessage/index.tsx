@@ -19,6 +19,8 @@ import { useGetStates } from "src/services/estados.service";
 import useDebounce from "src/utils/use-debounce";
 import { Loading } from "src/components/Loading";
 import { useGetRegionais } from "src/services/regionais-estaduais.service";
+import { useGetSeries } from "src/services/series.service";
+import { useGetSchoolClasses } from "src/services/turmas.service";
 
 type ValidationErrors = Partial<{ MEN_TITLE: string, MEN_TEXT: string, MUNICIPIOS: string, ESCOLAS: string }>
 
@@ -35,13 +37,20 @@ export default function FormCreateMessage({}) {
   const [searchSchool, setSearchSchool] = useState("")
   const [selectAllActive, setselectAllActive] = useState(false)
   const [selectAllActiveSchool, setselectAllActiveSchool] = useState(false)
+  const [selectAllActiveSerie, setselectAllActiveSerie] = useState(false)
+  const [selectAllActiveSchoolClass, setselectAllActiveSchoolClass] = useState(false)
   const [mySelected, setMySelected] = useState([])
   const [mySelectedSchool, setMySelectedSchool] = useState([])
+  const [mySelectedSerie, setMySelectedSerie] = useState([])
+  const [mySelectedSchoolClass, setMySelectedSchoolClass] = useState([])
   const [listAddMun, setListAddMun] = useState([])
   const [listAddEsc, setListAddEsc] = useState([])
+  const [listAddSerie, setListAddSerie] = useState([])
+  const [listAddSchoolClass, setListAddSchoolClass] = useState([])
+  const [serie, setSerie] = useState(null)
   const [text, setText] = useState("")
   const [disableAll, setDisableAll] = useState(false)
-  const [areaActive, setAreaActive] = useState(true)
+  const [areaActive, setAreaActive] = useState(0)
   const [isDisabled, setIsDisabled] = useState(false);
   const debouncedSearchTermCounty = useDebounce(searchMun, 500);
   const debouncedSearchTermSchool = useDebounce(searchSchool, 500);
@@ -55,6 +64,32 @@ export default function FormCreateMessage({}) {
   const { data: listCountyRegional, isLoading: isLoadingCountyRegional } = useGetRegionais(null, 1, 999999, null, 'ASC', munFilter?.MUN_ID, null, null, !!munFilter);
 
   const { data: listSchool, isLoading: isLoadingSchool } = useGetSchools({search: debouncedSearchTermSchool, page: 1, limit: 999999, column: null, order: 'ASC', active: "1", county: munFilter?.MUN_ID, municipalityOrUniqueRegionalId: countyRegional?.id, typeSchool: null, enabled: true});
+
+  const { data: listSerie, isLoading: isLoadingSerie } = useGetSeries(
+    null, 
+    1, 
+    999999, 
+    null, 
+    "ASC", 
+    munFilter?.MUN_ID ? null : null,
+    '1',
+    !!munFilter
+  );
+
+  const { data: listSchoolClass, isLoading: isLoadingSchoolClass } = useGetSchoolClasses(
+    null, 
+    1, 
+    999999, 
+    'TURMA_TUR_ANO', 
+    "ASC", 
+    null,
+    munFilter?.MUN_ID,
+    null,
+    serie?.SER_ID,
+    null,
+    1,
+    !!serie
+  );
 
   const validate = values => {
     const errors: ValidationErrors = {};
@@ -81,6 +116,8 @@ export default function FormCreateMessage({}) {
       MEN_TEXT: "",
       MUNICIPIOS: [],
       ESCOLAS: [],
+      SERIES: [],
+      TURMAS: [],
     },
     //validate,
     onSubmit: async (values) => {
@@ -97,6 +134,18 @@ export default function FormCreateMessage({}) {
         list.push(x.ESC_ID)
       })
       values.ESCOLAS = list
+      
+      list = []
+      listAddSerie.map(x => {
+        list.push(x.SER_ID)
+      })
+      values.SERIES = list
+      
+      list = []
+      listAddSchoolClass.map(x => {
+        list.push(x.TURMA_TUR_ID)
+      })
+      values.TURMAS = list
       
       setIsDisabled(true)
       let response = null;
@@ -218,6 +267,64 @@ export default function FormCreateMessage({}) {
     }
   }
 
+  const handleSelectAllSeries = () => {
+    if (!selectAllActiveSerie) {
+      setMySelectedSerie([...listSerie?.items])
+      setselectAllActiveSerie(true)
+    }
+    else {
+      setMySelectedSerie([])
+      setselectAllActiveSerie(false)
+    }
+  }
+  
+  const handleChangeSelectSerie = (serieItem) => {
+    if (mySelectedSerie?.some((x) => x.SER_ID == serieItem.SER_ID)) {
+      setMySelectedSerie([...mySelectedSerie.filter((x) => x.SER_ID !== serieItem.SER_ID)])
+    }
+    else {
+      setMySelectedSerie([...mySelectedSerie, serieItem])
+    }
+  }
+
+  const verifyMySelectedSerie = (serieItem) => {
+    return !!mySelectedSerie.find((item) => {
+      return serieItem?.SER_ID === item?.SER_ID
+    })
+  }
+
+  const handleSelectAllSchoolClasses = () => {
+    if (!selectAllActiveSchoolClass) {
+      setMySelectedSchoolClass([...listSchoolClass?.items])
+      setselectAllActiveSchoolClass(true)
+    }
+    else {
+      setMySelectedSchoolClass([])
+      setselectAllActiveSchoolClass(false)
+    }
+  }
+  
+  const handleChangeSelectSchoolClass = (turmaItem) => {
+    if (mySelectedSchoolClass?.some((x) => x.TURMA_TUR_ID == turmaItem.TURMA_TUR_ID)) {
+      setMySelectedSchoolClass([...mySelectedSchoolClass.filter((x) => x.TURMA_TUR_ID !== turmaItem.TURMA_TUR_ID)])
+    }
+    else {
+      setMySelectedSchoolClass([...mySelectedSchoolClass, turmaItem])
+    }
+  }
+
+  const verifyMySelectedSchoolClass = (turmaItem) => {
+    return !!mySelectedSchoolClass.find((item) => {
+      return turmaItem?.TURMA_TUR_ID === item?.TURMA_TUR_ID
+    })
+  }
+
+  const handleChangeSerie = (newValue) => {
+    setSerie(newValue)
+    setMySelectedSchoolClass([])
+    setselectAllActiveSchoolClass(false)
+  }
+
   const handleAddSelecteds = () => {
 
     let listMun = listAddMun.concat()
@@ -235,6 +342,22 @@ export default function FormCreateMessage({}) {
       }
     })
     setListAddEsc(listEsc)
+
+    let listSer = listAddSerie.concat()
+    mySelectedSerie.map((x) => {
+      if (!listAddSerie.some((serie) => serie.SER_ID == x.SER_ID)) {
+        listSer.push(x)
+      }
+    })
+    setListAddSerie(listSer)
+
+    let listTur = listAddSchoolClass.concat()
+    mySelectedSchoolClass.map((x) => {
+      if (!listAddSchoolClass.some((turma) => turma.TURMA_TUR_ID == x.TURMA_TUR_ID)) {
+        listTur.push(x)
+      }
+    })
+    setListAddSchoolClass(listTur)
   }
 
   const handleRemoveMun = (idMun) => {
@@ -243,6 +366,14 @@ export default function FormCreateMessage({}) {
 
   const handleRemoveEsc = (idEsc) => {
     setListAddEsc([...listAddEsc.filter((x) => x.ESC_ID !== idEsc)])
+  }
+
+  const handleRemoveSerie = (idSerie) => {
+    setListAddSerie([...listAddSerie.filter((x) => x.SER_ID !== idSerie)])
+  }
+
+  const handleRemoveSchoolClass = (idTurma) => {
+    setListAddSchoolClass([...listAddSchoolClass.filter((x) => x.TURMA_TUR_ID !== idTurma)])
   }
 
   const handleChangeText = (value) => {
@@ -254,14 +385,20 @@ export default function FormCreateMessage({}) {
       <div className="d-flex">
         <SelectionSide className="d-flex flex-column">
           <div className="d-flex">
-            <ButtonArea type="button" onClick={() => { setAreaActive(true) }} active={areaActive} style={{marginRight: 13}}>
+            <ButtonArea type="button" onClick={() => { setAreaActive(0) }} active={areaActive === 0} style={{marginRight: 13}}>
               Municípios
             </ButtonArea>
-            <ButtonArea type="button" onClick={() => { setAreaActive(false) }} active={!areaActive}>
+            <ButtonArea type="button" onClick={() => { setAreaActive(1) }} active={areaActive === 1} style={{marginRight: 13}}>
               Escolas
             </ButtonArea>
+            <ButtonArea type="button" onClick={() => { setAreaActive(2) }} active={areaActive === 2} style={{marginRight: 13}}>
+              Séries
+            </ButtonArea>
+            <ButtonArea type="button" onClick={() => { setAreaActive(3) }} active={areaActive === 3}>
+              Turmas
+            </ButtonArea>
           </div>
-          {areaActive ? 
+          {areaActive === 0 && (
             <CardSelectionSide>
               <Title>Usuários das Secretarias Destinatárias</Title>
               <Autocomplete
@@ -324,7 +461,7 @@ export default function FormCreateMessage({}) {
                 >
                   <Form.Check.Input onChange={handleSelectAll} value={"all"} name="municipios" type={"checkbox"} checked={selectAllActive} disabled={disableAll} />
                   <FormCheckLabel>
-                    <div>Selecionar Todos</div>
+                    <div>Todas ({listMun?.meta?.totalItems || 0})</div>
                   </FormCheckLabel>
                 </FormCheck>
                 <ListOverflow>
@@ -336,8 +473,6 @@ export default function FormCreateMessage({}) {
                         <FormCheck
                           key={x.MUN_ID}
                           id={x.MUN_ID}
-                          // key={uf?.id + stateRegional?.id + x.MUN_ID}
-                          // id={uf?.id + stateRegional?.id + x.MUN_ID}
                           className=""
                         >
                           <Form.Check.Input onChange={() => handleChangeSelect(x)} value={x} name="mySelected" type={"checkbox"} checked={verifyMySelected(x)} />
@@ -351,7 +486,9 @@ export default function FormCreateMessage({}) {
                 </ListOverflow>
               </List>
             </CardSelectionSide>
-          :
+          )}
+
+          {areaActive === 1 && (
             <CardSelectionSide>
               <Title>Selecionar Usuários das Escolas</Title>
               <AutoCompletePagMun county={munFilter} changeCounty={handleChangeMunFilter} showUf={true} />
@@ -398,7 +535,7 @@ export default function FormCreateMessage({}) {
                 >
                   <Form.Check.Input onChange={handleSelectAllSchools} value={"all"} name="Escolas" type={"checkbox"} checked={selectAllActiveSchool} />
                   <FormCheckLabel>
-                    <div>Selecionar Todos</div>
+                    <div>Todas ({listSchool?.meta?.totalItems || 0})</div>
                   </FormCheckLabel>
                 </FormCheck>
                 <ListOverflow>
@@ -409,8 +546,6 @@ export default function FormCreateMessage({}) {
                       <FormCheck
                         key={school.ESC_ID}
                         id={school.ESC_ID}
-                        // key={munFilter?.id + countyRegional?.id + school.ESC_ID}
-                        // id={munFilter?.id + countyRegional?.id + school.ESC_ID}
                         className=""
                       >
                         <Form.Check.Input onChange={() => handleChangeSelectSchool(school)} value={school} name="mySelectedSchool" type={"checkbox"} checked={verifyMySelectedSchool(school)} />
@@ -422,7 +557,97 @@ export default function FormCreateMessage({}) {
                 </ListOverflow>
               </List>
             </CardSelectionSide>
-          }
+          )}
+
+          {areaActive === 2 && (
+            <CardSelectionSide>
+              <Title>Selecionar Séries</Title>
+              <AutoCompletePagMun county={munFilter} changeCounty={handleChangeMunFilter} showUf={true} />
+              <List>
+                <FormCheck
+                  key={"serie"}
+                  id={"serie"}
+                  className=""
+                >
+                  <Form.Check.Input onChange={handleSelectAllSeries} value={"all"} name="Series" type={"checkbox"} checked={selectAllActiveSerie} />
+                  <FormCheckLabel>
+                    <div>Todas ({listSerie?.meta?.totalItems || 0})</div>
+                  </FormCheckLabel>
+                </FormCheck>
+                <ListOverflow>
+                  {isLoadingSerie ?
+                    <Loading />
+                    :
+                    listSerie?.items?.map((serieItem) => (
+                      <FormCheck
+                        key={serieItem.SER_ID}
+                        id={serieItem.SER_ID}
+                        className=""
+                      >
+                        <Form.Check.Input onChange={() => handleChangeSelectSerie(serieItem)} value={serieItem} name="mySelectedSerie" type={"checkbox"} checked={verifyMySelectedSerie(serieItem)} />
+                        <FormCheckLabel>
+                          <div>{serieItem.SER_NOME}</div>
+                        </FormCheckLabel>
+                      </FormCheck>
+                  ))}
+                </ListOverflow>
+              </List>
+            </CardSelectionSide>
+          )}
+
+          {areaActive === 3 && (
+            <CardSelectionSide>
+              <Title>Selecionar Turmas</Title>
+              <AutoCompletePagMun county={munFilter} changeCounty={handleChangeMunFilter} showUf={true} />
+              <Autocomplete
+                sx={{background: "#FFF", marginTop: '10px'}}
+                fullWidth
+                className=""
+                data-test='serie'
+                id="serie"
+                size="small"
+                value={serie}
+                noOptionsText="Série"
+                options={listSerie?.items || []}
+                loading={isLoadingSerie}
+                getOptionLabel={option => option.SER_NOME}
+                onChange={(_event, newValue) => {
+                  handleChangeSerie(newValue)
+                }}
+                disabled={!munFilter}
+                renderInput={(params) => <TextField size="small" {...params} label="Série" />}
+              />
+              <List>
+                <FormCheck
+                  key={"turma"}
+                  id={"turma"}
+                  className=""
+                >
+                  <Form.Check.Input onChange={handleSelectAllSchoolClasses} value={"all"} name="Turmas" type={"checkbox"} checked={selectAllActiveSchoolClass} />
+                  <FormCheckLabel>
+                    <div>Todas ({listSchoolClass?.meta?.totalItems || 0})</div>
+                  </FormCheckLabel>
+                </FormCheck>
+                <ListOverflow>
+                  {isLoadingSchoolClass ?
+                    <Loading />
+                    :
+                    listSchoolClass?.items?.map((turmaItem) => (
+                      <FormCheck
+                        key={turmaItem.TURMA_TUR_ID}
+                        id={turmaItem.TURMA_TUR_ID}
+                        className=""
+                      >
+                        <Form.Check.Input onChange={() => handleChangeSelectSchoolClass(turmaItem)} value={turmaItem} name="mySelectedSchoolClass" type={"checkbox"} checked={verifyMySelectedSchoolClass(turmaItem)} />
+                        <FormCheckLabel>
+                          <div>{turmaItem.TURMA_TUR_NOME}</div>
+                        </FormCheckLabel>
+                      </FormCheck>
+                  ))}
+                </ListOverflow>
+              </List>
+            </CardSelectionSide>
+          )}
           <ButtonCard>
             <div style={{width: "100%"}}>
               <ButtonWhite onClick={() => {handleAddSelecteds()}}>Adicionar</ButtonWhite>
@@ -462,6 +687,22 @@ export default function FormCreateMessage({}) {
                 {listAddEsc.map((x) => (
                   <ButtonDest key={x.ESC_ID} onClick={() => {handleRemoveEsc(x.ESC_ID)}}>
                     {x.ESC_NOME}
+                    <MdClose color={"#4B4B4B"} size={18}/>
+                  </ButtonDest>
+                ))}
+              </>
+              <>
+                {listAddSerie.map((x) => (
+                  <ButtonDest key={x.SER_ID} onClick={() => {handleRemoveSerie(x.SER_ID)}}>
+                    {x.SER_NOME}
+                    <MdClose color={"#4B4B4B"} size={18}/>
+                  </ButtonDest>
+                ))}
+              </>
+              <>
+                {listAddSchoolClass.map((x) => (
+                  <ButtonDest key={x.TURMA_TUR_ID} onClick={() => {handleRemoveSchoolClass(x.TURMA_TUR_ID)}}>
+                    {x.TURMA_TUR_NOME}
                     <MdClose color={"#4B4B4B"} size={18}/>
                   </ButtonDest>
                 ))}

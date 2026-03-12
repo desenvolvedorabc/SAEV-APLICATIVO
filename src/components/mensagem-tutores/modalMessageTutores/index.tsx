@@ -8,10 +8,12 @@ import { Loading } from "src/components/Loading";
 
 const StatusMessage = {
   PENDENTE: 'Pendente',
+  PENDENTE_JANELA: 'Aguardando usuário aceitar',
   NAO_ENVIADO: 'Não Enviado',
   ENTREGUE: 'Entregue',
   ENVIADO: 'Enviado',
   FALHOU: 'Falhou',
+  USUARIO_RECUSOU: 'Usuário Recusou',
 }
 
 

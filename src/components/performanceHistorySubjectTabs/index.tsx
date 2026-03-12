@@ -6,6 +6,9 @@ export function PerformanceHistorySubjectTabs({
   subjectId,
   selectSubjectId,
   items = [],
+  selectSchool = false,
+  typeOfVision,
+  setTypeOfVision,
 }) {
   const [sortedItems, setSortedItems] = useState([]);
 
@@ -16,6 +19,25 @@ export function PerformanceHistorySubjectTabs({
 
   return (
     <S.Container>
+      <div>
+        {selectSchool && (
+          <>
+            <button
+              onClick={() => setTypeOfVision("general")}
+              className={`${typeOfVision === "general" && "checked"}`}
+            >
+              Visão Geral
+            </button>
+            <button
+              onClick={() => setTypeOfVision("student")}
+              className={`${typeOfVision === "student" && "checked"}`}
+            >
+              Por Auno
+            </button>
+          </>
+        )}
+      </div>
+
       <div>
         {sortedItems?.map((data, key) => (
           <button

@@ -61,6 +61,7 @@ const modulesTutores = {
       { indent: '-1' },
       { indent: '+1' },
     ],
+    ['link'],
     ['clean'],
   ],
   clipboard: {
@@ -84,6 +85,7 @@ const formatsTutores = [
   'list',
   'bullet',
   'indent',
+  'link',
 ]
 
 export function Editor({changeText, initialValue = "", minHeight, tutor = false}) {

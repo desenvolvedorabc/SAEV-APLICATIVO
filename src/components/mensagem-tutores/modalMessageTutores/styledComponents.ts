@@ -23,6 +23,6 @@ export const LineBox = styled.tr`
 `;
 
 export const Status = styled.td`
-  color: ${props => props.color === 'FALHOU' || props.color === 'NAO_ENVIADO' ? '#D30000' : props.color === 'PENDENTE' ? '#FFA500' : '#007F00'};
+  color: ${props => props.color === 'FALHOU' || props.color === 'USUARIO_RECUSOU' || props.color === 'NAO_ENVIADO' ? '#D30000' : props.color === 'PENDENTE' || props.color === 'PENDENTE_JANELA' ? '#FFA500' : '#007F00'};
   text-align: center;
 `;

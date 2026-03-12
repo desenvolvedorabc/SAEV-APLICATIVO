@@ -44,12 +44,22 @@ import brLocale from "date-fns/locale/pt-BR";
 import { isValidDate } from "src/utils/validate";
 import { useGetTutorsMessage } from "src/services/mensagens-tutores.service";
 
+enum StatusMessage {
+  PENDENTE = 'PENDENTE',
+  PENDENTE_JANELA = 'PENDENTE_JANELA',
+  NAO_ENVIADO = 'NAO_ENVIADO',
+  ENTREGUE = 'ENTREGUE',
+  ENVIADO = 'ENVIADO',
+  FALHOU = 'FALHOU',
+  USUARIO_RECUSOU = 'USUARIO_RECUSOU',
+}
+
 interface Data {
   MEN_ID: string;
   MEN_TITLE: string;
   MEN_TEXT: string;
   createdAt: string;
-  STATUS: boolean;
+  STATUS: StatusMessage;
 }
 
 function createData(
@@ -57,7 +67,7 @@ function createData(
   MEN_TITLE: string,
   MEN_TEXT: string,
   createdAt: string,
-  STATUS: boolean,
+  STATUS: StatusMessage,
 ): Data {
   return {
     MEN_ID,
@@ -158,6 +168,7 @@ export default function TableMensagensTutores({ }) {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [showFilter, setShowFilter] = useState(false)
   const [sendDate, setSendDate] = useState(null);
+  const [date, setDate] = useState(null);
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
@@ -201,7 +212,7 @@ export default function TableMensagensTutores({ }) {
   const tableBody = useRef();
 
 
-  const { data, isLoading } = useGetTutorsMessage(search, page, limit, selectedColumn, order.toUpperCase());
+  const { data, isLoading } = useGetTutorsMessage(search, page, limit, selectedColumn, order.toUpperCase(), date);
   
   useEffect(() => {
     if(data){
@@ -240,6 +251,7 @@ export default function TableMensagensTutores({ }) {
 
   const filterSelected = () => {
     setPage(1)
+    setDate(sendDate)
   }
 
   const handleChangeSearch = (e) => {
@@ -279,12 +291,25 @@ export default function TableMensagensTutores({ }) {
           {formatDate(row.createdAt, "dd/MM/yyyy")}
         </TableCellBorder>
         <TableCellBorder>
-          {row.STATUS === "send" ? (
+          {row.STATUS === "ENVIADO" ? (
             <Status enviado={row.STATUS}>Enviada</Status>
-          ) : row.STATUS === "pending" ? (
+          ) : row.STATUS === "PENDENTE" ? (
             <Status enviado={row.STATUS}>Envio pendente</Status>
-          ) : (
-            <Status enviado={row.STATUS === "fail"}>Parcialmente enviada</Status>
+          )
+           : row.STATUS === "PENDENTE_JANELA" ? (
+            <Status enviado={row.STATUS}>Envio pendente</Status>
+          )
+          : row.STATUS === "FALHA" ? (
+            <Status enviado={row.STATUS}>Falhou</Status>
+          )
+           : row.STATUS === "NAO_ENVIADO" ? (
+            <Status enviado={row.STATUS}>Não enviado</Status>
+          )
+          : row.STATUS === "USUARIO_RECUSOU" ? (
+            <Status enviado={row.STATUS}>Usuário recusou</Status>
+          )
+          : (
+            <Status enviado={row.STATUS}>Parcialmente enviada</Status>
           )}
         </TableCellBorder>
       </TableRowStyled>
@@ -296,7 +321,7 @@ export default function TableMensagensTutores({ }) {
       <Container>
         <TopContainer>
           <div className="d-flex mb-2">
-            {/* <OverlayTrigger
+            <OverlayTrigger
               key={"toolTip"}
               placement={"top"}
               overlay={
@@ -308,7 +333,7 @@ export default function TableMensagensTutores({ }) {
               <Marker onClick={changeShowFilter}>
                 <MdOutlineFilterAlt color="#FFF" size={24} />
               </Marker>
-            </OverlayTrigger> */}
+            </OverlayTrigger>
             <div className="d-flex flex-row-reverse align-items-center ">
               <InputSearch data-test='search' size={16} type="text" placeholder="Pesquise" name="searchTerm"
                 onChange={handleChangeSearch}

@@ -104,7 +104,7 @@ export default function MunPage({
       renderCell: (cellValues) => {
         return (
           <div>
-            {format(new Date(cellValues?.row?.AVM_DT_DISPONIVEL), "dd/MM/yyyy")}
+            {cellValues?.row?.AVM_DT_DISPONIVEL ? format(new Date(cellValues?.row?.AVM_DT_DISPONIVEL), "dd/MM/yyyy") : "-"}
           </div>
         );
       },
@@ -114,10 +114,15 @@ export default function MunPage({
       headerName: "PERÍODO DE LANÇAMENTO",
       width: 220,
       renderCell: (cellValues) => {
+        const hasInicio = cellValues?.row?.AVM_DT_INICIO;
+        const hasFim = cellValues?.row?.AVM_DT_FIM;
+
+        if (!hasInicio && !hasFim) return <div>-</div>;
+
         return (
           <div>
-            {format(new Date(cellValues?.row?.AVM_DT_INICIO), "dd/MM/yyyy")} a{" "}
-            {format(new Date(cellValues?.row?.AVM_DT_FIM), "dd/MM/yyyy")}
+            {hasInicio ? format(new Date(cellValues?.row?.AVM_DT_INICIO), "dd/MM/yyyy") : "-"} a{" "}
+            {hasFim ? format(new Date(cellValues?.row?.AVM_DT_FIM), "dd/MM/yyyy") : "-"}
           </div>
         );
       },
@@ -126,6 +131,28 @@ export default function MunPage({
       field: "status",
       headerName: "STATUS",
       renderCell: (cellValues) => {
+        const hasInicio = cellValues?.row?.AVM_DT_INICIO;
+        const hasFim = cellValues?.row?.AVM_DT_FIM;
+
+        if (!hasInicio || !hasFim) {
+          return (
+            <Status>
+              <Circle
+                style={{
+                  backgroundColor: "#999",
+                }}
+              />
+              <Text
+                style={{
+                  color: "#999",
+                }}
+              >
+                Sem data
+              </Text>
+            </Status>
+          );
+        }
+
         const isVerifyData =
           isEqual(new Date(new Date().toDateString()), new Date(new Date(cellValues?.row?.AVM_DT_INICIO).toDateString())) ||
           isEqual(new Date(new Date().toDateString()), new Date(new Date(cellValues?.row?.AVM_DT_FIM).toDateString())) ? false :
@@ -290,6 +317,34 @@ export default function MunPage({
     }
   }
 
+  function validateForm() {
+    if(!mySelected.length || !!errorDispText?.trim() || !!errorLancInicioText?.trim() || !!errorLancFimText?.trim()) {
+      return true
+    }
+
+    if(!!disp &&( !lancInicio || !lancFim)) {
+      return true
+    }
+
+    if(!!lancInicio && (!disp || !lancFim)) {
+      return true
+    }
+
+    if(!!lancFim && (!disp || !lancInicio)) {
+      return true
+    }
+
+    if(!!lancFim && (lancFim < lancInicio)) {
+      return true
+    }
+
+    if(!!lancInicio && isPast(new Date(lancInicio))) {
+      return true
+    }
+   
+    return false
+  }
+
   return (
     <>
       <Card className="col-12 d-flex">
@@ -407,8 +462,10 @@ export default function MunPage({
               <LocalizationProvider
                 dateAdapter={AdapterDateFns}
                 locale={brLocale}
+                
               >
                 <DatePicker
+                  disablePast
                   openTo="year"
                   views={["year", "month", "day"]}
                   label="Disponível Em:"
@@ -432,12 +489,12 @@ export default function MunPage({
                   }}
                   onChange={(val) => {
                     setErrorDisp(false);
-                    if (isValidDate(val)) {
-                      val = format(new Date(val), "yyyy-MM-dd 23:59:59");
-                      setDisp(val);
+                    if (val && isValidDate(val)) {
+                      const formattedDate = format(new Date(val), "yyyy-MM-dd 23:59:59");
+                      setDisp(formattedDate);
                       return;
                     }
-                    setDisp("");
+                    setDisp(null);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -456,11 +513,12 @@ export default function MunPage({
                 locale={brLocale}
               >
                 <DatePicker
+                  disablePast
                   openTo="year"
                   views={["year", "month", "day"]}
                   label="Lançamento Início:"
                   value={lancInicio}
-                  minDate={new Date(disp)}
+                  minDate={disp ? new Date(disp) : undefined}
                   onError={(error) => {
                     if (error === "invalidDate") {
                       setErrorLancInicioText("Data inválida");
@@ -479,14 +537,14 @@ export default function MunPage({
                   }}
                   onChange={(val) => {
                     setErrorLancInicio(false);
-                    if (isValidDate(val)) {
-                      val = format(new Date(val), "yyyy-MM-dd 23:59:59");
-                      setLancInicio(val);
+                    if (val && isValidDate(val)) {
+                      const formattedDate = format(new Date(val), "yyyy-MM-dd 23:59:59");
+                      setLancInicio(formattedDate);
                       return;
                     }
-                    setLancInicio("");
-                    setErrorLancInicioText("Data inválida");
-                    setErrorLancInicio(true);
+                    setLancInicio(null);
+                    setErrorLancInicioText("");
+                    setErrorLancInicio(false);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -507,11 +565,12 @@ export default function MunPage({
                 locale={brLocale}
               >
                 <DatePicker
+                  disablePast
                   openTo="year"
                   views={["year", "month", "day"]}
                   label="Lançamento Fim:"
                   value={lancFim}
-                  minDate={new Date(lancInicio)}
+                  minDate={lancInicio ? new Date(lancInicio) : undefined}
                   onError={(error) => {
                     if (error === "invalidDate") {
                       setErrorLancFimText("Data inválida");
@@ -530,14 +589,14 @@ export default function MunPage({
                   }}
                   onChange={(val) => {
                     setErrorLancFim(false);
-                    if (isValidDate(val)) {
-                      val = format(new Date(val), "yyyy-MM-dd 23:59:59");
-                      setLancFim(val);
+                    if (val && isValidDate(val)) {
+                      const formattedDate = format(new Date(val), "yyyy-MM-dd 23:59:59");
+                      setLancFim(formattedDate);
                       return;
                     }
-                    setLancFim("");
-                    setErrorLancFim(true);
-                    setErrorLancFimText("Data inválida");
+                    setLancFim(null);
+                    setErrorLancFim(false);
+                    setErrorLancFimText("");
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -556,16 +615,7 @@ export default function MunPage({
               type="button"
               onClick={handleAddList}
               disable={
-                disp === "1969-12-31 23:59:59" ||
-                !isValidDate(disp) ||
-                lancInicio === "1969-12-31 23:59:59" ||
-                !isValidDate(lancInicio) ||
-                lancFim === "1969-12-31 23:59:59" ||
-                !isValidDate(lancFim) ||
-                !mySelected.length ||
-                !!errorDisp ||
-                !!errorLancInicio ||
-                !!errorLancFim
+               validateForm()
               }
             >
               Adicionar
@@ -614,6 +664,7 @@ export default function MunPage({
       </Card>
       <ModalAlterarPeriodo
         show={modalShow}
+        showDisponibilidade={true}
         onHide={() => {
           setModalShow(false);
         }}

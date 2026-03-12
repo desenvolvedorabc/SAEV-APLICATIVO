@@ -84,7 +84,7 @@ button {
 }
 
 @media print {
-  @page { size: landscape;} 
+  @page { size: landscape;}
   .isPdf {
     width: 1280px !important;
 }
@@ -110,6 +110,26 @@ button {
 @page {
   margin: 1mm;
   background: #ffffff;
+}
+
+@media print {
+  .historico-desempenho-pdf-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .historico-desempenho-pdf-container .isPdf {
+    width: 100% !important;
+  }
+
+  .historico-desempenho-pdf-container * {
+    page-break-inside: avoid;
+  }
+}
+
+@page historicoDesempenho {
+  size: landscape;
+  margin: 5mm 3mm;
 }
 
 .ql-content, .ql-editor {

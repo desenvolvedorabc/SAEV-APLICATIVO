@@ -1,8 +1,7 @@
 import { Form } from "react-bootstrap";
 import { useFormik } from 'formik';
-import { SelectionSide, Title, List, ListOverflow, FormCheck, FormCheckLabel, CardSelectionSide, MessageSide, ButtonDest, ButtonDestList, TopMessage, CardButtons, ButtonArea, ButtonCard } from './styledComponents'
+import { SelectionSide, Title, List, ListOverflow, FormCheck, FormCheckLabel, CardSelectionSide, MessageSide, ButtonDest, ButtonDestList, TopMessage, CardButtons, ButtonArea } from './styledComponents'
 import {ButtonPadrao} from 'src/components/buttons/buttonPadrao';
-import ButtonWhite from 'src/components/buttons/buttonWhite';
 import ModalConfirmacao from 'src/components/modalConfirmacao';
 import ModalAviso from 'src/components/modalAviso';
 import { useEffect, useState } from 'react';
@@ -18,17 +17,15 @@ import { limparHTML } from "src/utils/limparHtml";
 import { queryClient } from "src/lib/react-query";
 import { useAuth } from "src/context/AuthContext";
 import { useGetSchoolClasses } from "src/services/turmas.service";
-import { useGetSeries } from "src/services/series.service";
+import { useGetSeries, useGetAllSeries } from "src/services/series.service";
 import { Editor } from "src/components/editor";
 
 type ValidationErrors = Partial<{ title: string, content: string, filter: string }>
 
-export default function FormCreateMessageTutores({ county, school, serie, schoolClass }) {
-  const { user } = useAuth()
+export default function FormCreateMessageTutores({ school, serie, schoolClass, changeSerie, changeSchoolClass, reloadTrigger }) {
   const [ModalShowConfirm, setModalShowConfirm] = useState(false)
   const [modalStatus, setModalStatus] = useState(true)
   const [modalShowWarning, setModalShowWarning] = useState(false)
-  const [modalShowQuestion, setModalShowQuestion] = useState(false)
   const [errorMessage, setErrorMessage] = useState(true)
   const [searchAluno, setSearchAluno] = useState(null)
   const [studentFilter, setStudentFilter] = useState(null)
@@ -47,7 +44,10 @@ export default function FormCreateMessageTutores({ county, school, serie, school
   const [selectedWhatsapp, setSelectedWhatsapp] = useState(null)
   const [selectedSeries, setSelectedSeries] = useState([])
   const [selectedClass, setSelectedClass] = useState([])
+  const [destinatarios, setDestinatarios] = useState([])
     
+  const { data: allSeries, isLoading: isLoadingAllSeries } = useGetAllSeries('1');
+
   const { data: classList, isLoading: isLoadingSchoolClass } = useGetSchoolClasses(
     null, 
     1, 
@@ -56,21 +56,67 @@ export default function FormCreateMessageTutores({ county, school, serie, school
     "ASC", 
     null,
     null,
-    school?.ESC_ID,
-    serie?.SER_ID,
+    school?.ESC_ID === 'ALL' ? null : school?.ESC_ID,
+    serie?.SER_ID === 'ALL' ? null : serie?.SER_ID,
     null,
     1,
     !!serie
   );
 
+  /* eslint-disable-next-line no-use-before-define */
   useEffect(() => {
-    if(classList){
+    if(classList && serie && !schoolClass) {
       setSelectedClass(classList.items)
+    } else if (!serie) {
+      setSelectedClass([])
     }
-  }, [classList])
+  }, [classList, serie, schoolClass, reloadTrigger])
 
-  const handleDeleteClass = (id) => {
-    setSelectedClass(selectedClass.filter(item => item.TURMA_TUR_ID !== id))
+  useEffect(() => {
+    let newDestinatarios = []
+
+    if (school && !serie) {
+      selectedSeries.forEach(serieItem => {
+        newDestinatarios.push({
+          id: serieItem.SER_ID,
+          type: 'serie',
+          name: serieItem.SER_NOME,
+          removable: true
+        })
+      })
+    } else if (serie && !schoolClass) {
+      selectedClass.forEach(classItem => {
+        newDestinatarios.push({
+          id: classItem.TURMA_TUR_ID,
+          type: 'turma',
+          name: classItem.TURMA_TUR_NOME,
+          removable: true
+        })
+      })
+    } else if (schoolClass) {
+      newDestinatarios = []
+    }
+
+    setDestinatarios(newDestinatarios)
+  }, [school, serie, schoolClass, selectedSeries, selectedClass])
+
+  const handleRemoveDestinatario = (id, type) => {
+    if (type === 'serie') {
+      setSelectedSeries(selectedSeries.filter(item => item.SER_ID !== id))
+      const remainingSeries = selectedSeries.filter(item => item.SER_ID !== id)
+      if (remainingSeries.length === 0 && serie) {
+        changeSerie(null)
+      }
+    } else if (type === 'turma') {
+      setSelectedClass(selectedClass.filter(item => item.TURMA_TUR_ID !== id))
+      const remainingClasses = selectedClass.filter(item => item.TURMA_TUR_ID !== id)
+      if (remainingClasses.length === 0 && schoolClass) {
+        changeSchoolClass(null)
+      }
+    } else if (type === 'aluno') {
+      setListAddAluno(listAddAluno.filter(item => item.ALU_ID !== id))
+      setMySelected([...mySelected.filter((x) => x.ALU_ID !== id)])
+    }
   }
 
   const { data: seriesList, isLoading: isLoadingSerie } = useGetSeries(
@@ -79,20 +125,24 @@ export default function FormCreateMessageTutores({ county, school, serie, school
     9999, 
     null, 
     "ASC", 
-    school?.ESC_ID,
+    school?.ESC_ID === 'ALL' ? null : school?.ESC_ID,
     '1',
     !!school
   );
 
   useEffect(() => {
-    if(seriesList){
+    if(school?.ESC_ID === 'ALL' && allSeries && !serie) {
+      setSelectedSeries(allSeries)
+    } else if(seriesList && school && !serie) {
       setSelectedSeries(seriesList.items)
+    } else if (!school) {
+      setSelectedSeries([])
     }
-  }, [seriesList])
+  }, [seriesList, allSeries, school, serie, reloadTrigger])
 
-  const handleDeleteSerie = (id) => {
-    setSelectedSeries(selectedSeries.filter(item => item.SER_ID !== id))
-  }
+  const normalizedSchoolId = school?.ESC_ID === 'ALL' ? null : school?.ESC_ID
+  const normalizedSerieId = serie?.SER_ID === 'ALL' ? null : serie?.SER_ID
+  const normalizedClassId = normalizedSerieId === null ? null : schoolClass?.TURMA_TUR_ID
 
   const { data: students, isLoading: isLoadingStudents } = useGetStudents({
     search: searchAluno,
@@ -100,22 +150,48 @@ export default function FormCreateMessageTutores({ county, school, serie, school
     limit: 99999,
     column: null,
     order: 'ASC',
-    stateId: null, //filterState?.id,
-    county: user?.USU_MUN?.MUN_ID,
+    stateId: null,
+    county: null,
     typeSchool: null,
-    school: school?.ESC_ID,
+    school: normalizedSchoolId,
     status: null,
-    serie: serie?.SER_ID,
-    schoolClass: schoolClass?.TURMA_TUR_ID,
+    serie: normalizedSerieId,
+    schoolClass: normalizedClassId,
     active: "1",
-    enabled: !!schoolClass
+    enabled: !!school && !!schoolClass
   });
+
+  useEffect(() => {
+    if (!schoolClass) {
+      setMySelected([])
+      setselectAllActive(false)
+      setListAddAluno([])
+    }
+  }, [schoolClass])
+
+  useEffect(() => {
+    if (!school) {
+      setSelectedSeries([])
+      setSelectedClass([])
+      setMySelected([])
+      setListAddAluno([])
+      setselectAllActive(false)
+    }
+  }, [school])
+
+  useEffect(() => {
+    if (!serie) {
+      setSelectedClass([])
+      setMySelected([])
+      setListAddAluno([])
+      setselectAllActive(false)
+    }
+  }, [serie])
 
 
   const { data, isLoading } = useGetMessageTemplates(null, 1, 999999, null, 'ASC');
 
   const validate = values => {
-    console.log('values :', values);
     const errors: ValidationErrors = {};
     if (!values.title) {
       errors.title = 'Campo obrigatório';
@@ -125,9 +201,12 @@ export default function FormCreateMessageTutores({ county, school, serie, school
     if (!limparHTML(values.content)) {
       errors.content = 'Campo obrigatório';
     }
-    if (!school){
-      errors.filter = 'Obrigatório pelo menos um destinatário';
+    
+    const hasValidDestinatarios = destinatarios.length > 0 || listAddAluno.length > 0
+    if (!hasValidDestinatarios){
+      errors.filter = 'Obrigatório pelo menos um destinatário. Selecione uma escola, série, turma ou alunos específicos.';
     }
+    
     return errors;
   };
 
@@ -142,32 +221,30 @@ export default function FormCreateMessageTutores({ county, school, serie, school
       values.content = text
 
       let listSeries = []
-      if(!serie){
-        selectedSeries.map(x => {
-          listSeries.push(x.SER_ID)
-        })
-      }
-
       let listClass = []
-      if(!schoolClass){
-        selectedClass.map(x => {
-          listClass.push(x.TURMA_TUR_ID)
-        })
-      }
       let listStudents = []
-      if(schoolClass){
-        listAddAluno.map(x => {
-          listStudents.push(x.ALU_ID)
-        })
-      }
+      
+      // Coletar séries dos destinatários
+      destinatarios
+        .filter(d => d.type === 'serie')
+        .forEach(d => listSeries.push(d.id))
+      
+      // Coletar turmas dos destinatários
+      destinatarios
+        .filter(d => d.type === 'turma')
+        .forEach(d => listClass.push(d.id))
+      
+      // Coletar alunos selecionados
+      listAddAluno.forEach(x => {
+        listStudents.push(x.ALU_ID)
+      })
 
       const data = {
         ...values,
         filters: {
-          countyId: county?.MUN_ID,
-          schoolId: school?.ESC_ID,
-          serieId: serie?.SER_ID,
-          schoolClassId: schoolClass?.TURMA_TUR_ID,
+          schoolId: school?.ESC_ID === 'ALL' ? null : school?.ESC_ID,
+          serieId: serie?.SER_ID === 'ALL' ? null : serie?.SER_ID,
+          schoolClassId: schoolClass?.TURMA_TUR_ID === 'ALL' ? null : schoolClass?.TURMA_TUR_ID,
           schoolClassIds: listClass,
           serieIds: listSeries,
           studentIds: listStudents,
@@ -244,19 +321,13 @@ export default function FormCreateMessageTutores({ county, school, serie, school
     })
   }
 
-  const handleAddSelecteds = () => {
-    let students = listAddAluno.concat()
+  useEffect(() => {
+    let students = []
     mySelected.map((x) => {
-      if (!listAddAluno.some((student) => student.ALU_ID == x.ALU_ID)) {
         students.push(x)
-      }
     })
     setListAddAluno(students)
-  }
-
-  const handleRemoveAluno = (idAluno) => {
-    setListAddAluno([...listAddAluno.filter((x) => x.ALU_ID !== idAluno)])
-  }
+  }, [mySelected])
 
   const handleChangeText = (value) => {
     setText(value)
@@ -325,11 +396,6 @@ export default function FormCreateMessageTutores({ county, school, serie, school
                 </ListOverflow>
               </List>
             </CardSelectionSide>
-            <ButtonCard>
-              <div style={{width: "100%"}}>
-                <ButtonWhite onClick={() => {handleAddSelecteds()}}>Adicionar</ButtonWhite>
-              </div>
-            </ButtonCard>
           </SelectionSide>
         }
         <MessageSide className="col">
@@ -341,9 +407,6 @@ export default function FormCreateMessageTutores({ county, school, serie, school
               id="title"
               value={formik.values.title}
               onChange={formik.handleChange}
-              onKeyDown={onKeyDown} 
-              onDragEnter={(e) => e.preventDefault()} 
-              onSubmit={(e) => e.preventDefault()}
               size="small"
               error={formik.touched.title && formik.errors.title !== undefined}
               helperText={formik.touched.title && formik.errors.title}
@@ -352,41 +415,31 @@ export default function FormCreateMessageTutores({ county, school, serie, school
               }}
             />
             <Title style={{marginTop: 10}}>Destinatários:</Title>
-            {console.log('erros', formik.touched.filter, formik.errors.filter)}
             {formik.errors.filter !== undefined && (
               <ErrorText>{formik.errors.filter}</ErrorText>
             )}
             <ButtonDestList>
               <>
-                {school && !serie &&
-                  selectedSeries?.map((x) => (
-                    <ButtonDest key={x.SER_ID} onClick={() => {handleDeleteSerie(x.SER_ID)}}>
-                      {x.SER_NOME}
-                      <MdClose color={"#4B4B4B"} size={18}/>
-                    </ButtonDest>
-                  ))
-                }
-                {serie && !schoolClass &&
-                  selectedClass?.map((x) => (
-                    <ButtonDest key={x.TURMA_TUR_ID} onClick={() => {handleDeleteClass(x.TURMA_TUR_ID)}}>
-                      {x.TURMA_TUR_NOME}
-                      <MdClose color={"#4B4B4B"} size={18}/>
-                    </ButtonDest>
-                  ))
-                }
-                {/* {schoolClass && listAddAluno.length === 0 &&
-                  <ButtonDest
-                    key={schoolClass.TURMA_TUR_ID} 
-                    onClick={() => {handleRemoveAluno(schoolClass.TURMA_TUR_ID)}}
+                {destinatarios.map((destinatario) => (
+                  <ButtonDest 
+                    key={`${destinatario.type}-${destinatario.id}`} 
+                    onClick={() => destinatario.removable ? handleRemoveDestinatario(destinatario.id, destinatario.type) : {}}
                   >
-                    {schoolClass.TURMA_TUR_NOME}
-                    <MdClose color={"#4B4B4B"} size={18}/>
+                    {destinatario.type === 'municipio' && `Município: ${destinatario.name}`}
+                    {destinatario.type === 'escola' && `Escola: ${destinatario.name}`}
+                    {destinatario.type === 'serie' && `Série: ${destinatario.name}`}
+                    {destinatario.type === 'serie_all' && `${destinatario.name}`}
+                    {destinatario.type === 'turma' && `Turma: ${destinatario.name}`}
+                    {destinatario.removable && <MdClose color={"#4B4B4B"} size={18}/>}
                   </ButtonDest>
-                } */}
+                ))}
+                
                 {listAddAluno.map((x) => (
-                  <ButtonDest key={x.ALU_ID} onClick={() => {handleRemoveAluno(x.ALU_ID)}}>
+                  <ButtonDest key={x.ALU_ID} onClick={() => {handleRemoveDestinatario(x.ALU_ID, 'aluno')}}>
                     {x.ALU_NOME}
-                    <MdClose color={"#4B4B4B"} size={18}/>
+                    <div>
+                      <MdClose color={"#4B4B4B"} size={18}/>
+                    </div>
                   </ButtonDest>
                 ))}
               </>
@@ -494,7 +547,7 @@ export default function FormCreateMessageTutores({ county, school, serie, school
       <ModalConfirmacao
         show={ModalShowConfirm}
         onHide={() => { setModalShowConfirm(false), modalStatus && Router.back()}}
-        text={modalStatus ? `Mensagem enviada com sucesso.` : errorMessage || "Erro ao enviar mensagem"
+        text={modalStatus ? `Mensagem agendada para envio com sucesso.` : errorMessage || "Erro ao enviar mensagem"
         }
         status={modalStatus}
       />

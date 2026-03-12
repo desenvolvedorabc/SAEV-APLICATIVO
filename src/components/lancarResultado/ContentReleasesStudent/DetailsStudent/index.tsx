@@ -485,10 +485,16 @@ export function DetailsStudentRelease({
                   )}{" "}
                 </>
               }
-              {data?.answers[0]?.USU_NOME ? (
-                <>
-                  por {data?.answers[0]?.USU_NOME}
-                </>
+              {data?.answers[0]?.ALT_BY_HERBY ? (
+                <>por Herby</>
+              ) : data?.answers[0]?.ALT_BY_EDLER ? (
+                <>por Edler</>
+              ) : data?.answers[0]?.ALT_BY_AVA_ONLINE ? (
+                <>por Avaliação Online</>
+              ) : data?.answers[0]?.ALT_FORNECEDOR ? (
+                <>por {data?.answers[0]?.ALT_FORNECEDOR}</>
+              ) : data?.answers[0]?.USU_NOME ? (
+                <>por {data?.answers[0]?.USU_NOME}</>
               ) : (
                 <div/>
               )}

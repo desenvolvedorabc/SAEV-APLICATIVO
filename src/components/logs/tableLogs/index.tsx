@@ -581,7 +581,7 @@ export default function TableLogs() {
             <IconSearch color={"#7C7C7C"} />
           </div>
         </div>
-        <div style={{ width: 160 }}>
+        {/* <div style={{ width: 160 }}>
           <ButtonWhite
             onClick={(e) => {
               downloadCsv(e);
@@ -596,7 +596,7 @@ export default function TableLogs() {
             ref={csvLink}
             target="_blank"
           />
-        </div>
+        </div> */}
       </TopContainer>
       {showFilter && (
         <FilterStatusContainer>

@@ -152,6 +152,7 @@ export default function FormEditMunicipio({ municipio }) {
       MUN_COMPARTILHAR_DADOS: municipio?.MUN_COMPARTILHAR_DADOS ? 'Sim' : 'Não',
       MUN_MENSAGEM_EMAIL_ATIVO: municipio?.MUN_MENSAGEM_EMAIL_ATIVO === '1',
       MUN_MENSAGEM_WHATSAPP_ATIVO: municipio?.MUN_MENSAGEM_WHATSAPP_ATIVO === '1',
+      MUN_LEITURA_HERBY_ATIVO: municipio?.MUN_LEITURA_HERBY_ATIVO ? 'Sim' : 'Não',
     },
     validationSchema: validationSchema,
     onSubmit: async (county) => {
@@ -162,8 +163,9 @@ export default function FormEditMunicipio({ municipio }) {
         MUN_COD_IBGE: city?.id,
         MUN_PARCEIRO_EPV: county.MUN_PARCEIRO_EPV  === 'Sim',
         MUN_COMPARTILHAR_DADOS: county.MUN_COMPARTILHAR_DADOS  === 'Sim',
-        MUN_MENSAGEM_EMAIL_ATIVO: selectEmail,
-        MUN_MENSAGEM_WHATSAPP_ATIVO: selectWhatsapp,
+        MUN_MENSAGEM_EMAIL_ATIVO: selectEmail ? true : false,
+        MUN_MENSAGEM_WHATSAPP_ATIVO: selectWhatsapp ? true : false,
+        MUN_LEITURA_HERBY_ATIVO: county.MUN_LEITURA_HERBY_ATIVO  === 'Sim',
         stateId: uf?.id,
       }
 
@@ -544,7 +546,6 @@ export default function FormEditMunicipio({ municipio }) {
                 disabled={getShareDisabled()}
               />
             </div>
-            <div></div>
             <div style={{ marginTop: 15}}>
               <FormControlLabel 
                 sx={{
@@ -567,7 +568,22 @@ export default function FormEditMunicipio({ municipio }) {
                 label="Permitir envio de E-mail" 
               />
             </div>
-            <div style={{ marginTop: 15}}>              
+             <div style={{ marginTop: 15}}>
+              <Autocomplete
+                className=""
+                id="MUN_LEITURA_HERBY_ATIVO"
+                size="small"
+                value={formik.values.MUN_LEITURA_HERBY_ATIVO}
+                disableClearable
+                noOptionsText="É Parceiro EPV?"
+                options={['Sim', 'Não']}
+                onChange={(_event, newValue) => {
+                  formik.setFieldValue('MUN_LEITURA_HERBY_ATIVO', newValue)}}
+                renderInput={(params) => <TextField size="small" {...params} label="Lançamentos Leitura pelo Herby?" />}
+                disabled={user?.USU_SPE?.role !== 'SAEV'}
+              />
+            </div>
+                        <div style={{ marginTop: 15}}>              
               <FormControlLabel 
                 sx={{
                   border: '1px solid #D4D4D4',

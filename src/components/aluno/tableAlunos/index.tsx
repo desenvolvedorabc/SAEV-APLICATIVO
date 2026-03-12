@@ -530,47 +530,55 @@ export function TableAlunos({idMun, idEsc}) {
       </TopContainer>
       {showFilter && (
         <FilterSelectedContainer>
-          <div className="me-2">
-            <Autocomplete
-              sx={{background: "#FFF", width: '137px'}}
-              fullWidth
-              className=""
-              data-test='state'
-              id="state"
-              size="small"
-              value={selectedState}
-              noOptionsText="Estado"
-              options={states}
-              loading={isLoadingStates}
-              getOptionLabel={option => option.name}
-              onChange={(_event, newValue) => {
-                handleSelectState(newValue)
-              }}
-              renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
-            />
-          </div>
-          <div className="me-2">
-            <AutoCompletePagMun2 
-              county={selectedCity} 
-              changeCounty={handleSelectCity} 
-              width={"150px"} 
-              stateId={selectedState?.id} 
-              disabled={!selectedState}
-            />
-          </div>
-          <div className="me-2">
-          <Autocomplete
-            className=""
-            id="type"
-            size="small"
-            value={selectedType}
-            noOptionsText="Rede"
-            options={typeList}
-            getOptionLabel={(option) => `${enumType[option]}`}
-            onChange={(_event, newValue) => {
-              handleSelectType(newValue);
-            }}
-            disabled={!selectedCity}
+          {user?.USU_SPE?.role === "SAEV" && (
+            <div className="me-2">
+              <Autocomplete
+                sx={{background: "#FFF", width: '137px'}}
+                fullWidth
+                className=""
+                data-test='state'
+                id="state"
+                size="small"
+                value={selectedState}
+                noOptionsText="Estado"
+                options={states || []}
+                loading={isLoadingStates}
+                getOptionLabel={option => option.name}
+                onChange={(_event, newValue) => {
+                  handleSelectState(newValue)
+                }}
+                renderInput={(params) => <TextField size="small" {...params} label="Estado" />}
+              />
+            </div>
+          )}
+          {(user?.USU_SPE?.role === "SAEV" || user?.USU_SPE?.role === "ESTADO") && (
+            <div className="me-2">
+              <AutoCompletePagMun2
+                county={selectedCity}
+                changeCounty={handleSelectCity}
+                width={"150px"}
+                stateId={user?.USU_SPE?.role === "SAEV" ? selectedState?.id : user?.stateId}
+                disabled={user?.USU_SPE?.role === "SAEV" && !selectedState}
+              />
+            </div>
+          )}
+          {user?.USU_SPE?.role !== "ESCOLA" && (
+            <div className="me-2">
+              <Autocomplete
+                className=""
+                id="type"
+                size="small"
+                value={selectedType}
+                noOptionsText="Rede"
+                options={typeList}
+                getOptionLabel={(option) => `${enumType[option]}`}
+                onChange={(_event, newValue) => {
+                  handleSelectType(newValue);
+                }}
+                disabled={
+                  (user?.USU_SPE?.role === "SAEV" && !selectedCity) ||
+                  (user?.USU_SPE?.role === "ESTADO" && !selectedCity)
+                }
             sx={{
               background: "#FFF",
               width: '137px',
@@ -582,7 +590,8 @@ export function TableAlunos({idMun, idEsc}) {
               <TextField size="small" {...params} label="Rede" />
             )}
           />
-          </div> 
+          </div>
+          )}
           <div className="pe-2 me-2 border-end border-white">
             <AutoCompletePagEscMun 
               school={selectedSchool}

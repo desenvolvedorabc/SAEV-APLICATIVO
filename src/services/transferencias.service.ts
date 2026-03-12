@@ -40,3 +40,7 @@ export async function editTransfer(id: string, data: any) {
   };
   return await axios.put(`/api/transfer/edit/${id}`, { data });
 }
+
+export async function checkPendingTransfers() {
+  return await api.get("/transfer/pending/count");
+}

@@ -58,7 +58,7 @@ export function useGetYears(
 }
 
 export async function createYear(data: any) {
-  const response = await api.post("/school-year", { data })
+  const response = await api.post("/school-year", data)
   .then((response) => {
     return response;
   })
@@ -75,7 +75,7 @@ export async function createYear(data: any) {
 }
 
 export async function editYear(id: string, data: any) {
-  return await api.put(`/school-year/${id}`, { data })
+  return await api.put(`/school-year/${id}`, data)
   .then((response) => {
     return response;
   })

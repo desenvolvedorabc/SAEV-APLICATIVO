@@ -12,7 +12,6 @@ import { TableClassReading } from "src/components/tables/TableClassReading";
 import { ReportBreadcrumb } from "src/components/reportBreadcrumb";
 import {
   ItemSubject,
-  StudentsAnswers,
   getGeneralSynthesis,
   getGeneralSynthesisCSV,
 } from "src/services/sintese-geral.service";
@@ -24,7 +23,9 @@ import { withSSRAuth } from "src/utils/withSSRAuth";
 import { ContentOptionsExams } from "../src/components/contentOptionsExams/index";
 import { FooterTable } from "src/components/tables/TableAnswers/FooterTable";
 import { useAuth } from "src/context/AuthContext";
-import { useRouter } from "next/router";
+import {ChatAI} from "src/components/chatAI";
+import { ChatButton } from "src/components/chatAI/ChatButton";
+import { useGetPerfil } from "src/services/perfis.service";
 
 interface DataLeitura {
   NOME: string;
@@ -72,7 +73,6 @@ function createDataTable(
 
 export default function SinteseGeral() {
   const {user} = useAuth()
-  const [_answersStudents, setAnswersStudents] = useState<StudentsAnswers>({} as StudentsAnswers);
   const [isLoading, setIsLoading] = useState(false);
   const [examId, setExamId] = useState(undefined);
   const [orderBy, setOrderBy] = useState("porNome");
@@ -83,7 +83,11 @@ export default function SinteseGeral() {
   const [csv, setCsv] = useState([]);
   const csvLink = useRef(undefined);
   const [level, setLevel] = useState(null);
-  const router = useRouter();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatContext, setChatContext] = useState(null);
+  const [chatKey, setChatKey] = useState(0);
+
+  const { data: profileAreas } = useGetPerfil(user?.USU_SPE?.SPE_ID, !!user?.USU_SPE?.SPE_ID)
 
   const { handlePrint, componentRef } = useGenearePdf();
 
@@ -99,17 +103,13 @@ export default function SinteseGeral() {
     changeEdition,
     changeSchool,
     changeSchoolClass,
-    breadcrumb,
     mapBreadcrumb,
     serie,
     year,
     state,
     epv,
     type,
-    stateRegional,
-    edition,
     county,
-    countyRegional,
     school,
     schoolClass,
     resetBreadcrumbs,
@@ -162,6 +162,35 @@ export default function SinteseGeral() {
     if (resp?.items[0]?.level) setLevel(resp?.items[0]?.level);
     else setLevel(null)
   };
+
+  const updateChatContext = () => {
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+
+    const context = {
+      breadcrumb: mapBreadcrumb,
+      items: items,
+      selectedItem: selectedItem,
+      serie: serie,
+      year: _year,
+      edition: _edition,
+      state: _state,
+      stateRegional: _stateRegional,
+      county: _county,
+      countyRegional: _countyRegional,
+      school: _school,
+      schoolClass: _schoolClass,
+    };
+
+    setChatContext(context);
+  };
+
 
   useEffect(() => {
     if(!level){
@@ -252,31 +281,35 @@ export default function SinteseGeral() {
   },[items, orderBy])
 
   const downloadCsv = async () => {
-    if (level) {
-      const _year = mapBreadcrumb.find((data) => data.level === "year");
-      const _edition = mapBreadcrumb.find((data) => data.level === "edition");
-      const _state = mapBreadcrumb.find((data) => data.level === "state");
-      const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
-      const _county = mapBreadcrumb.find((data) => data.level === "county");
-      const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
-      const _school = mapBreadcrumb.find((data) => data.level === "school");
-      const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
+    const _year = mapBreadcrumb.find((data) => data.level === "year");
+    const _edition = mapBreadcrumb.find((data) => data.level === "edition");
+    const _state = mapBreadcrumb.find((data) => data.level === "state");
+    const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
+    const _county = mapBreadcrumb.find((data) => data.level === "county");
+    const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
+    const _school = mapBreadcrumb.find((data) => data.level === "school");
+    const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
 
-      const resp = await getGeneralSynthesisCSV(
-        serie?.SER_ID,
-        _year?.id,
-        _edition?.id,
-        epv === 'Exclusivo Epv' ? 1 : 0,
-        type === 'PUBLICA' ? null : type,
-        _state?.id,
-        _stateRegional?.id,
-        _county?.id,
-        _countyRegional?.id,
-        _school?.id,
-        _schoolClass?.id
-      );
+    if (_year?.id) {
+      try {
+        const resp = await getGeneralSynthesisCSV(
+          serie?.SER_ID,
+          _year?.id,
+          _edition?.id,
+          epv === 'Exclusivo Epv' ? 1 : 0,
+          type === 'PUBLICA' ? null : type,
+          _state?.id,
+          _stateRegional?.id,
+          _county?.id,
+          _countyRegional?.id,
+          _school?.id,
+          _schoolClass?.id
+        );
 
-      setCsv(resp.data);
+        setCsv(resp.data);
+      } catch (error) {
+        console.error('Error downloading CSV:', error);
+      }
     }
 
     csvLink.current.link.click();
@@ -299,6 +332,18 @@ export default function SinteseGeral() {
   }, [examId, items]);
 
   useEffect(() => {
+    if (items.length > 0) {
+      updateChatContext();
+    }
+  }, [items, selectedItem, mapBreadcrumb]);
+
+  useEffect(() => {
+    if (isUpdateData) {
+      setChatKey(prev => prev + 1);
+    }
+  }, [isUpdateData]);
+
+  useEffect(() => {
     if (isUpdateData || clickBar || visibleBreadcrumbs) {
       const _school = mapBreadcrumb.find((data) => data.level === "school");
       const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
@@ -308,26 +353,6 @@ export default function SinteseGeral() {
       const _state = mapBreadcrumb.find((data) => data.level === "state");
       const _stateRegional = mapBreadcrumb.find((data) => data.level === "regional");
       const _countyRegional = mapBreadcrumb.find((data) => data.level === "regionalSchool");
-
-      console.log('mapBreadcrumb :', mapBreadcrumb);
-      console.log('breadcrumb :', breadcrumb);
-      // let newUrl = `${router.pathname}?`
-        
-      // if(serie) newUrl = newUrl.concat('serie=' + serie?.SER_ID)
-      // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
-      // if(_edition) newUrl = newUrl.concat('&edition=' + _edition?.id)
-      // if(epv) newUrl = newUrl.concat('&epv=' + epv)
-      // if(type) newUrl = newUrl.concat('&type=' + type)
-      // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
-      // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
-      // if(_county) {
-      //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
-      // }
-      // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
-      // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
-      // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
-       
-      // window.history.pushState({ path: newUrl }, '', newUrl);
 
       if (!!_year?.id) {
         loadGeneralSynthesis(
@@ -425,14 +450,37 @@ export default function SinteseGeral() {
       <PageContainer>
         <TopFilterSerie title={"Síntese Geral >"} serie={serie} changeSerie={handleChangeSerie} />
         <ReportFilter isDisableYear={!serie} isDisable={onDisableReportFilter()} isSaev={user?.USU_SPE?.role === 'SAEV'} />
-
+        <ChatAI
+          key={chatKey}
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            setChatKey(prev => prev + 1);
+          }}
+          contextData={chatContext}
+          initialSuggestions={[
+            'Análise do Relatório',
+            'Resumo do Relatório',
+            'Destaques do Desempenho',
+            'Pontos de Atenção',
+            'Comparar Categorias'
+          ]}
+        />
         {isLoading ? (
           <div className="d-flex align-items-center flex-column mt-5">
             <div className="spinner-border" role="status"></div>
           </div>
         ) : (
           <section>
-            <ReportBreadcrumb onPress={onPressBreadcrumb} />
+            <ReportBreadcrumb
+              onPress={onPressBreadcrumb}
+              action={items.length > 0 && profileAreas?.AREAS?.find(x => x.ARE_NOME === 'AI_ASSIST') && (
+                <ChatButton
+                  isOpen={isChatOpen}
+                  onClick={() => setIsChatOpen(!isChatOpen)}
+                />
+              )}
+            />
             {!!items.length && (
               <ContentOptionsExams
                 isSchoolClass={!!schoolClass?.id}
@@ -527,6 +575,7 @@ function GeneratePdfPage({
                         orderBy={orderBy}
                         listScore={item}
                         setOrderListScore={() => {}}
+                        isPdf={true}
                       />
                     </>
                   ) : (

@@ -261,6 +261,25 @@ export default function FormAddPerfil(props) {
                         </FormCheckLabel>
                       </FormCheck>
                     ))}
+                    {link?.grupo === "RELATÓRIOS" &&
+                     <FormCheck
+                        key={"aiAssistant"}
+                        id={"aiAssistant"}
+                        className="col-11"
+                      >
+                        <Form.Check.Input
+                          onChange={formik.handleChange}
+                          value={"AI_ASSIST"}
+                          id={"AI_ASSIST"}
+                          name="AREAS"
+                          type={"checkbox"}
+                          disabled={user?.USU_SPE?.role !== "SAEV"}
+                        />
+                        <FormCheckLabel>
+                          <div>Assistente de IA</div>
+                        </FormCheckLabel>
+                      </FormCheck>
+                    }
                   </CheckGroup>
                 </CardBloco>
               }

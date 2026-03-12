@@ -1,15 +1,18 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, TextField, ListItemText, ListItemIcon, Checkbox } from "@mui/material";
 import { useState, useEffect } from "react";
 import { getSchools } from "src/services/escolas.service";
 import useDebounce from "src/utils/use-debounce";
 
-export function AutoCompletePagEsc({ school, changeSchool, width = "100%", active = null }) {
+export function AutoCompletePagEsc({ school, changeSchool, width = "100%", active = null, showAllOption = false }) {
   const [pageEsc, setPageEsc] = useState(1);
   const [searchEsc, setSearchEsc] = useState(null);
   const [limitEsc, setLimitEsc] = useState(false);
   const [listSchool, setListSchool] = useState([])
   const [position, setPosition] = useState(0);
   const [listboxNode, setListboxNode] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isAllSelected, setIsAllSelected] = useState(false);
 
   const debouncedSearchTerm = useDebounce(searchEsc, 1000);
   
@@ -23,6 +26,14 @@ export function AutoCompletePagEsc({ school, changeSchool, width = "100%", activ
       const resp = await getSchools(debouncedSearchTerm, pageEsc, 10, null, "ASC", null, null, active);
       
       setPageEsc(pageEsc + 1)
+      
+      if (totalCount === 0 || pageEsc === 1) {
+        setTotalCount(resp.data.meta?.totalItems || resp.data.totalCount || resp.data.total || 0);
+      }
+      
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
   
       if(resp.data.items.length === 0) {
         setLimitEsc(true)
@@ -62,6 +73,30 @@ export function AutoCompletePagEsc({ school, changeSchool, width = "100%", activ
     }
   };
 
+  const handleChange = (event, newValue) => {
+    if (newValue && newValue.ESC_ID === 'ALL') {
+      setIsAllSelected(true);
+      changeSchool({ ESC_ID: 'ALL', ESC_NOME: `Todas (${totalCount})` });
+    } else {
+      setIsAllSelected(false);
+      changeSchool(newValue);
+    }
+  };
+
+  const getOptions = () => {
+    const options = [...listSchool];
+    
+    if (showAllOption) {
+      const allOption = {
+        ESC_ID: 'ALL',
+        ESC_NOME: `Todas (${totalCount || 0})`
+      };
+      options.unshift(allOption);
+    }
+    
+    return options;
+  };
+
   return (
     <Autocomplete
       style={{width: width, background: "#FFF"}}
@@ -70,10 +105,9 @@ export function AutoCompletePagEsc({ school, changeSchool, width = "100%", activ
       size="small"
       value={school}
       noOptionsText="Escola"
-      options={listSchool}
+      options={getOptions()}
       getOptionLabel={(option) =>  `${option?.ESC_NOME}`}
-      onChange={(_event, newValue) => {
-        changeSchool(newValue)}}
+      onChange={handleChange}
       onInputChange={(_event, newValue) => {
         setPageEsc(1)
         setListSchool([])
@@ -90,6 +124,20 @@ export function AutoCompletePagEsc({ school, changeSchool, width = "100%", activ
         },
       }}
       renderInput={(params) => <TextField size="small" {...params} label="Escola" />}
+      renderOption={(props, option) => (
+        <li {...props} key={option.ESC_ID}>
+          {showAllOption && option.ESC_ID === 'ALL' ? (
+            <>
+              <ListItemIcon>
+                <Checkbox checked={isAllSelected} />
+              </ListItemIcon>
+              <ListItemText primary={option.ESC_NOME} />
+            </>
+          ) : (
+            <ListItemText primary={option.ESC_NOME} />
+          )}
+        </li>
+      )}
     />
   );
 }

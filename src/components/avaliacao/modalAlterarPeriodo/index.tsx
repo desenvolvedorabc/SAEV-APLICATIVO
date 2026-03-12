@@ -15,13 +15,15 @@ export default function ModalAlterarPeriodo(props) {
   const [disp, setDisp] = useState(null)
   const [errorModalDisp, setErrorModalDisp] = useState(true)
   const [errorModalDispText, setErrorModalDispText] = useState("")
+  const [initialDisp, setInitialDisp] = useState()
   const [lancInicio, setLancInicio] = useState(null)
   const [errorModalLancInicio, setErrorModalLancInicio] = useState(true)
   const [errorModalLancInicioText, setErrorModalLancInicioText] = useState("")
   const [lancFim, setLancFim] = useState(null)
   const [errorModalLancFimText, setErrorModalLancFimText] = useState("")
   const [errorModalLancFim, setErrorModalLancFim] = useState(true)
-  const [initialDisp, setInitialDisp] = useState()
+
+  const showDisponibilidade = props.showDisponibilidade !== false
 
   useEffect(() => {
     if (props.selected) {
@@ -33,43 +35,52 @@ export default function ModalAlterarPeriodo(props) {
           lastDate = element
         }
       });
-      setInitialDisp(lastDate?.AVM_DT_DISPONIVEL)
-      setDisp(lastDate?.AVM_DT_DISPONIVEL && format(new Date(lastDate?.AVM_DT_DISPONIVEL), 'yyyy-MM-dd 23:59:59'))
+      if (showDisponibilidade) {
+        setInitialDisp(lastDate?.AVM_DT_DISPONIVEL)
+        setDisp(lastDate?.AVM_DT_DISPONIVEL && format(new Date(lastDate?.AVM_DT_DISPONIVEL), 'yyyy-MM-dd 23:59:59'))
+      }
       setLancInicio(lastDate?.AVM_DT_INICIO)
       setLancFim(lastDate?.AVM_DT_FIM)
     }
-  }, [props.selected])
+  }, [props.selected, showDisponibilidade])
 
   const handleChangeSelect = (newValue) => {
     setSelectedList(newValue)
   };
 
   const handleSubmit = () => {
-    props.handlechangeperiodo(selectedList, disp, lancInicio, lancFim)
+    if (showDisponibilidade) {
+      props.handlechangeperiodo(selectedList, disp, lancInicio, lancFim)
+    } else {
+      props.handlechangeperiodo(selectedList, lancInicio, lancFim)
+    }
   }
 
   useEffect(() => {
-    if(!isValidDate(disp)){
-      setErrorModalDispText("Data inválida")
-      setErrorModalDisp(true)
-    } else if(isBefore(disp, new Date()) && disp !== initialDisp){
-      setErrorModalDispText("Data inferior à atual")
-      setErrorModalDisp(true)
-    } else{
-      setErrorModalDisp(false)
-      setErrorModalDispText("")
+    if (showDisponibilidade) {
+      if(!isValidDate(disp)){
+        setErrorModalDispText("Data inválida")
+        setErrorModalDisp(true)
+      } else if(disp < new Date() && disp !== initialDisp){
+        setErrorModalDispText("Data inferior à atual")
+        setErrorModalDisp(true)
+      } else{
+        setErrorModalDisp(false)
+        setErrorModalDispText("")
+      }
     }
+
     if(!isValidDate(lancInicio)){
       setErrorModalLancInicioText("Data inválida")
       setErrorModalLancInicio(true)
-    }
-    else if(lancInicio < disp ){
+    } else if(showDisponibilidade && lancInicio < disp){
       setErrorModalLancInicioText("Data inferior à disponibilidade")
       setErrorModalLancInicio(true)
     } else {
       setErrorModalLancInicioText("")
       setErrorModalLancInicio(false)
     }
+
     if(!isValidDate(lancFim)){
       setErrorModalLancFimText("Data inválida")
       setErrorModalLancFim(true)
@@ -81,7 +92,7 @@ export default function ModalAlterarPeriodo(props) {
       setErrorModalLancFimText("")
       setErrorModalLancFim(false)
     }
-  }, [disp, lancInicio, lancFim, initialDisp])
+  }, [disp, lancInicio, lancFim, initialDisp, showDisponibilidade])
 
   return (
     <>
@@ -93,7 +104,7 @@ export default function ModalAlterarPeriodo(props) {
           <Modal.Title>Alterar Período de Lançamento</Modal.Title>
         </Modal.Header>
         <Modal.Body className="d-flex flex-column align-items-center mt-3">
-          <Form className="d-flex flex-column mt-3 col-12 px-5 pb-4 pt-2 justify-content-center align-items-center">
+          <Form  className="d-flex flex-column mt-3 col-12 px-5 pb-4 pt-2 justify-content-center align-items-center">
             <div className="mb-2 col-12" >
               <Autocomplete
                 multiple
@@ -102,6 +113,7 @@ export default function ModalAlterarPeriodo(props) {
                 size="small"
                 value={selectedList}
                 noOptionsText="Municípios"
+                disabled={props.disabled}
                 options={props.list || []}
                 getOptionLabel={(option) => `${option.AVM_MUN_NOME}`}
                 onChange={(_event, newValue) => {
@@ -112,48 +124,46 @@ export default function ModalAlterarPeriodo(props) {
                 )}
               />
             </div>
-            <div className="mb-2 col-12">
-              <LocalizationProvider dateAdapter={AdapterDateFns} locale={brLocale}>
-                <DatePicker
-                  openTo="year"
-                  views={['year', 'month', 'day']}
-                  label="Disponivel Em:"
-                  value={disp}
-                  minDate={new Date()}
-                  onError={(error, value) => { 
-                    if(error === "invalidDate" && value !== initialDisp) {
+            {showDisponibilidade && (
+              <div className="mb-2 col-12">
+                <LocalizationProvider dateAdapter={AdapterDateFns} locale={brLocale}>
+                  <DatePicker
+                    openTo="year"
+                    views={['year', 'month', 'day']}
+                    label="Disponivel Em:"
+                    value={disp}
+                    minDate={new Date()}
+                    onError={(error, value) => {
+                      if(error === "invalidDate" && value !== initialDisp) {
+                        setErrorModalDispText("Data inválida")
+                        setErrorModalDisp(true)
+                        return
+                      }
+                      if(error === "minDate" && value !== initialDisp){
+                        setErrorModalDispText("Data inferior à atual")
+                        setErrorModalDisp(true)
+                        return
+                      }
+                      if(!error || value === initialDisp){
+                        setErrorModalDispText("")
+                        setErrorModalDisp(false)
+                      }
+                    }}
+                    onChange={(val) => {
+                      if (isValidDate(val)) {
+                          let value = format(new Date(val), 'yyyy-MM-dd 23:59:59')
+                          setDisp(value)
+                          return
+                      }
+                      setDisp("")
                       setErrorModalDispText("Data inválida")
-                      setErrorModalDisp(true)
-                      return
-                    }
-                    if(error === "minDate" && value !== initialDisp){
-                    console.log('initialDisp :', initialDisp);
-                    console.log('value :', value);
-                      setErrorModalDispText("Data inferior à atual")
-                      setErrorModalDisp(true)
-                      return
-                    } 
-                    if(!error || value === initialDisp){
-                      console.log('dawdad')
-                      setErrorModalDispText("")
-                      setErrorModalDisp(false)
-                    }
-                  }}
-                  onChange={(val) => {
-                    if (isValidDate(val)) { 
-                        let value = format(new Date(val), 'yyyy-MM-dd 23:59:59')
-                        setDisp(value)
-                        return 
-                    }
-                    setDisp("")
-                    setErrorModalDispText("Data inválida")
-                  }}
-                  renderInput={(params) => <TextField size="small" fullWidth {...params} sx={{backgroundColor:"#FFF"}} />}
-                />
-              </LocalizationProvider>
-              {errorModalDispText ? <ErrorText>{errorModalDispText}</ErrorText> : null}
-              {console.log('errorModalDispText :', errorModalDispText)}
-            </div>
+                    }}
+                    renderInput={(params) => <TextField size="small" fullWidth {...params} sx={{backgroundColor:"#FFF"}} />}
+                  />
+                </LocalizationProvider>
+                {errorModalDispText ? <ErrorText>{errorModalDispText}</ErrorText> : null}
+              </div>
+            )}
             <div className="mb-2 col-12">
               <LocalizationProvider dateAdapter={AdapterDateFns} locale={brLocale}>
                 <DatePicker
@@ -161,29 +171,22 @@ export default function ModalAlterarPeriodo(props) {
                   views={['year', 'month', 'day']}
                   label="Lançamento Início:"
                   value={lancInicio}
-                  minDate={new Date(props.disp)}
-                  onError={(error) => { 
-                  console.log('error :', error);
+                  onError={(error) => {
                     if(error === "invalidDate"){
                       setErrorModalLancInicioText("Data inválida")
                       setErrorModalLancInicio(true)
                       return
                     }
-                    if(error === "minDate"){
-                      setErrorModalLancInicioText("Data inferior à disponibilidade")
-                      setErrorModalLancInicio(true)
-                      return
-                    } 
                     if(!error){
                       setErrorModalLancInicioText("")
                       setErrorModalLancInicio(false)
                     }
                   }}
                   onChange={(val) => {
-                    if (isValidDate(val)) { 
+                    if (isValidDate(val)) {
                         val = format(new Date(val), 'yyyy-MM-dd 23:59:59')
                         setLancInicio(val)
-                        return 
+                        return
                     }
                     setLancInicio("")
                     setErrorModalLancInicioText("Data inválida")
@@ -201,8 +204,7 @@ export default function ModalAlterarPeriodo(props) {
                   label="Lançamento Fim:"
                   value={lancFim}
                   minDate={new Date(lancInicio)}
-                  onError={(error) => { 
-                  console.log('error :', error);
+                  onError={(error) => {
                     if(error === "invalidDate"){
                       setErrorModalLancFimText("Data inválida")
                       setErrorModalLancFim(true)
@@ -233,20 +235,22 @@ export default function ModalAlterarPeriodo(props) {
               {errorModalLancFimText ? <ErrorText>{errorModalLancFimText}</ErrorText> : null}
             </div>
             <div className="my-3">
-              <ButtonPadrao type="button" onClick={() => { handleSubmit(); props.onHide() }} disable={disp == "1969-12-31 23:59:59" ||
-              !isValidDate(disp) ||
+              <ButtonPadrao type="button" onClick={() => { handleSubmit(); props.onHide() }} disable={props?.isLoading ||
+              (showDisponibilidade && (disp == "1969-12-31 23:59:59" || !isValidDate(disp) || errorModalDisp)) ||
               lancInicio == "1969-12-31 23:59:59" ||
               !isValidDate(lancInicio) ||
               lancFim == "1969-12-31 23:59:59" ||
-              !isValidDate(lancFim) || 
-              errorModalDisp ||
+              !isValidDate(lancFim) ||
               errorModalLancInicio ||
               errorModalLancFim }>
-                Alterar Período de Lançamento
+                {props?.isLoading ? 'Carregando...' : 'Alterar Período de Lançamento'}
               </ButtonPadrao>
             </div>
             <div className="d-flex justify-content-center">
-              <Button onClick={props.onHide}>
+              <Button onClick={(e) => {
+                e.preventDefault();
+                props.onHide()
+              }}>
                 Cancelar
               </Button>
             </div>

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { ContainerScore } from "src/components/containerScore";
 import { GeneralAverage } from "src/components/generalAverage";
-import ScoreBar from "src/components/scoreBar";
+import { TableClassSubject } from "src/components/tables/TableClassSubject";
 import { ItemSubject } from "src/services/sintese-geral.service";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   listScore: ItemSubject;
   componentRef?: any;
   setOrderListScore: (item: ItemSubject) => void;
+  isPdf?: boolean;
 };
 
 enum Niveis {
@@ -23,31 +24,12 @@ export function SectionContentItensSubject({
   orderBy,
   listScore,
   componentRef,
+  isPdf = false,
   }: Props) {
+  // Removida lógica de ordenação - agora é feita apenas pelas setas da tabela
   const dataMapping = useMemo(() => {
-    let items = listScore?.items;
-
-    if (orderBy === "menorMedia") {
-      items = items?.sort((a, b) => {
-        return a.value - b.value;
-      });
-    } else if (orderBy === "maiorMedia") {
-      items = items?.sort((a, b) => {
-        return b.value - a.value;
-      });
-    } else if (orderBy === "porNome") {
-      items = items?.sort((a, b) => {
-        return ("" + a.name).localeCompare(b.name);
-      });
-    }
-
-    const data = {
-      ...listScore,
-      items,
-    };
-
-    return data;
-  }, [listScore, orderBy]);
+    return listScore;
+  }, [listScore]);
 
   return (
     <div ref={componentRef}>
@@ -58,9 +40,7 @@ export function SectionContentItensSubject({
           media={dataMapping?.avg}
           max={dataMapping?.max}
         />
-        {dataMapping?.items?.map((data) => (
-          <ScoreBar key={data.id} item={data} level={listScore?.level} />
-        ))}
+        <TableClassSubject orderBy={orderBy} selectedItem={dataMapping} isPdf={isPdf} />
       </ContainerScore>
     </div>
   );

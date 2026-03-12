@@ -157,6 +157,7 @@ export default function ModalAlterarPeriodo(props) {
                     setLancFim("")
                     setErrorModalLancFimText("Data inválida")
                   }}
+                  disabled={!props.inicio}
                   renderInput={(params) => <TextField size="small" fullWidth {...params} sx={{backgroundColor:"#FFF"}} />}
                 />
               </LocalizationProvider>

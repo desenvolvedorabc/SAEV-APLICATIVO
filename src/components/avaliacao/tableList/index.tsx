@@ -10,6 +10,8 @@ export default function TableList({
   rows,
   selectionTable,
   setSelectionTable,
+  checkboxSelection = true,
+  hideFooterPagination = false
 }) {
   const theme = createTheme(ptBR);
 
@@ -57,6 +59,7 @@ export default function TableList({
         /> */}
         <DataGrid
           disableColumnMenu
+          hideFooterPagination={hideFooterPagination}
           onSelectionModelChange={(newSelectionTable) => {
             setSelectionTable(newSelectionTable);
           }}
@@ -89,7 +92,7 @@ export default function TableList({
           }}
           rows={rows}
           columns={columns}
-          checkboxSelection
+          checkboxSelection={checkboxSelection}
 
 
           components={{

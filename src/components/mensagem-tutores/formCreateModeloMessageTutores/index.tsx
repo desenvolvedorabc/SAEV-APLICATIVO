@@ -135,7 +135,7 @@ export default function FormCreateModeloMessageTutores({ template = null }) {
           setModalShowConfirm(false), 
           modalStatus && Router.push({
             pathname: "/mensagens-tutores",
-            query: { modelo: 1 },
+            query: { view: 1 },
           })
         }}
         text={modalStatus ? `Modelo salvo com sucesso.` : "Erro ao salvar modelo"}
@@ -147,7 +147,7 @@ export default function FormCreateModeloMessageTutores({ template = null }) {
         onConfirm={() => { 
           Router.push({
             pathname: "/mensagens-tutores",
-            query: { modelo: 1 },
+            query: { view: 1 },
           })
         }}
         buttonYes={'Sim, Descartar Modelo'}

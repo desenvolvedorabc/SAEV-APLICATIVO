@@ -140,11 +140,11 @@ export function ContentInfoDataAndOptionsSubject({
         <p>
           <b>
             Período de Lançamento:{" "}
-            {new Date(
+            {selectedReleaseSubject?.AVM_DT_INICIO ? new Date(
               selectedReleaseSubject?.AVM_DT_INICIO
-            ).toLocaleDateString('pt-BR')}{" "}
+            ).toLocaleDateString('pt-BR') : '-'}{" "}
             a{" "}
-            {new Date(dateFim).toLocaleDateString('pt-BR')}.
+            {dateFim ? new Date(dateFim).toLocaleDateString('pt-BR') : '-'}.
           </b>
         </p>
         {verifyPerfil() &&

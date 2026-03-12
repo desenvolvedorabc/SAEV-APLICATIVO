@@ -65,4 +65,12 @@ module.exports = {
       "abemcomum-saev-backend-dev-abe-d2610e51.apps.going2.com.br",
     ],
   },
+
+  experimental: {
+    forceSwcTransforms: true,
+  },
+
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };

@@ -3,7 +3,7 @@ import { Button, MenuItem } from "@mui/material";
 
 export const Container = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 8px 25px 0 25px;
   background-color: #ffffff;
 
@@ -38,6 +38,18 @@ export const Container = styled.div`
   }
 
   > div:nth-child(1) {
+    > button {
+      margin-right: 10px;
+
+      &:hover,
+      &.checked {
+        color: #3e8277;
+        border-bottom: 1px solid #3e8277;
+      }
+    }
+  }
+
+  > div:nth-child(2) {
     > button {
       margin-right: 10px;
 

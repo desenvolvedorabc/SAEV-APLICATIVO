@@ -115,9 +115,10 @@ export function FormEditStudent({ student }) {
     ALU_WHATSAPP: yup
       .string()
       .test("is-valid-phone", "Número de telefone inválido", (value) => {
+        console.log('value whatsapp :', value);
         if (!value) return true;              // campo vazio é válido (caso seja opcional)
         if (value === "+55") return true;     // só +55 é válido
-        return /^\+55\s\(\d{2}\)\s\d{4,5}-\d{4}$/.test(value); // formato BR
+        return /^\+55\s\(\d{2}\)\s\d{4,5}-\d{4}$/.test(maskPhoneCountry(value)); // formato BR
       }),
     ALU_EMAIL: yup
       .string()

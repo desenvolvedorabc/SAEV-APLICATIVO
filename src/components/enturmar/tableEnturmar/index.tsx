@@ -601,4 +601,3 @@ export function TableEnturmar({ county, school, status }) {
     </Container>
   );
 }
-    

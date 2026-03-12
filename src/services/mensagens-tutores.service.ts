@@ -16,7 +16,8 @@ export function useGetTutorsMessage(
   page: number,
   limit: number,
   column: string,
-  order: string
+  order: string,
+  date: Date = null
 ) {
   const params = {
     search,
@@ -24,6 +25,7 @@ export function useGetTutorsMessage(
     limit,
     order,
     column,
+    date
   };
 
   const { data, isLoading } = useQuery({
@@ -116,7 +118,8 @@ export function useGetMessageTemplates(
   page: number,
   limit: number,
   column: string,
-  order: string
+  order: string,
+  date: Date = null
 ) {
   const params = {
     search,
@@ -124,6 +127,7 @@ export function useGetMessageTemplates(
     limit,
     order,
     column,
+    date
   };
 
   const { data, isLoading } = useQuery({

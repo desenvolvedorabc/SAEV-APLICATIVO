@@ -164,6 +164,7 @@ export default function TableMensagensModelos({ }) {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [showFilter, setShowFilter] = useState(false)
   const [sendDate, setSendDate] = useState(null);
+  const [date, setDate] = useState(null);
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
@@ -207,7 +208,7 @@ export default function TableMensagensModelos({ }) {
   const [rows, setRows] = useState([]);
   const tableBody = useRef();
 
-  const { data, isLoading } = useGetMessageTemplates(search, page, limit, selectedColumn, order.toUpperCase());
+  const { data, isLoading } = useGetMessageTemplates(search, page, limit, selectedColumn, order.toUpperCase(), date);
 
   useEffect(() => {
     if(data){
@@ -246,6 +247,7 @@ export default function TableMensagensModelos({ }) {
 
   const filterSelected = () => {
     setPage(1)
+    setDate(sendDate)
   }
 
   const handleChangeSearch = (e) => {
@@ -303,7 +305,7 @@ export default function TableMensagensModelos({ }) {
       <Container>
         <TopContainer>
           <div className="d-flex mb-2">
-            {/* <OverlayTrigger
+            <OverlayTrigger
               key={"toolTip"}
               placement={"top"}
               overlay={
@@ -315,7 +317,7 @@ export default function TableMensagensModelos({ }) {
               <Marker onClick={changeShowFilter}>
                 <MdOutlineFilterAlt color="#FFF" size={24} />
               </Marker>
-            </OverlayTrigger> */}
+            </OverlayTrigger>
             <div className="d-flex flex-row-reverse align-items-center ">
               <InputSearch data-test='search' size={16} type="text" placeholder="Pesquise" name="searchTerm"
                 onChange={handleChangeSearch}

@@ -9,9 +9,18 @@ import {
   PerfHistoryNiveisReadingColor,
 } from "pages/historico-desempenho";
 
+const LEVELS = {
+  students: "Alunos",
+  schoolClass: "Turmas",
+  school: "Escolas",
+  regional: "Regionais",
+};
+
 type TableProps = {
+  level: string,
   items: PerformanceHistoryItem[];
   selectedSubject: ItemSubject;
+  isPdf?: boolean;
 };
 
 type TableData = {
@@ -25,8 +34,10 @@ type TableData = {
 };
 
 export function TableClassReadingPerformanceHistory({
+  level,
   items,
   selectedSubject,
+  isPdf = false,
 }: TableProps) {
   const tests = useMemo(() => {
     let aux: ({
@@ -51,17 +62,19 @@ export function TableClassReadingPerformanceHistory({
   }, [items]);
 
   const data: TableData[] = useMemo(() => {
-    let students = tests[0]?.students;
+    let students = tests[0]?.data;
+
+    if (!students) return [];
 
     return students.map((student) => {
       const studentTests = tests.filter((x) =>
-        x.students.find((y) => y.id === student.id)
+        x.data.find((y) => y.id === student.id)
       );
       return {
         studentId: student.id,
         studentName: student.name,
         tests: studentTests.map((test) => {
-          const testStudent = test.students.find((x) => x.id === student.id);
+          const testStudent = test.data.find((x) => x.id === student.id);
 
           return {
             assessmentId: test.assessmentId,
@@ -75,33 +88,54 @@ export function TableClassReadingPerformanceHistory({
 
   return (
     <>
-      <div style={{ overflowX: "scroll", display: "flex" }}>
+      <div style={{
+        overflowX: isPdf ? "visible" : "scroll",
+        display: "flex",
+        fontSize: isPdf ? "5px" : "inherit",
+        width: isPdf ? "auto" : "auto"
+      }}>
         <div
           style={{
             border: "1px solid #D4D4D4",
             borderBottom: "none",
-            marginRight: "1rem",
-            minWidth: "max-content",
+            marginRight: isPdf ? "0.3rem" : "1rem",
+            minWidth: isPdf ? "auto" : "max-content",
+            width: isPdf ? "150px" : "auto"
           }}
         >
           <div
             style={{
-              padding: "10px",
+              padding: isPdf ? "2px" : "10px",
               textAlign: "center",
               borderBottom: "1px solid #D4D4D4",
               fontWeight: 500,
+              fontSize: isPdf ? "5px" : "inherit",
+              minHeight: isPdf ? "18px" : "auto",
+              height: isPdf ? "18px" : "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
           >
-            Alunos
+            {LEVELS[level]}
           </div>
 
-          {data?.map((data) => (
+          {data?.map((data, index) => (
             <div
             key={data.studentId}
               style={{
                 display: "flex",
-                padding: "5px",
+                alignItems: "center",
+                padding: isPdf ? "2px" : "5px",
                 borderBottom: "1px solid #D4D4D4",
+                whiteSpace: isPdf ? "nowrap" : "nowrap",
+                wordBreak: isPdf ? "normal" : "normal",
+                fontSize: isPdf ? "5px" : "inherit",
+                lineHeight: isPdf ? "1.2" : "normal",
+                minHeight: isPdf ? "14px" : "auto",
+                height: isPdf ? "14px" : "auto",
+                overflow: isPdf ? "hidden" : "visible",
+                textOverflow: isPdf ? "ellipsis" : "clip"
               }}
             >
               {data.studentName}
@@ -111,7 +145,7 @@ export function TableClassReadingPerformanceHistory({
 
         <div
           style={{
-            overflowX: "scroll",
+            overflowX: isPdf ? "visible" : "scroll",
             display: "flex",
             flex: 1,
             border: "1px solid #D4D4D4",
@@ -119,21 +153,31 @@ export function TableClassReadingPerformanceHistory({
           }}
         >
           {items.map((item, index) => (
-            <div key={item.id} style={{ flex: 1, minWidth: "200px", display:'flex', flexDirection: 'column' }}>
+            <div key={item.id} style={{
+              flex: 1,
+              minWidth: isPdf ? "40px" : "200px",
+              display:'flex',
+              flexDirection: 'column'
+            }}>
               <div
                 style={{
-                  padding: "10px",
+                  padding: isPdf ? "2px 1px" : "10px",
                   textAlign: "center",
                   borderBottom: "1px solid #D4D4D4",
                   justifyContent: "center",
                   fontWeight: 500,
                   overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis'
-                }
-                
-              } 
-              title={item.name} 
+                  whiteSpace: isPdf ? 'normal' : 'nowrap',
+                  textOverflow: 'ellipsis',
+                  fontSize: isPdf ? "4.5px" : "inherit",
+                  wordBreak: isPdf ? "break-word" : "normal",
+                  lineHeight: isPdf ? "1.2" : "normal",
+                  minHeight: isPdf ? "18px" : "auto",
+                  height: isPdf ? "auto" : "auto",
+                  display: "flex",
+                  alignItems: "center"
+                }}
+              title={item.name}
               >
                 {item.name}
               </div>
@@ -142,24 +186,34 @@ export function TableClassReadingPerformanceHistory({
                 const studentTest = data.tests.find(
                   (x) => x.assessmentId === item.id
                 );
+                const nivel = studentTest?.type ?? 'nao_informado';
+                const nivelText = PerfHistoryNiveisReading[nivel];
                 return (
                   <div
                   key={data.studentId}
                     style={{
                       display: "flex",
-                      padding: "5px",
+                      padding: isPdf ? "2px 1px" : "5px",
                       borderBottom: "1px solid #D4D4D4",
                       borderRight:
                         index === items.length - 1
                           ? "none"
                           : "1px solid #D4D4D4",
                       justifyContent: "center",
-                      backgroundColor: PerfHistoryNiveisReadingColor[studentTest?.type ?? 'nao_informado'],
+                      alignItems: "center",
+                      backgroundColor: PerfHistoryNiveisReadingColor[nivel],
                       color: "white",
                       fontWeight: 500,
+                      fontSize: isPdf ? "4.5px" : "inherit",
+                      whiteSpace: isPdf ? "normal" : "nowrap",
+                      wordBreak: isPdf ? "break-word" : "normal",
+                      textAlign: "center",
+                      lineHeight: isPdf ? "1.2" : "normal",
+                      minHeight: isPdf ? "14px" : "auto",
+                      height: isPdf ? "14px" : "auto"
                     }}
                   >
-                    {PerfHistoryNiveisReading[studentTest?.type ?? 'nao_informado']}
+                    {nivelText}
                   </div>
                 );
               })}

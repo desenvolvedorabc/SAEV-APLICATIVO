@@ -23,6 +23,7 @@ import { useGetStates } from "src/services/estados.service";
 import { useGetRegionaisByFilter } from "src/services/regionais-estaduais.service";
 import { useRouter } from "next/router";
 import { useAuth } from "src/context/AuthContext";
+import { useGetSchools } from "src/services/escolas.service";
 
 type FilterProps = {
   isEdition?: boolean;
@@ -42,6 +43,7 @@ type FilterProps = {
   testActive?: '1' | '0' | null
   isSaev?: boolean
   isPublic?: boolean
+  isCurrentYear?: boolean
 };
 
 enum enumType {
@@ -68,6 +70,7 @@ export function ReportFilter({
   testActive = null,
   isSaev = null,
   isPublic = true,
+  isCurrentYear = false
 }: FilterProps) {
   const [yearsList, setYearsList] = useState([]);
   const [classList, setClassList] = useState([]);
@@ -345,6 +348,7 @@ export function ReportFilter({
 
   const handleChangeSchool = (newValue, add = false) => {
     changeSchool(newValue);
+    console.log('newValueSchool :', newValue);
     if (isSerie) {
       changeSerie(null);
       loadSeries();
@@ -415,7 +419,6 @@ export function ReportFilter({
       addBreadcrumbs(newValue?.SER_ID, newValue?.SER_NOME, "serie");
       handleUnClickBar();
       handleClickBreadcrumb(null);
-      // changeYear(year);
     }
   };
 
@@ -493,15 +496,15 @@ export function ReportFilter({
     {
       let order = resp.data.sort((a, b) => b.ANO - a.ANO)
 
-      list = order.filter(currentYear => currentYear.ANO <= new Date().getFullYear())
+      list = order.filter(currentYear => isCurrentYear ? currentYear.ANO == new Date().getFullYear() : currentYear.ANO <= new Date().getFullYear())
     }
      setYearsList(list);
   };
 
-  const { data: editionsList, isLoading: isLoadingEditions } = useGetAssessments(null, 1, 999999, null, 'ASC', null, null, serie?.SER_ID, null, year?.ANO, !!year);
+  const { data: editionsList, isLoading: isLoadingEditions } = useGetAssessments(null, 1, 999999, null, 'ASC', null, null, serie?.SER_ID, null, year?.ANO, !!year && isEdition);
 
   useEffect(() => {
-    if(router.query.year && router.query.year !== 'undefined' && (serie || serieList)
+    if(router.query.year && router.query.year !== 'undefined' && ((serie && !isSerie) || serieList)
     // && isFirstLoadYear
     ){
       handleChangeYear(yearsList.find(_year => _year.ANO === router.query.year))
@@ -583,7 +586,6 @@ export function ReportFilter({
   }, [states, type, router.query.state])
 
   const { data: stateRegionals, isLoading: isLoadingStateRegionals } = useGetRegionaisByFilter(null, 1, 9999999, null, 'ASC', null, state?.id, 'ESTADUAL', type === 'PUBLICA' ? null : type);
-  console.log('stateRegional', stateRegional)
   useEffect(() =>{
     if(stateRegionals?.items?.length > 0 && router.query.stateRegional && router.query.stateRegional !== 'undefined' && state)
     {
@@ -610,19 +612,35 @@ export function ReportFilter({
   
   const { data: countyRegionals, isLoading: isLoadingCountyRegionals } = useGetRegionaisByFilter(null, 1, 9999999, null, 'ASC', county?.MUN_ID, null, epv === 'Exclusivo Epv' ? 'MUNICIPAL' : type === 'PUBLICA' ? null : type === 'ESTADUAL' ? 'UNICA' : 'MUNICIPAL', type === 'PUBLICA' ? null : type, !!county);
 
+  const { data: allCountySchools, isLoading: isLoadingAllCountySchools } = useGetSchools({
+    search: null,
+    page: 1,
+    limit: 9999999,
+    column: 'ESC_NOME',
+    order: 'ASC',
+    county: county?.MUN_ID,
+    active: '1',
+    enabled: !!county && !!countyRegional && !countyRegional?.id && countyRegional?.name === 'TODAS',
+  });
+
   useEffect(() =>{
     if(countyRegionals?.items?.length > 0 && router.query.countyRegional !== 'undefined' && county && !countyRegional){
-      const findCountyRegional = countyRegionals?.items?.find(_countyRegional => _countyRegional.id == router.query.countyRegional)
-      handleChangeCountyRegional(findCountyRegional)
+      if(router.query.countyRegional === 'null' || router.query.countyRegional === null){
+        handleChangeCountyRegional({ id: null, name: 'TODAS', schools: [] })
+      } else {
+        const findCountyRegional = countyRegionals?.items?.find(_countyRegional => _countyRegional.id == router.query.countyRegional)
+        handleChangeCountyRegional(findCountyRegional)
+      }
     }
   }, [countyRegionals, county, router.query.countyRegional])
 
-  console.log('countyRegional :', countyRegional);
   useEffect(() =>{
-    changeCountyRegional(countyRegionals?.items?.find(_countyRegional => _countyRegional.id == countyRegional?.id))
+    if(countyRegional?.id === null && countyRegional?.name === 'TODAS'){
+    } else {
+      changeCountyRegional(countyRegionals?.items?.find(_countyRegional => _countyRegional.id == countyRegional?.id))
+    }
     if(countyRegional){
       if(router.query.school && router.query.school !== 'undefined'){
-          console.log('router.query.school :', router.query.school)
         handleChangeSchool(countyRegional?.schools?.find(_school => _school?.ESC_ID == router.query.school))
       }
     }
@@ -1002,9 +1020,10 @@ export function ReportFilter({
             size="small"
             value={countyRegional}
             noOptionsText="Regionais Municipais / Únicas"
-            options={countyRegionals?.items || []}
+            options={countyRegionals?.items?.length > 0 ? [{ id: null, name: 'TODAS', schools: [] }, ...countyRegionals.items] : []}
             loading={isLoadingCountyRegionals}
-            getOptionLabel={option => option.name}
+            getOptionLabel={option => option?.name || ''}
+            isOptionEqualToValue={(option, value) => option?.id === value?.id && option?.name === value?.name}
             disabled={!county}
             onChange={(_event, newValue) => {
               handleChangeCountyRegional(newValue, true)
@@ -1023,7 +1042,8 @@ export function ReportFilter({
             size="small"
             value={school}
             noOptionsText="Escola"
-            options={countyRegional?.schools || []}
+            options={!countyRegional?.id && countyRegional?.name === 'TODAS' ? (allCountySchools?.data || []) : (countyRegional?.schools || [])}
+            loading={!countyRegional?.id && countyRegional?.name === 'TODAS' ? isLoadingAllCountySchools : false}
             getOptionLabel={(option) => `${option.ESC_NOME}`}
             onChange={(_event, newValue) => {
               handleChangeSchool(newValue, true);

@@ -105,6 +105,19 @@ export async function getSerieReport(id) {
   return await api.get(`/serie/reports/${id}`);
 }
 
+export function useGetAllSeries(active?: "0" | "1") {
+  const { data, isLoading } = useQuery({
+    queryKey: ["allSeries", active],
+    queryFn: async () => {
+      const response = await getAllSeries(active);
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 15,
+  });
+
+  return { data, isLoading };
+}
+
 export function useGetSerieReport(id) {
   const { data, isLoading } = useQuery({
     queryKey: ["serie_report", id],

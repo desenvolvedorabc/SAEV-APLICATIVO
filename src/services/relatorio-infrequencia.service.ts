@@ -105,7 +105,7 @@ export async function getExportReportAbsence(
   };
 
   const resp = await api
-    .get(`/school-absences/report/csv`, {
+    .get(`/reports/school-absences/csv`, {
       params,
       responseType: "blob",
     })

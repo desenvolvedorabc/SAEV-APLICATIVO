@@ -24,8 +24,9 @@ import {
 import { MdNavigateNext, MdNavigateBefore } from "react-icons/md";
 import { TableClassAveragesPerformanceHistory } from "src/components/tables/TableClassAveragesPerformanceHistory";
 import { PerformanceHistorySubjectTabs } from "src/components/performanceHistorySubjectTabs";
-import ButtonWhite from "src/components/buttons/buttonWhite";
 import { CSVLink } from "react-csv";
+import { useGenearePdf } from "src/utils/generatePdf";
+import { ButtonMenu } from "src/components/ButtonMenu";
 
 export enum PerfHistoryNiveisReading {
   fluente = "Fluente",
@@ -44,6 +45,14 @@ export enum PerfHistoryNiveisObjective {
   abaixo = "Desempenho Abaixo da Média",
   menor = "Menor Desempenho",
   nao_avaliado = "Não Avaliado",
+  nao_informado = "Não Informado",
+}
+
+export enum PerfHistoryNiveisGeneral {
+  maior = "Maior desempenho",
+  mediano = "Desempenho Mediano",
+  abaixo = "Desempenho Abaixo da Média",
+  menor = "Menor Desempenho",
   nao_informado = "Não Informado",
 }
 
@@ -71,6 +80,8 @@ export default function HistoricoDesempenho() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [subjectId, setSubjectId] = useState(undefined);
+  const [level, setLevel] = useState('regional');
+  const [typeOfVision, setTypeOfVision] = useState('general');
   const [items, setItems] = useState<PerformanceHistoryItem[]>([]);
   const [subjectItems, setSubjectItems] = useState<ItemSubject[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemSubject>(
@@ -79,6 +90,8 @@ export default function HistoricoDesempenho() {
 
   const [csv, setCsv] = useState([]);
   const csvLink = useRef(undefined);
+
+  const { componentRef, handlePrint } = useGenearePdf();
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -102,6 +115,8 @@ export default function HistoricoDesempenho() {
     serie,
     epv,
     school,
+    county,
+    schoolClass,
     resetBreadcrumbs,
     isUpdateData,
     setIsUpdateData,
@@ -113,6 +128,12 @@ export default function HistoricoDesempenho() {
     clickBreadcrumb,
   } = useBreadcrumbContext();
 
+
+  function handleSelectType(type: string) {
+    setTypeOfVision(type);
+    setIsUpdateData(true);
+  }
+
   const loadPerformanceHistory = async (
     _page,
     _limit,
@@ -121,8 +142,10 @@ export default function HistoricoDesempenho() {
     isEpvPartner,
     stateId,
     countyLoad,
+    regionalSchoolId,
     schoolLoad,
-    schoolClassLoad
+    schoolClassLoad,
+    typeOfVision
   ) => {
     setIsLoading(true);
     const resp = await getPerformanceHistory(
@@ -133,9 +156,11 @@ export default function HistoricoDesempenho() {
       isEpvPartner,
       stateId,
       countyLoad,
+      regionalSchoolId,
       schoolLoad,
-      schoolClassLoad
-    );
+      schoolClassLoad,
+      typeOfVision
+    ) as any
 
     setIsLoading(false);
 
@@ -149,6 +174,7 @@ export default function HistoricoDesempenho() {
     }
     setSubjectItems(tests);
     setItems(resp?.items);
+    setLevel(resp?.level);
     setQntPage(resp?.meta?.totalPages ?? 1);
   };
 
@@ -175,14 +201,21 @@ export default function HistoricoDesempenho() {
       (data) => data.level === "schoolClass"
     );
 
+     const _countyRegional = mapBreadcrumb.find(
+        (data) => data.level === "regionalSchool"
+      );
+
     const resp = await getPerformanceHistoryCSV(
       serie?.SER_ID,
-      _year?.id,
+       _year?.id,
       epv === "Exclusivo Epv" ? 1 : 0,
       _state?.id,
       _county?.id,
+      _countyRegional?.id,
       _school?.id,
-      _schoolClass?.id
+      _schoolClass?.id,
+      typeOfVision
+
     );
 
     setCsv(resp.data);
@@ -222,17 +255,19 @@ export default function HistoricoDesempenho() {
         (data) => data.level === "regionalSchool"
       );
 
-      if (!!_school?.id) {
+      if (!!_county?.id) {
         loadPerformanceHistory(
           page,
           limit,
           serie?.SER_ID,
-          _year?.id,
+         _year?.id,
           epv === "Exclusivo Epv" ? 1 : 0,
           _state?.id,
           _county?.id,
+          _countyRegional?.id,
           _school?.id,
-          _schoolClass?.id
+          _schoolClass?.id,
+          typeOfVision
         );
       } else {
         setSubjectItems([]);
@@ -246,6 +281,7 @@ export default function HistoricoDesempenho() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    typeOfVision,
     mapBreadcrumb,
     handleUnClickBar,
     setIsUpdateData,
@@ -298,9 +334,10 @@ export default function HistoricoDesempenho() {
           changeSerie={handleChangeSerie}
         />
         <ReportFilter
-          isEdition={false}
+          isEdition={false} 
           isDisableYear={!serie}
-          isDisable={!school}
+          isCurrentYear={false}
+          isDisable={!county}
           isSaev={user?.USU_SPE?.role === "SAEV"}
         />
 
@@ -340,12 +377,22 @@ export default function HistoricoDesempenho() {
               </div>
 
               <div>
-                <ButtonWhite onClick={downloadCsv} type="">
-                  Exportar
-                </ButtonWhite>
+                <ButtonMenu
+                  handlePrint={handlePrint}
+                  handleCsv={downloadCsv}
+                />
               </div>
             </div>
           )}
+
+           <PerformanceHistorySubjectTabs
+              subjectId={subjectId}
+              items={subjectItems}
+              selectSubjectId={setSubjectId}
+              selectSchool={!!school && !schoolClass}
+              typeOfVision={typeOfVision}
+              setTypeOfVision={handleSelectType}
+            />
 
           {isLoading && !items.length && (
             <div className="d-flex flex-1 align-items-center flex-column mt-5">
@@ -353,29 +400,26 @@ export default function HistoricoDesempenho() {
             </div>
           )}
 
-          {!!subjectItems.length && (
-            <PerformanceHistorySubjectTabs
-              subjectId={subjectId}
-              items={subjectItems}
-              selectSubjectId={setSubjectId}
-            />
-          )}
+           
 
           {!!selectedItem.subject && (
             <ContainerScore>
-              {selectedItem.dis_tipo !== "Leitura" ? (
+              {selectedItem.dis_tipo !== "Leitura" || level !== 'students' ? (
                 <TableClassAveragesPerformanceHistory
+                  level={level}
                   items={items}
                   selectedSubject={selectedItem}
                 />
               ) : (
                 <TableClassReadingPerformanceHistory
+                  level={level}
                   items={items}
                   selectedSubject={selectedItem}
                 />
               )}
 
-              <Pagination>
+             {level === 'students' && (
+               <Pagination>
                 Linhas por página:
                 <FormSelectStyled
                   data-test="limit"
@@ -401,6 +445,7 @@ export default function HistoricoDesempenho() {
                   <MdNavigateNext size={24} />
                 </ButtonPage>
               </Pagination>
+             )}
 
               <div
                 style={{
@@ -409,21 +454,21 @@ export default function HistoricoDesempenho() {
                   margin: "1.5rem 0",
                 }}
               >
-                {Object.keys(selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading : PerfHistoryNiveisObjective).map((key) => (
+                {Object.keys(level === 'students'? selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading : PerfHistoryNiveisObjective : PerfHistoryNiveisGeneral).map((key) => (
                   <div
                   key={key}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: "5px",
-                      width: selectedItem.dis_tipo === "Leitura" ? "70px" : "100px",
+                      width: level === 'students'? selectedItem.dis_tipo === "Leitura" ? "70px" : "100px" : '120px',
                     }}
                   >
                     <div
                       style={{
                         width: "12px",
                         height: "24px",
-                        backgroundColor: selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReadingColor[key] : PerfHistoryNiveisObjectiveColor[key],
+                        backgroundColor: level === 'students'? selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReadingColor[key] : PerfHistoryNiveisObjectiveColor[key] : PerfHistoryNiveisObjectiveColor[key],
                       }}
                     />
 
@@ -434,7 +479,7 @@ export default function HistoricoDesempenho() {
                         fontSize: "11px",
                       }}
                     >
-                      {selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading[key] : PerfHistoryNiveisObjective[key]}
+                      {level === 'students'? selectedItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading[key] : PerfHistoryNiveisObjective[key] : PerfHistoryNiveisGeneral[key]}
                     </div>
                   </div>
                 ))}
@@ -443,12 +488,22 @@ export default function HistoricoDesempenho() {
           )}
         </section>
 
+        <GeneratePdfPage
+          componentRef={componentRef}
+          subjectItems={subjectItems}
+          items={items}
+          serie={serie}
+          mapBreadcrumb={mapBreadcrumb}
+          level={level}
+        />
+
         <CSVLink
           data={csv}
           filename="historico_desempenho.csv"
           className="hidden"
           ref={csvLink}
           target="_blank"
+          separator=";"
         />
       </PageContainer>
     </>
@@ -458,6 +513,96 @@ export default function HistoricoDesempenho() {
 HistoricoDesempenho.getLayout = function getLayout(page: ReactElement) {
   return <Layout header={"Histórico de Desempenho"}>{page}</Layout>;
 };
+
+function GeneratePdfPage({
+  componentRef,
+  subjectItems,
+  items,
+  serie,
+  mapBreadcrumb,
+  level
+}) {
+  return (
+    <div className="pdf">
+      <div ref={componentRef} className="print-container historico-desempenho-pdf-container">
+        <PageContainer>
+          <div className="d-flex justify-content-center mt-3">
+            <strong>Histórico de Desempenho - Série: {serie?.SER_NOME}</strong>
+          </div>
+          <ReportBreadcrumb onPress={() => {}} />
+
+          {subjectItems?.map((subjectItem, index) => (
+            <div key={subjectItem.id} style={{ pageBreakInside: 'avoid', marginBottom: index < subjectItems.length - 1 ? '2rem' : '0' }}>
+              <ContainerScore>
+                <div className="d-flex justify-content-center mb-3">
+                  <strong>Disciplina: {subjectItem.subject}</strong>
+                </div>
+
+                {subjectItem.dis_tipo !== "Leitura" || level !== 'students' ? (
+                  <TableClassAveragesPerformanceHistory
+                  level={level}
+                    items={items}
+                    selectedSubject={subjectItem}
+                    isPdf={true}
+                  />
+                ) : (
+                  <TableClassReadingPerformanceHistory
+                  level={level}
+
+                    items={items}
+                    selectedSubject={subjectItem}
+                    isPdf={true}
+                  />
+                )}
+
+                  <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  margin: "1.5rem 0",
+                }}
+              >
+                {Object.keys(level === 'students'? subjectItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading : PerfHistoryNiveisObjective : PerfHistoryNiveisGeneral).map((key) => (
+                  <div
+                  key={key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      width: level === 'students'? subjectItem.dis_tipo === "Leitura" ? "70px" : "100px" : '120px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "12px",
+                        height: "24px",
+                        backgroundColor: level === 'students'? subjectItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReadingColor[key] : PerfHistoryNiveisObjectiveColor[key] : PerfHistoryNiveisObjectiveColor[key],
+                      }}
+                    />
+
+                    <div
+                      key={key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        width:
+                          subjectItem.dis_tipo === "Leitura" ? "70px" : "100px",
+                      }}
+                    >
+                      {level === 'students'? subjectItem.dis_tipo === "Leitura" ? PerfHistoryNiveisReading[key] : PerfHistoryNiveisObjective[key] : PerfHistoryNiveisGeneral[key]}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </ContainerScore>
+            </div>
+          ))}
+        </PageContainer>
+      </div>
+    </div>
+  );
+}
 
 export const getServerSideProps = withSSRAuth(
   async (ctx) => {

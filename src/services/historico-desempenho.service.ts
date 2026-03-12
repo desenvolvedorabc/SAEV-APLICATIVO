@@ -9,9 +9,13 @@ export async function getPerformanceHistory(
   isEpvPartner: 0 | 1,
   stateId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
-  schoolClass: string
+  schoolClass: string,
+  type: string,
 ): Promise<Pagination<PerformanceHistoryItem>> {
+  let level = "regional";
+
   const params = {
     page,
     limit,
@@ -20,15 +24,25 @@ export async function getPerformanceHistory(
     isEpvPartner,
     stateId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
+    type,
   };
+
+  if (schoolClass) {
+    level = "students";
+  } else if (school) {
+    level = type === 'general' ? "schoolClass" : 'students';
+  } else if (municipalityOrUniqueRegionalId) {
+    level = "school";
+  }
 
   const response = await api.get("/reports/performance-history", {
     params,
   });
 
-  return response.data;
+  return { ...response.data, level };
 }
 
 export async function getPerformanceHistoryCSV(
@@ -37,8 +51,10 @@ export async function getPerformanceHistoryCSV(
   isEpvPartner: 0 | 1,
   stateId: string,
   county: string,
+  municipalityOrUniqueRegionalId: string,
   school: string,
-  schoolClass: string
+  schoolClass: string,
+  type: string,
 ) {
   const params = {
     serie,
@@ -46,8 +62,10 @@ export async function getPerformanceHistoryCSV(
     isEpvPartner,
     stateId,
     county,
+    municipalityOrUniqueRegionalId,
     school,
     schoolClass,
+    type
   };
 
   const response = await api.get("/reports/performance-history/csv", {
@@ -65,7 +83,7 @@ export interface PerformanceHistoryItem {
 export interface PerformanceHistoryTest {
   id: number;
   subject: string;
-  students: {
+  data: {
     id: number;
     name: string;
     avg: number;

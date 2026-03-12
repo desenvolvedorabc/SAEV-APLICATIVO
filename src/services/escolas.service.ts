@@ -305,9 +305,11 @@ export async function getSchoolsTransfer(
   column: string,
   order: string,
   active: string,
-  county: string
+  county: string,
+  typeSchool?: 'MUNICIPAL' | 'ESTADUAL',
+  isDestination?: boolean
 ) {
-  const params = { search, page, limit, order, active, column, county };
+  const params = { search, page, limit, order, active, column, county, typeSchool, isDestination };
 
   return await api.get("/school/transfer", { params });
 }

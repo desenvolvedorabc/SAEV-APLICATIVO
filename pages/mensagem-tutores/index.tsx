@@ -8,10 +8,10 @@ import FormCreateMessageTutores from "src/components/mensagem-tutores/formCreate
 import { MessageTutoresFilter } from "src/components/mensagem-tutores/messageTutoresFilter";
 
 export default function NovaMensagemTutores() {
-  const [county, setCounty] = useState(null);
   const [school, setSchool] = useState(null);
   const [serie, setSerie] = useState(null);
   const [schoolClass, setSchoolClass] = useState(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   return (
     <PageContainer>
@@ -19,12 +19,20 @@ export default function NovaMensagemTutores() {
       <MessageTutoresFilter
         changeSchool={setSchool} 
         changeSerie={setSerie} 
-        changeSchoolClass={setSchoolClass}  
+        changeSchoolClass={setSchoolClass}
+        triggerReload={() => setReloadTrigger(prev => prev + 1)}
       />
       <div>
         
       </div>
-      <FormCreateMessageTutores county={county} school={school} serie={serie} schoolClass={schoolClass}/>
+      <FormCreateMessageTutores 
+        school={school} 
+        serie={serie} 
+        schoolClass={schoolClass}
+        changeSerie={setSerie}
+        changeSchoolClass={setSchoolClass}
+        reloadTrigger={reloadTrigger}
+      />
     </PageContainer>
   );
 }

@@ -4,6 +4,11 @@ import { parseCookies } from "nookies";
 import CacheControl from "src/utils/cache-request";
 import { api } from "./api";
 
+export enum EditionTypeEnum {
+  GERAL = 'GERAL',
+  ESPECIFICO = 'ESPECIFICO',
+}
+
 const cookies = parseCookies();
 const token = cookies["__session"];
 const HALF_HOUR = 30;

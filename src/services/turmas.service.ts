@@ -125,6 +125,19 @@ export function useGetSchoolClasses(
   };
 }
 
+export function useGetAllSchoolClass() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["allSchoolClass"],
+    queryFn: async () => {
+      const response = await getAllSchoolClass();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+
+  return { data, isLoading };
+}
+
 export function useGetSchoolClassesTransfer(
   search: string,
   page: number,

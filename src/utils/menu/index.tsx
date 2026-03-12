@@ -210,6 +210,12 @@ export const PERFISLINKS = [
     ARE_NOME: "AVA",
     grupo: "AVALIAÇÕES",
     items: [
+       {
+        name: "Edições Municipais",
+        ARE_NOME: "EDI_MUN",
+        path: "/edicoes-municipais",
+        icon: <MdOutlineLibraryAddCheck size={22} />,
+      },
       {
         name: "Edições",
         ARE_NOME: "EDI",
@@ -508,6 +514,12 @@ export const ADMINLINKS = [
     ARE_NOME: "AVA",
     grupo: "AVALIAÇÕES",
     items: [
+       {
+        name: "Edições Municipais",
+        ARE_NOME: "EDI_MUN",
+        path: "/edicoes-municipais",
+        icon: <MdOutlineLibraryAddCheck size={22} />,
+      },
       {
         name: "Edições",
         ARE_NOME: "EDI",

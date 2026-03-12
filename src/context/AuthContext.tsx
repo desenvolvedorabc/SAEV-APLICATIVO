@@ -5,6 +5,9 @@ import Router from "next/router";
 import { api } from "src/services/api";
 import axios from "axios";
 import { queryClient } from "src/lib/react-query";
+import { checkPendingTransfers } from "src/services/transferencias.service";
+import { getPerfil } from "src/services/perfis.service";
+import ModalPendingTransfers from "src/components/modalPendingTransfers";
 
 export type IUser = {
   USU_ID: string;
@@ -36,6 +39,8 @@ type AuthContextData = {
   signIn(values): Promise<any>;
   signOut: () => void;
   user: IUser;
+  showPendingTransfersModal: boolean;
+  pendingTransfersCount: number;
 };
 
 type AuthProviderProps = {
@@ -90,6 +95,8 @@ export function signOut() {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<IUser>({} as IUser);
+  const [showPendingTransfersModal, setShowPendingTransfersModal] = useState(false);
+  const [pendingTransfersCount, setPendingTransfersCount] = useState(0);
 
   useEffect(() => {
     authChannel = new BroadcastChannel("auth");
@@ -121,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let response;
     try {
       response = await axios
-      .post(`${process.env.NEXT_PUBLIC_API_URL}/v1/login`, {
+      .post(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
         USU_EMAIL: values?.email,
         USU_SENHA: values?.password,
       })
@@ -170,7 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       path: "/",
     });
     const avatar = decodeToken["user"]["USU_AVATAR"];
-    setCookie(null, "USU_AVATAR_URL", `${process.env.NEXT_PUBLIC_API_URL}/v1/users/avatar/${avatar}`, {
+    setCookie(null, "USU_AVATAR_URL", `${process.env.NEXT_PUBLIC_API_URL}/users/avatar/${avatar}`, {
       path: "/",
     });
     setCookie(null, "USU_RETRY", "0", {
@@ -178,7 +185,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     api.defaults.headers["Authorization"] = `Bearer ${token}`;
-    
+
+    const allowedRoles = ["ESCOLA", "MUNICIPIO_MUNICIPAL", "MUNICIPIO_ESTADUAL"];
+    if (allowedRoles.includes(userDecodeToken?.USU_SPE.role)) {
+      try {
+        const speId = userDecodeToken?.USU_SPE?.SPE_ID;
+        const perfilResponse = await getPerfil(speId);
+        const areas: Array<{ ARE_NOME: string }> = perfilResponse?.data?.AREAS ?? [];
+        const hasTransferArea = areas.some((area) => area.ARE_NOME === "TRF_ALU");
+
+        if (hasTransferArea) {
+          const pendingResponse = await checkPendingTransfers();
+          const { hasPending, count } = pendingResponse.data;
+
+          if (hasPending && count > 0) {
+            setShowPendingTransfersModal(true);
+            setPendingTransfersCount(count);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar transferências pendentes:", error);
+      }
+    }
+
     switch (userDecodeToken?.USU_SPE.role) {
       case "ESCOLA":
         Router.push(
@@ -202,7 +231,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     authChannel.postMessage("signIn");
   }
 
-  return <AuthContext.Provider value={{ signIn, signOut, user }}>{children}</AuthContext.Provider>;
+  const handleClosePendingModal = () => {
+    setShowPendingTransfersModal(false);
+  };
+
+  return (
+    <AuthContext.Provider value={{ signIn, signOut, user, showPendingTransfersModal, pendingTransfersCount }}>
+      {children}
+      <ModalPendingTransfers
+        show={showPendingTransfersModal}
+        count={pendingTransfersCount}
+        onClose={handleClosePendingModal}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);

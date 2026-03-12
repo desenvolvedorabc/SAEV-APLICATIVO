@@ -9,6 +9,10 @@ RUN yarn install --frozen-lockfile
 # Rebuild the source code only when needed
 FROM node:16.13.0-alpine AS builder
 WORKDIR /app
+
+ARG NODE_MEM_LIMIT=2048
+ENV NODE_OPTIONS="--max-old-space-size=${NODE_MEM_LIMIT}"
+
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 RUN yarn build && yarn install --production --ignore-scripts --prefer-offline
@@ -28,6 +32,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tracing.js ./tracing.js
 
 USER nextjs
 

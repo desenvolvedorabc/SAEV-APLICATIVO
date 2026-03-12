@@ -28,8 +28,10 @@ export function ContentFilterDataTransfers({ changeState, changeCounty, changeTy
   useEffect(() => {
     if(user){
 
-      if(user?.USU_SPE?.role === "ESTADO" || user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
+      if(user?.USU_SPE?.role === 'MUNICIPIO_ESTADUAL'){
         setTypeList(['ESTADUAL'])
+      } else if(user?.USU_SPE?.role === 'ESTADO'){
+        setTypeList(['ESTADUAL', 'MUNICIPAL'])
       } else if(user?.USU_SPE?.role === 'MUNICIPIO_MUNICIPAL'){
         setTypeList(['MUNICIPAL'])
       } else if(user?.USU_SPE?.role === 'ESCOLA' ){

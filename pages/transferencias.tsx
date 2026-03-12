@@ -8,6 +8,8 @@ import { ContentSectionTranfers } from "src/components/transfers/ContentSectionT
 import { ContentOptionsFilterTranfers } from "src/components/transfers/ContentOptionsFilterTranfers";
 import { ContentFilterDataTransfers } from "src/components/transfers/ContentFilterDataTransfers";
 import { parseCookies } from "nookies";
+import decode from "jwt-decode";
+import axios from "axios";
 import ModalAviso from "src/components/modalAviso";
 import ModalAvisoTexto from "src/components/modalAvisoTexto";
 import ModalConfirmacao from "src/components/modalConfirmacao";
@@ -375,6 +377,34 @@ Transferencias.getLayout = function getLayout(page: ReactElement) {
 
 export const getServerSideProps = withSSRAuth(
   async (ctx) => {
+    const cookies = parseCookies(ctx);
+    const token = cookies["__session"];
+
+    try {
+      const { user } = decode<{ user: { USU_SPE: { SPE_ID: string; role: string }; USU_MUN: { MUN_ID: string }; USU_ESC: { ESC_ID: string } } }>(token);
+      const speId = user?.USU_SPE?.SPE_ID;
+
+      const perfilResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/profiles/${speId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const areas: Array<{ ARE_NOME: string }> = perfilResponse?.data?.AREAS ?? [];
+      const hasTransferArea = areas.some((area) => area.ARE_NOME === "TRF_ALU");
+
+      if (!hasTransferArea) {
+        const role = user?.USU_SPE?.role;
+        let destination = "/";
+        if (role === "ESCOLA") destination = `/municipio/${user?.USU_MUN?.MUN_ID}/escola/${user?.USU_ESC?.ESC_ID}`;
+        else if (role === "MUNICIPIO_MUNICIPAL" || role === "MUNICIPIO_ESTADUAL") destination = `/municipio/${user?.USU_MUN?.MUN_ID}`;
+        else if (role === "ESTADO") destination = "/municipios";
+
+        return { redirect: { destination, permanent: false } };
+      }
+    } catch {
+      return { redirect: { destination: "/", permanent: false } };
+    }
+
     return {
       props: {
         url: process.env.NEXT_PUBLIC_API_URL,

@@ -31,6 +31,7 @@ export default function LancarResultados({url}) {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetIndex, setIsResetIndex] = useState(0);
   const [countFinished, setCountFinished] = useState(0);
+  const [hasError, setHasError] = useState(false);
 
   const { resetBreadcrumbs, handleUnClickBar } = useBreadcrumbContext();
 
@@ -61,43 +62,64 @@ export default function LancarResultados({url}) {
 
   async function loadStudents(keepSubject, keepStudent) {
     setIsLoading(true);
-    const releases = await getReleasesResults(
-      1,
-      99999,
-      "FINALIZADO",
-      "DESC",
-      county?.MUN_ID,
-      school?.ESC_ID,
-      schoolClass?.TURMA_TUR_ID,
-      null,
-      edition?.AVA_ID,
-      serie?.SER_ID,
-    );
-    let filterData = releases?.data?.filter(
-      (data) => !!data?.subjects[0]?.students?.length
-    );
-
-    filterData = filterData.filter(function (a) {
-      return (
-        !this[JSON.stringify(a?.subjects[0].DIS_NOME)] &&
-        (this[JSON.stringify(a?.subjects[0].DIS_NOME)] = true)
+    setHasError(false);
+    try {
+      const releases = await getReleasesResults(
+        1,
+        99999,
+        "FINALIZADO",
+        "DESC",
+        county?.MUN_ID,
+        school?.ESC_ID,
+        schoolClass?.TURMA_TUR_ID,
+        null,
+        edition?.AVA_ID,
+        serie?.SER_ID,
       );
-    }, Object.create(null));
+      
+      if (!releases?.data || releases.status === 401) {
+        setHasError(true);
+        setReleaseResults([]);
+        setSelectedReleaseSubject({} as ReleasesResults);
+        setIsLoadingData(false);
+        setIsLoading(false);
+        return;
+      }
 
-    setReleaseResults(filterData);
-    setSelectedReleaseSubject(filterData[0]);
-    if(!keepSubject){
-      setSubject(filterData[0]?.subjects[0]?.DIS_NOME ?? "");
-      setCountFinished(filterData[0]?.subjects[0]?.total?.finished ?? 0);
-    } 
-    // else{
-    //   filterData[0]?.subjects
-    // }
-    setIsLoadingData(false);
-    setIsLoading(false);
-    if(!keepStudent){
-      setStudentSelect("");
-      console.log('alterou')
+      let filterData = releases?.data?.filter(
+        (data) => !!data?.subjects[0]?.students?.length
+      );
+
+      filterData = filterData.filter(function (a) {
+        return (
+          !this[JSON.stringify(a?.subjects[0].DIS_NOME)] &&
+          (this[JSON.stringify(a?.subjects[0].DIS_NOME)] = true)
+        );
+      }, Object.create(null));
+
+      if (!filterData || filterData.length === 0) {
+        setHasError(true);
+        setReleaseResults([]);
+        setSelectedReleaseSubject({} as ReleasesResults);
+      } else {
+        setHasError(false);
+        setReleaseResults(filterData);
+        setSelectedReleaseSubject(filterData[0]);
+        if(!keepSubject){
+          setSubject(filterData[0]?.subjects[0]?.DIS_NOME ?? "");
+          setCountFinished(filterData[0]?.subjects[0]?.total?.finished ?? 0);
+        }
+      }
+    } catch (error) {
+      setHasError(true);
+      setReleaseResults([]);
+      setSelectedReleaseSubject({} as ReleasesResults);
+    } finally {
+      setIsLoadingData(false);
+      setIsLoading(false);
+      if(!keepStudent){
+        setStudentSelect("");
+      }
     }
   }
 
@@ -139,7 +161,13 @@ export default function LancarResultados({url}) {
           </div>
         )}
 
-        {!isLoading && selectedReleaseSubject?.subjects?.length && (
+        {hasError && !isLoading && (
+          <div className="d-flex align-items-center flex-column mt-5" style={{ color: '#666', fontSize: '16px' }}>
+            <p>Não existe nenhuma informação para estes filtros.</p>
+          </div>
+        )}
+
+        {!isLoading && !hasError && selectedReleaseSubject?.subjects?.length && (
           <>
             <ContentInfoDataAndOptionsSubject
               isSchoolClass={false}

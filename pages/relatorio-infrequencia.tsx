@@ -14,7 +14,6 @@ import { GraphReportInfrequencia } from "src/components/reportInfrequencia/Graph
 import { useGenearePdf } from "src/utils/generatePdf";
 import { TableReportInfrequenciaGrouped } from "src/components/reportInfrequencia/TableReportInfrequenciaGrouped";
 import { useAuth } from "src/context/AuthContext";
-import { useRouter } from "next/router";
 import { withSSRAuth } from "src/utils/withSSRAuth";
 
 export default function RelatorioInfrequencia() {
@@ -28,22 +27,15 @@ export default function RelatorioInfrequencia() {
   const [level, setLevel] = useState<string>()
   const [levelName, setLevelName] = useState<string>()
   const { handlePrint, componentRef } = useGenearePdf();
-  const [disableCounty, setDisableCounty]  = useState<boolean>(false)
-  const [disableSchool, setDisableSchool]  = useState<boolean>(false)
   const [order, setOrder]  = useState<string>("asc")
   const [selectedColumn, setSelectedColumn]  = useState<string>('name')
-  const router = useRouter();
 
   const {
-    year,
     epv,
     type,
     state,
     county,
     school,
-    changeCounty,
-    changeSchool,
-    addBreadcrumbs,
     isUpdateData,
     setIsUpdateData,
     handleClickBreadcrumb,
@@ -52,32 +44,6 @@ export default function RelatorioInfrequencia() {
     visibleBreadcrumbs,
     hideBreadcrumbs,
   } = useBreadcrumbContext()
-
-  // useEffect(() => {
-  //   if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Município"){
-  //     changeCounty({
-  //       AVM_MUN: {
-  //         MUN_ID: user?.USU_MUN?.MUN_ID,
-  //         MUN_NOME: user?.USU_MUN?.MUN_NOME,
-  //       },
-  //     });
-  //     addBreadcrumbs(user?.USU_MUN?.MUN_ID, user?.USU_MUN?.MUN_NOME, 'county');
-  //     setDisableCounty(true)
-  //   }
-  //   else if(user?.USU_SPE?.SPE_PER?.PER_NOME === "Escola"){
-  //     changeCounty({
-  //       AVM_MUN: {
-  //         MUN_ID: user?.USU_MUN?.MUN_ID,
-  //         MUN_NOME: user?.USU_MUN?.MUN_NOME,
-  //       },
-  //     });
-  //     setDisableCounty(true)
-  //     changeSchool({ ESC_ID: user?.USU_ESC?.ESC_ID, ESC_NOME: user?.USU_ESC?.ESC_NOME });
-  //     addBreadcrumbs(user?.USU_MUN?.MUN_ID, user?.USU_MUN?.MUN_NOME, 'county');
-  //     addBreadcrumbs(user?.USU_ESC?.ESC_ID, user?.USU_ESC?.ESC_NOME, 'school');
-  //     setDisableSchool(true)
-  //   }
-  // }, [user, year])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   async function loadData(page: number) {
@@ -90,22 +56,6 @@ export default function RelatorioInfrequencia() {
     const _school = mapBreadcrumb.find((data) => data.level === "school");
     const _serie = mapBreadcrumb.find((data) => data.level === "serie")
     const _schoolClass = mapBreadcrumb.find((data) => data.level === "schoolClass");
-
-    // let newUrl = `${router.pathname}?`
-      
-    // if(_year) newUrl = newUrl.concat('&year=' + _year?.id)
-    // if(epv) newUrl = newUrl.concat('&epv=' + epv)
-    // if(type) newUrl = newUrl.concat('&type=' + type)
-    // if(_state) newUrl = newUrl.concat('&state=' + _state?.id)
-    // if(_stateRegional) newUrl = newUrl.concat('&stateRegional=' + _stateRegional?.id)
-    // if(_county) {
-    //   newUrl = newUrl.concat('&countyId=' + _county?.id + '&countyName=' + _county?.name)
-    // }
-    // if(_countyRegional) newUrl = newUrl.concat('&countyRegional=' + _countyRegional?.id)
-    // if(_school) newUrl = newUrl.concat('&school=' + _school?.id)
-    // if(_schoolClass) newUrl = newUrl.concat('&schoolClass=' + _schoolClass?.id)
-     
-    // window.history.pushState({ path: newUrl }, '', newUrl);
 
     if(epv) {
       setLevel('county')

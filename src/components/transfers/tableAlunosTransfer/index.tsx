@@ -34,7 +34,8 @@ import { Loading } from "src/components/Loading";
 interface Data {
   ALU_ID: string;
   ALU_NOME: string;
-  ALU_INEP: number;
+  ALU_DT_NASC: string;
+  ALU_NOME_MAE: string;
   MUN_NOME: string;
   ESC_NOME: string;
   ESC_INEP: string;
@@ -46,7 +47,8 @@ interface Data {
 function createData(
   ALU_ID: string,
   ALU_NOME: string,
-  ALU_INEP: number,
+  ALU_DT_NASC: string,
+  ALU_NOME_MAE: string,
   MUN_NOME: string,
   ESC_NOME: string,
   ESC_INEP: string,
@@ -57,7 +59,8 @@ function createData(
   return {
     ALU_ID,
     ALU_NOME,
-    ALU_INEP,
+    ALU_DT_NASC,
+    ALU_NOME_MAE,
     MUN_NOME,
     ESC_NOME,
     ESC_INEP,
@@ -85,9 +88,14 @@ const headCells: readonly HeadCell[] = [
     label: "ALUNO",
   },
   {
-    id: "ALU_INEP",
+    id: "ALU_DT_NASC",
     numeric: false,
-    label: "NÚM. INEP",
+    label: "DT. NASCIMENTO",
+  },
+  {
+    id: "ALU_NOME_MAE",
+    numeric: false,
+    label: "NOME DA MÃE",
   },
   {
     id: "MUN_NOME",
@@ -256,7 +264,8 @@ export function TableAlunosTransfer({ escola, busca }) {
         createData(
           item.ALU_ID,
           item.ALU_NOME,
-          item.ALU_INEP,
+          item.ALU_DT_NASC,
+          item.ALU_NOME_MAE,
           item.MUN_NOME,
           item.ESC_NOME,
           item.ESC_INEP,
@@ -292,7 +301,12 @@ export function TableAlunosTransfer({ escola, busca }) {
             {row.ALU_ID}
           </TableCell>
           <TableCellBorder>{row.ALU_NOME}</TableCellBorder>
-          <TableCellBorder>{row.ALU_INEP}</TableCellBorder>
+          <TableCellBorder>
+            {row.ALU_DT_NASC
+              ? new Date(row.ALU_DT_NASC).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+              : "-"}
+          </TableCellBorder>
+          <TableCellBorder>{row.ALU_NOME_MAE || "-"}</TableCellBorder>
           <TableCellBorder>{row.MUN_NOME}</TableCellBorder>
           <TableCellBorder>{row.ESC_NOME}</TableCellBorder>
           <TableCellBorder>{row.ESC_INEP}</TableCellBorder>
